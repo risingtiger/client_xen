@@ -1,0 +1,72 @@
+
+
+<header class="viewheader">
+    <a class="left" @click="${()=>window.location.hash='machines'}"><span>‸</span><span>machines</span></a>
+    <div class="middle">
+        <h1>${_machine.store.name} ${_machine.mchId}</h1>
+    </div>
+    <div class="right">
+        <i class="icon-info" @click="${()=>{ this.ShowDetailsUI(); }}" style="font-size: 25px;position: relative;top: -3px; padding-right: 12px;"></i>
+        <i class="icon-edit1" @click="${()=>{ this.ShowEditUI(); }}" style="font-size: 27px;position: relative;top: -1px; padding-right: 7px;"></i>
+        <i class="icon-location" @click="${()=>{ this.ShowMap(); }}" style="font-size: 21px;position: relative;top: 0px; padding-right: 9px;"></i>
+        <i class="icon-graph" @click="${()=>{ this.ShowTelemetry(); }}" style="font-size: 18px;position: relative;top: 1px;"></i>
+    </div>
+</header>
+
+
+<div class="content">
+
+    <c-machine-statuses 
+        machineid="${_machine.id}" 
+        totalmeters="${JSON.stringify(_machine.meters)}" 
+        incrs="${JSON.stringify(_machine.incrs)}" 
+        timezone="${_machine.timezone}">
+    </c-machine-statuses>
+
+</div>
+
+
+${ _s.show_details !== 0 ? Lit_Html`
+
+    <c-templateload @closed="${()=> this.sc({show_details:0}) }"> 
+        <c-overlay top="34" width="xxl" height="824" closebtn="true" showheader="true">
+        <c-machine-details machine="${_machine.id}"></c-machine-details>
+        </c-overlay>
+    </templateload>
+
+` : '' }
+
+
+${ _s.show_edit !== 0 ? Lit_Html`
+
+    <c-templateload @closed="${()=> this.sc({show_edit:0}) }"> 
+        <c-overlay top="34" width="sm" height="624" closebtn="true" showheader="true">
+            <c-machine-edit machine=${_machine.id}></c-machine-edit>
+        </c-overlay>
+    </templateload>
+
+` : '' }
+
+
+${ _s.show_map !== 0 ? Lit_Html`
+
+    <c-templateload @closed="${()=> this.sc({show_map:0}) }"> 
+        <c-overlay top="34" width="xl" height="624" closebtn="true" showheader="true">
+            <c-machine-map 
+                paccount=${_machine.particle.account}
+                pid=${_machine.particle.id}
+                lat=${_machine.gps[0]}
+                lon=${_machine.gps[1]}
+                type=${_machine.gps[2]}
+                ts=${_machine.gps[3]}
+                >
+            </c-machine-map>
+        </c-overlay>
+    </templateload>
+
+` : '' }
+
+
+
+
+

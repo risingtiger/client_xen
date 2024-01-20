@@ -1,0 +1,37 @@
+
+
+c-machine-map {
+
+  & #map_info {
+    margin-top: 9px;
+    display: flex;
+    justify-content: space-evenly;
+
+
+    & > div {
+      width: 40%;
+      text-align: center;
+      padding: 11px 12px;
+      font-weight: bold;
+
+      & > ion-icon {
+        font-size: 24px;
+        position: relative;
+        color: #10aa4c;
+        top: 5px;
+      }
+      & > ion-icon.atstore {
+        color: green;
+      }
+      & > ion-icon.notatstore {
+        color: red;
+      }
+    }
+    & > div:nth-child(1) {
+    }
+    & > div:nth-child(2) {
+    }
+  }
+
+}
+

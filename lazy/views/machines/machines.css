@@ -1,0 +1,158 @@
+
+
+v-machines {
+
+    & form.filter {
+        display: flex;
+        position:relative;
+        padding: 7px 12px 7px 8px;
+        overflow-x: scroll;
+
+        & .filtertype {
+
+            flex: 3;
+            position: relative;
+
+            & input {
+                box-sizing: border-box;
+                text-align: left;
+                padding-left: 41px;
+                margin-right: 10px;
+                width: 160px;
+            }
+
+            & i {
+                position: absolute;
+                top: 5px;
+                left: 8px;
+                font-size: 20px;
+            }
+        }
+    }
+
+
+    & ul.items {
+
+        & li {
+
+            & .thumbnail img {
+                padding-right: 6px;
+            }
+
+            & .title {
+                width: 200px;
+            }
+
+            & .aux1 {
+                width: 240px;
+            }
+
+            & .aux2 {
+                width: 230px;
+            }
+
+            & .aux3 {
+                width: 220px;
+            }
+
+            & .aux4 {
+                width: 220px;
+            }
+
+            & h5 {
+                font-size: 14px;
+                font-weight: 700;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: clip;
+            }
+
+            & h6 {
+                font-size: 14px;
+                font-weight: 400;
+            }
+
+            & p {
+                font-weight: 300;
+                color: var(--textcolor-fade)
+            }
+        }
+    }
+}
+
+
+v-machines ion-item:nth-child(1) ion-label {
+    margin-top: 8;
+}
+
+v-machines ion-avatar {
+    width: 27px;
+    height: 27px;
+}
+
+v-machines h3 + p {
+    padding-left: 10px;
+}
+
+v-machines .isoffline_text {
+    color: red;
+}
+
+
+
+
+@media only screen and (max-device-width: 767px) {
+
+    v-machines {
+
+        & ul.items li  {
+
+
+            & .aux2 {
+                display: none;
+            }
+
+            & .aux3 {
+                display: none;
+            }
+
+            & .aux4 {
+                display: none;
+            }
+
+            & h5 {
+                width: 128px;
+            }
+        }
+    }
+}
+
+
+
+
+@media only screen and (min-device-width: 768px) {
+
+    v-machines {
+
+        & ul.items li  {
+
+            & .aux2 {
+                display: block;
+            }
+
+            & .aux3 {
+                display: block;
+            }
+
+            & .aux4 {
+                display: block;
+            }
+
+            & h5 {
+                width: 150px;
+            }
+        }
+    }
+}
+
+

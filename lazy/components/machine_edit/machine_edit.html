@@ -1,0 +1,87 @@
+
+
+  <span class="saveit"><a @click="${()=>this.Save()}">save</a></span>
+
+  <form name="machineedit">
+    <ul class="items">
+
+      <li>
+        <label class="text" for="isactive">Active</label>
+        <input class="apple-switch" type="checkbox" name="isactive" id="isactive" .checked="${_machine.state.active}">
+      </li>
+
+      <li>
+        <label class="text" for="mchid">Machine ID</label>
+        <input type="text" name="mchid" id="mchid" value="${_machine.mchId}">
+        <label class="action" for="mchid"><i class="icon-edit1"></i></label>
+      </li>
+
+      <li>
+        <label class="text" for="storename">Store Name</label>
+        <input type="text" name="storename" id="storename" value="${_machine.store.name}">
+        <label class="action" for="storename"><i class="icon-edit1"></i></label>
+      </li>
+
+      <li>
+        <label class="text" for="storeid">Store ID</label>
+        <input type="text" name="storeid" id="storeid" value="${_machine.store.id}">
+        <label class="action" for="storid"><i class="icon-edit1"></i></label>
+      </li>
+
+      <li class="meters">
+        <label class="text" for="incrs">Meters</label>
+        <input type="text" name="incrs_store" id="incrs_store" value="${_machine.incrs[0]}">
+        <input type="text" name="incrs_pure1" id="incrs_pure1" value="${_machine.incrs[1]}">
+        <input type="text" name="incrs_min1" id="incrs_min1" value="${_machine.incrs[2]}">
+        <input type="text" name="incrs_pure2" id="incrs_pure2" value="${_machine.incrs[3]}">
+        <input type="text" name="incrs_min2" id="incrs_min2" value="${_machine.incrs[4]}">
+        <label class="action" for="incrs"><i class="icon-edit1"></i></label>
+      </li>
+      <li class="meters_explain">
+        Meters (Store, Pure1, Min1, Pure2, Min2)
+      </li>
+
+    </ul>
+  </form>
+
+
+  <div class="savingstate_bg ${_s.savingState === 1 || _s.savingState === 2 ? 'active' : ''}"></div>
+
+  <div class="savingstate spinnerhldr ${_s.savingState === 1 ? 'active' : ''}">
+    <div class="spinner">
+      <div class="spinner-container container1">
+        <div class="circle1"></div>
+        <div class="circle2"></div>
+        <div class="circle3"></div>
+        <div class="circle4"></div>
+      </div>
+      <div class="spinner-container container2">
+        <div class="circle1"></div>
+        <div class="circle2"></div>
+        <div class="circle3"></div>
+        <div class="circle4"></div>
+      </div>
+      <div class="spinner-container container3">
+        <div class="circle1"></div>
+        <div class="circle2"></div>
+        <div class="circle3"></div>
+        <div class="circle4"></div>
+      </div>
+    </div>
+    <h4>Saving...</h4>
+  </div>
+
+
+  <div class="savingstate check ${_s.savingState === 2 ? 'active' : ''}">
+    <div class="checkcircle">
+      <i class="icon-checkcircle"></i>
+    </div>
+
+    <h4>Saved</h4>
+  </div>
+
+
+
+
+
+
