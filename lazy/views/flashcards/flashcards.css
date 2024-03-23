@@ -1,0 +1,62 @@
+
+
+v-finance {
+
+    & #calcs {
+
+        & table {
+            border-collapse: collapse
+        }
+
+        & td, th {
+            border: 0;
+            padding: 3px 4px;
+        }
+
+        
+        & th {
+            text-align: left;
+            border-bottom: 5px solid #9bdfee;
+        }
+
+        & th.monthname, & th.bucket, & th.budget {
+            width: 38px;
+            max-width: 38px;
+        }
+
+        & td.topcat {
+            font-weight: bold;
+        }
+
+        & td.current, & th.current {
+            background-color: #e1faff;
+        }
+
+        & td.bucket, & th.bucket {
+            background-color: #abf1ff;
+        }
+
+        & td.budget, & th.budget {
+            background-color: #caf6ff;
+        }
+
+        & td.bucket.transfer_state_1 {
+            background-color: #00a3c3;
+            color: white;
+        }
+        & td.bucket.transfer_state_2 {
+            background-color: #00a3c3;
+            color: white;
+        }
+
+        & tr.lastsubcat td {
+            padding-bottom: 17px;
+        }
+    }
+}
+
+
+
+
+
+

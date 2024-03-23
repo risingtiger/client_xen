@@ -1,0 +1,25 @@
+
+<header class="viewheader">
+    <div class="left"></div>
+    <div class="middle"><h1>Xen</h1></div>
+    <div class="right">&nbsp;</div>
+</header>
+
+<div class="content">
+
+    <div id="admin">
+
+        <h5 @click="${()=>this.adminetc('firestore_misc_update')}">firestore_misc_update</h5>
+        
+        <div style="height: 200px; overflow-y:scroll;">
+            ${Array.isArray(_s.admin_return_str) ? _s.admin_return_str.map((item, index) => Lit_Html`
+                <p>${item}</p>
+            `) : Lit_Html`
+                <p>${_s.admin_return_str}</p>
+            `}
+        </div>
+    </div>
+
+</div>
+
+

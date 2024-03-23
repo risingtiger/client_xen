@@ -1,0 +1,181 @@
+
+#keycatcher_w {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 10px 10px 10px;
+
+    & > input#keycatcher {
+        width: 100%;
+        box-sizing: border-box;
+        font-size: 14px;
+        color: #6b6b6b;
+        padding: 5px 2px 5px 7px;
+        border-color: #d9d9d9;
+        border-width: 1px;
+        border-style: solid;
+        border-radius: 6px;
+    }
+}
+
+#rawtransaction {
+    padding: 10px 10px 20px 10px;
+    border-radius: 6px;
+
+    & > .a_transaction {
+        padding: 9px 10px;
+        border-radius: 6px;
+
+        & .primary {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            padding-bottom: 7px;
+
+            & .date {
+                width: 22%;
+            }
+            & .longdesc {
+                width: 60%;
+                font-weight: 600;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            & .amount {
+                width: 18%;
+                text-align: right;
+            }
+            & .amount:before {
+                content: "$";
+            }
+        }
+
+        & .secondary {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+
+            & .cat {
+                width: 24%;
+                text-align: left;
+                border: 2px solid #16f0e0;
+                padding: 1px 7px 3px 7px;
+                border-radius: 6px;
+                background-color: #00daca;
+            }
+            & .source {
+                width: 18%;
+                text-align: center;
+                border: 2px solid #08cbf2;
+                padding: 1px 7px 3px 7px;
+                border-radius: 6px;
+                background-color: #00bee4;
+            }
+        }
+
+        & .tertiary {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+
+            & .note {
+                width: 100%;
+            }
+        }
+
+        & .anitem {
+            font-size: 17px;
+            color: gray;
+        }
+
+    }
+    & > .a_transaction.active {
+        background-color: #00accf;
+
+        & .anitem {
+            color: white;
+        }
+    }
+}
+
+#cats {
+    padding: 0 0 0 10px;
+
+    & .catparent {
+        display: block;
+        padding-bottom: 10px;
+
+        & h4 {
+            font-size: 16px;
+            padding-bottom: 4px;
+            padding-left: 1px;
+            font-weight: 400;
+        }
+
+        & .subcats {
+            flex-wrap: wrap;
+            display: flex;
+
+            & h6 {
+                height: 20px;
+                padding-top: 3px;
+                padding-left: 7px;
+                padding-right: 6px;
+                padding-bottom: 3px;
+                font-weight: 400;
+                color: white;
+                width: 75px;
+                overflow: hidden;
+                font-size: 15px;
+                background: #00c9ba;
+                margin-right: 5px;
+                margin-bottom: 5px;
+                border-radius: 6px;
+
+                & > .cathighlight {
+                display: inline-block;
+                height: 100%;
+                background-color: #05accf;
+                color: white;
+                font-weight: 500;
+                }
+            }
+            h6.hidden {
+                display: none;
+            }
+        }
+    }
+    & .catparent.hidden {
+        display: none;
+    }
+}
+
+.keyinput_indicator {
+    display: none;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    height: 30px;
+    box-sizing: border-box;
+    padding: 6px 8px 0px 12px;
+    border-radius: 6px;
+    background-color: rgb(237, 237, 237);
+
+    & > span {
+        font-size: 13px;
+    }
+}
+.keyinput_indicator.active {
+    display: block;
+}
+
+
+
+
+input#merchantedit {
+    padding-bottom: 30px;
+}
+
+
+
+

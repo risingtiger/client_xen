@@ -1,0 +1,32 @@
+
+
+header.viewheader {
+    background: white;
+    height: 57px;
+    box-shadow: 0 0 15px 0px rgb(0 0 0 / 11%);
+
+    /*
+    & .left {
+    width: 80%;
+    }
+    & .middle {
+    width: 10%;
+    }
+    & .right {
+    width: 10%;
+    }
+    */
+}
+
+
+.content {
+    padding: 20px;
+}
+
+
+
+
+
+
+
+

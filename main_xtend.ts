@@ -1,78 +1,91 @@
 
 
-(window as any).__APPINSTANCE = {
+import { LazyLoadT } from "../definitions.js";
 
+
+const INFO = {
+
+    name: "xen",
     firebase: {
-        project: 'purewatertech',
-        identity_platform_key: 'AIzaSyCdBd4FDBCZbL03_M4k2mLPaIdkUo32giI'
+        project: 'xenition',
+        identity_platform_key: 'AIzaSyDfXcwqyiRGGO6pMBsG8CvNEtDIhdspKRI'
     },
 
-    indexeddb_collections: ["machines", "users"]
-
+    indexeddb_collections: ["transactions"]
 };
 
 
 
 
-(window as any).__APPINSTANCE_VIEWS = [
+const LAZYLOADS:Array<LazyLoadT> = [
 
-    { path: "^index$", name: "index", dependencies:[], auth: [] },
 
-    { path: "^machine\/([0-9A-Za-z_]+)$", name: "machine", 
+    // VIEWS
+
+    {
+        type: "view",
+        urlmatch: "^home$",
+        name: "home",
+        instance: INFO.name,
+        dependencies:[],
+        auth: []
+    },
+
+    {
+        type: "view",
+        urlmatch: "^finance$",
+        name: "finance",
+        instance: INFO.name,
         dependencies:[
-            {what:"components", name: "machine_statuses"}, 
-            {what:"components", name: "overlay"},
-            {what:"components", name: "templateload"}
-        ], 
-        auth: ["admin", "store_manager", "scanner"] 
+            {type:"component", name: "ol"},
+        ],
+        auth: []
     },
-    { path: "^machines$", name: "machines", 
-        dependencies: [], 
-        auth: ["admin", "store_manager", "scanner"] 
-    },
-    { path: "^machinetelemetry\/([0-9A-Za-z_]+)$", name: "machinetelemetry", 
+
+    {
+        type: "view",
+        urlmatch: "^addtr$",
+        name: "addtr",
+        instance: INFO.name,
         dependencies:[
-            {what:"components", name: "graphing"}, 
-            {what: "components", name: "overlay"},
-            {what:"components", name: "templateload"}
-        ], 
-        auth: ["admin", "store_manager", "scanner"] 
+        ],
+        auth: []
     },
-    { path: "^mcards$", name: "mcards", 
+
+    {
+        type: "view",
+        urlmatch: "^flashcards$",
+        name: "flashcards",
+        instance: INFO.name,
         dependencies:[
-        ], 
-        auth: [] 
+        ],
+        auth: []
     },
+
+
+
+    // COMPONENTS
+
+    {
+        type: "component",
+        urlmatch: null,
+        name: "placeholder_component",
+        instance: INFO.name,
+        dependencies:[],
+        auth: []
+    },
+
+
+
+    // THIRDPARTY
+
+
+    // LIBS
 ];
 
 
 
 
-(window as any).__APPINSTANCE_COMPONENTS = [
+const INSTANCE = { INFO, LAZYLOADS };
 
-    { name: "machine_statuses", dependencies:[] },
-    { name: "machine_details", dependencies:[] },
-    { name: "machine_edit", dependencies:[] },
-    { name: "machine_map", dependencies:[] },
-
-];
-
-
-
-
-(window as any).__APPINSTANCE_THIRDPARTY = [
-
-
-];
-
-
-
-
-(window as any).__APPINSTANCE_LIBS = [
-
-
-];
-
-
-
-
+export default INSTANCE;

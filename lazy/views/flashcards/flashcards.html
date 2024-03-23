@@ -1,0 +1,23 @@
+
+
+<div class="content">
+
+    ${_flashcards.map(fc => Lit_Html`
+    <li>
+        <div class="thumbnail"><img src="${fc.url}"></div>
+
+	    <div class="aux">
+            <h5>${fl.term}</h5>
+            <p>
+                ${fc.tags.map(t => Lit_Html`<span class="flashcard_tag">${t}</span>`)}
+            </p>
+        </div>
+
+        <i class="icon-arrowright2 action"></i> 
+    </li>
+    `)}
+
+</div>
+
+
+

@@ -1,0 +1,137 @@
+
+
+<div class="content">
+
+    <div id="calcs">
+        <table>
+            <tr>
+                <th class="cat"><i class="icon-list" style="font-size: 13px;position: relative;top: 1px; left: 1px; padding-right: 0px;"></i></th>
+
+                ${_s.months.map((m,i) => Lit_Html`
+                    <th class="monthname ${i === _s.months.length-1 ? 'current' : ''}" @click="${(e)=>this.calcmonth_clicked(e)}" data-month_i="${i}">${m.toLocaleString('default', { month: 'short' })}</th>
+                `)}
+
+                <th class="budget"><i class="icon-piggy" style="color: #097287; font-size: 13.5px;position: relative;top: 0.5px;left: 1px; padding-right: 0px;"></i></th>
+                <th class="bucket"><i class="icon-bucket" style="color: #138ba3; font-size: 12px;position: relative;top: 1.5px; left: 1px; padding-right: 0px; "></i></th>
+            </tr>
+
+
+            ${_m.catcalcs.map((c,i) => Lit_Html`
+                <tr class="topcatrow">
+                    <td class="cat" @click="${(e)=>this.calccat_clicked(e)}" data-i="${i}">${c.cat.name}</td>
+
+                    ${_s.months.map((m,i) => Lit_Html`
+                    <td class="sum ${i === _s.months.length-1 ? 'current' : ''}">${Math.round(c.sums[i])}</td>
+                    `)}
+
+                    <td class="budget">${_m.cats[i].budget}</td>
+                    <td class="bucket">${_m.cats[i].bucket.val}</td>
+                </tr>
+
+                ${c.subs.map((cs,ii) => Lit_Html`
+                    <tr class="subcatrow ${ii === c.subs.length-1 ? 'lastsubcat' : ''}" data-catcalc_index="${i}" data-catcalc_sub_index="${ii}">
+                        <td class="cat sub" @click="${(e)=>this.calccat_clicked(e)}" data-i="${i}" data-ii="${ii}">${cs.cat.name}</td>
+
+                        ${_s.months.map((m,iii) => Lit_Html`
+                            <td class="sum sub ${iii === _s.months.length-1 ? 'current' : ''}">${Math.round(cs.sums[iii])}</td>
+                        `)}
+
+                        <td class="budget">${_m.cats[i].subs[ii].budget}</td>
+                        <td class="bucket transfer_state_${_m.cats[i].subs[ii].transfer_state}" @click="${(e)=>{ console.log("asdfasf"); this.bucket_amount_clicked(e); }}">${_m.cats[i].subs[ii].bucket.val}</td>
+                    </tr>
+                `)}
+            `)}
+
+            ${localStorage.getItem('user_email') === 'accounts@risingtiger.com' ? Lit_Html`
+                ${_m.groupcalcs.map((g,i) => Lit_Html`
+                    <tr class="">
+                        <td class="cat">${g.name}</td>
+                        ${_s.months.map((m,i) => Lit_Html`
+                            <td>${Math.round(g.sums[i])}</td>
+                        `)}
+                        <td></td>
+                        <td></td>
+                    </tr>
+                `)}
+            ` : ''}
+        </table>
+    </div>
+
+
+
+
+    <div id="transactions">
+        <table>
+            <tr>
+                <th class="date" @click="${()=>this.sort_transactions_by('ts', 'asc')}">date</th>
+                <th class="merchant" @click="${()=>this.sort_transactions_by('merchant', 'asc')}">merchant</i></th>
+                <th class="category" @click="${()=>this.sort_transactions_by('cat', 'asc')}">category</th>
+                <th class="amount" @click="${()=>this.sort_transactions_by('amount', 'asc')}">amount</th>
+                <th class="source" @click="${()=>this.sort_transactions_by('source', 'asc')}">source</th>
+                <th class="tags" @click="${()=>this.sort_transactions_by('tags', 'asc')}">tags</th>
+                <th class="notes" @click="${()=>this.sort_transactions_by('notes', 'asc')}">notes</th>
+            </tr>
+
+            ${_m.current_month_transactions.map((t,i) => Lit_Html`
+                <tr @click="${(e)=>this.transactionrow_clicked(e)}" data-id="${t.id}">
+                    <td class="date">${(new Date(t.ts*1000)).toLocaleDateString().slice(0,-5)}</td>
+                    <td class="merchant">${t.merchant.toLowerCase().slice(0,18)}</td>
+                    <td class="category">${t.cat.name.slice(0,9)}</td>
+                    <td class="amount">${Math.round(t.amount)}</td>
+                    <td class="source">${t.source.name}</td>
+                    <td class="tags">${t.tags.map(tag=>Lit_Html`<span>${tag}</span>`)}</td>
+                    <td class="notes">${t.notes.slice(0,9)}</td>
+                </tr>
+            `)}
+
+        </table>
+    </div>
+
+    <footer>
+
+        <a @click="${()=>window.location.hash='addtr'}"><i class="icon-checkcircle"></i>Categorize New</a>
+
+        ${localStorage.getItem('user_email') === 'accounts@risingtiger.com' ? Lit_Html`
+            <a @click="${()=>this.set_area('fam')}">Fam</a> &nbsp;
+            <a @click="${()=>this.set_area('pers')}">Pers</a> &nbsp;
+            <a @click="${()=>this.set_area('rtm')}">RTM</a> &nbsp;
+
+            <a @click="${()=>this.filter_by_source('barclay')}">Barclay Card</a> &nbsp;
+
+        ` : ''}
+
+        <a @click="${()=>{this.reset_except_area();this.parse_new_state();this.sc();}}">Reset</a> &nbsp;
+
+    </footer>
+
+</div>
+
+
+
+
+${ _s.transactiondetails.show_ui !== 0 ? Lit_Html`
+    <c-ol top="34" width="sm" height="full" @close="${()=> this.transactiondetails_close() }">
+        <div id="transactiondetails">
+            <h4>Transaction Details</h4>
+            <ul class="items">
+                <li><h5>Date</h5><p>${(new Date(_s.transactiondetails.t.ts*1000)).toLocaleDateString()}</p></li>
+                <li><h5>Merchant</h5><p>${_s.transactiondetails.t.merchant}</p></li>
+                <li><h5>Amount</h5><p>${_s.transactiondetails.t.amount}</p></li>
+                <li><h5>Category</h5><p>${_s.transactiondetails.t.cat.parent.area.name} :: ${_s.transactiondetails.t.cat.parent.name} :: ${_s.transactiondetails.t.cat.name}</p></li>
+                <li><h5>Source</h5><p>${_s.transactiondetails.t.source.name}</p></li>
+                <li><h5>Tags</h5><p>${_s.transactiondetails.t.tags.map(tag=>Lit_Html`<span>${tag}</span>`)}</p></li>
+                <li><h5>Note</h5><p>${_s.transactiondetails.t.note}</p></li>
+                <li><h5>ID</h5><p>${_s.transactiondetails.t.id}</p></li>
+            </ul>
+        </div>
+    </c-ol>
+` : ''}
+
+
+
+
+${ _s.bucket_transfer.show_ui !== 0 ? Lit_Html`
+    <c-ol top="34" width="sm" height="full" @close="${()=> this.bucket_closed() }">
+        <vp-finance-bucket @saved="${(e)=>this.bucket_saved(e)}" cat_from="${_s.bucket_transfer.fromcat.id}" cat_to="${_s.bucket_transfer.tocat.id}"></vp-finance-bucket>
+    </c-ol>
+` : ''}

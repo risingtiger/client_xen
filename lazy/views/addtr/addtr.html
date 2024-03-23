@@ -1,0 +1,64 @@
+
+<header class="viewheader">
+    <a class="left" @click="${()=>window.location.hash='finance'}"><span>‸</span><span>finance</span></a>
+    <div class="middle">
+        <h1>Categorize New ${_s.transactionindex+1} of ${_s.newcount}</h1>
+    </div>
+    <div class="right">
+        <a @click="${()=>{ this.reset_transaction(); }}" style="font-size: 17px;">reset</a>
+    </div>
+</header>
+
+<div class="content">
+
+    <div id="keycatcher_w">
+        <input id="keycatcher" type="email" spellcheck="false" inputmode="email"></input>
+    </div>
+
+    <div id="rawtransaction">
+        ${_s.rawtransactions.map((rawtransactions,i)=>Lit_Html`
+            <div class="a_transaction ${i === _s.focusedindex ? 'active' : ''}">
+                <div class="primary">
+                    <div class="anitem date">${(new Date(rawtransactions.ts*1000)).toLocaleDateString()}</div>
+                    <div class="anitem longdesc">${rawtransactions.long_desc}</div>
+                    <div class="anitem amount">${rawtransactions.amount.toFixed(2)}</div>
+                </div>
+                <div class="secondary">
+                    <div class="anitem cat">${rawtransactions.cat?.name || '...'}</div>
+                    <div class="anitem source">${rawtransactions.source?.name || ''}</div>
+                </div>
+                <div class="tertiary">
+                    <div class="anitem note">${rawtransactions.note}</div>
+                </div>
+            </div>
+        `)}
+    </div>
+
+    <div id="cats">
+        ${_cats.map(cat=>Lit_Html`
+            <div class="catparent">
+                <h4>${cat.name}</h4>
+                <div class="subcats">
+                    ${cat.subs.map(subcat=>Lit_Html`
+                        <h6>${subcat.name}</h6>
+                    `)}
+                </div>
+            </div>
+        `)}
+    </div>
+
+    <div class="keyinput_indicator active">
+        ${_s.keyinput_mode == 0 ? Lit_Html`
+            <span>type a category</span>
+        ` : ''}
+        ${_s.keyinput_mode == 1 ? Lit_Html`
+            <span>type a note</span>
+        ` : ''}
+        ${_s.keyinput_mode == 2 ? Lit_Html`
+            <span>split amount up to ${_s.splittotal.toFixed(2)}</span>
+        ` : ''}
+    </div>
+
+    <a @click="${()=> this.sync_latest()}">sync latest</a>
+</div>
+

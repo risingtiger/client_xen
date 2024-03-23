@@ -1,0 +1,53 @@
+
+c-finance-bucket {
+
+    height: 100%;
+
+    & #fromto {
+        padding-top: 17px;
+        display: flex;
+        justify-content: center;
+        margin-bottom: 10px;
+
+        & #from {
+            margin-right: 10px;
+        }
+
+        & #direction {
+            margin-left: 10px;
+            margin-right: 10px;
+
+            & .rightsignify {
+                font-size: 28px;
+                color: #00a3c3;
+            }
+        }
+        
+        & #to {
+            margin-left: 10px;
+        }
+
+        & #from, & #to {
+            width: 100px;
+            text-align: center;
+        }
+
+        & #from .value, & #to .value {
+            font-size: 21px;
+            font-weight: bold;
+        }
+
+        & #from .value span:nth-child(1), & #to .value span:nth-child(1) {
+            font-size: 14px;
+            position: relative;
+            display: inline-block;
+            padding-right: 3px;
+            top: -3px;
+            font-weight: normal;
+        }
+
+        & #from .label, & #to .label {
+            font-size: 12px;
+        }
+    }
+}
