@@ -38,6 +38,18 @@ const LAZYLOADS:Array<LazyLoadT> = [
         instance: INFO.name,
         dependencies:[
             {type:"component", name: "ol"},
+            {type:"component", name: "form"},
+            {type:"component", name: "in"}
+        ],
+        auth: []
+    },
+
+    {
+        type: "view",
+        urlmatch: "^addtr$",
+        name: "addtr",
+        instance: INFO.name,
+        dependencies:[
         ],
         auth: []
     },

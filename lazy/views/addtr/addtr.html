@@ -1,4 +1,5 @@
 
+<!--
 <header class="viewheader">
     <a class="left" @click="${()=>window.location.hash='finance'}"><span>‸</span><span>finance</span></a>
     <div class="middle">
@@ -8,27 +9,26 @@
         <a @click="${()=>{ this.reset_transaction(); }}" style="font-size: 17px;">reset</a>
     </div>
 </header>
+-->
 
 <div class="content">
 
-    <div id="keycatcher_w">
-        <input id="keycatcher" type="email" spellcheck="false" inputmode="email"></input>
-    </div>
 
     <div id="rawtransaction">
-        ${_s.rawtransactions.map((rawtransactions,i)=>Lit_Html`
+        ${_s.rawtransactions.map((rawtransaction,i)=>Lit_Html`
             <div class="a_transaction ${i === _s.focusedindex ? 'active' : ''}">
                 <div class="primary">
-                    <div class="anitem date">${(new Date(rawtransactions.ts*1000)).toLocaleDateString()}</div>
-                    <div class="anitem longdesc">${rawtransactions.long_desc}</div>
-                    <div class="anitem amount">${rawtransactions.amount.toFixed(2)}</div>
+                    <div class="anitem ofnumber">${_s.transactionindex+1} of ${_s.newcount}</div>
+                    <div class="anitem date">${(new Date(rawtransaction.ts*1000)).toLocaleDateString().slice(0,4)}</div>
+                    <div class="anitem longdesc">${rawtransaction.merchant}</div>
+                    <div class="anitem amount">${rawtransaction.amount.toFixed(2)}</div>
                 </div>
                 <div class="secondary">
-                    <div class="anitem cat">${rawtransactions.cat?.name || '...'}</div>
-                    <div class="anitem source">${rawtransactions.source?.name || ''}</div>
+                    <div class="anitem cat">${ rawtransaction.cat_name || '...'}</div>
+                    <div class="anitem source">${(_sources.find(s=> s.id === rawtransaction.source_id)).name}</div>
                 </div>
                 <div class="tertiary">
-                    <div class="anitem note">${rawtransactions.note}</div>
+                    <div class="anitem note">${rawtransaction.note}</div>
                 </div>
             </div>
         `)}
@@ -40,13 +40,14 @@
                 <h4>${cat.name}</h4>
                 <div class="subcats">
                     ${cat.subs.map(subcat=>Lit_Html`
-                        <h6>${subcat.name}</h6>
+                        <h6 @click="${(e)=>this.setcat_from_click(e)}" data-id="${subcat.id}">${subcat.name}</h6>
                     `)}
                 </div>
             </div>
         `)}
     </div>
 
+    <!--
     <div class="keyinput_indicator active">
         ${_s.keyinput_mode == 0 ? Lit_Html`
             <span>type a category</span>
@@ -58,7 +59,12 @@
             <span>split amount up to ${_s.splittotal.toFixed(2)}</span>
         ` : ''}
     </div>
+    -->
 
     <a @click="${()=> this.sync_latest()}">sync latest</a>
+
+    <div id="keycatcher_w">
+        <input id="keycatcher" type="email" spellcheck="false" inputmode="email"></input>
+    </div>
 </div>
 

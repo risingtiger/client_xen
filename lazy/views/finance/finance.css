@@ -1,4 +1,7 @@
 
+
+
+
 div.content {
     display: flex;
     justify-content: space-between;
@@ -30,12 +33,23 @@ div.content {
 #calcs {
     flex: 22;
 
+    & p.tempe {
+        position: absolute;
+        top: 100px;
+        left: 200px;
+        margin: 0;
+        padding: 30px;
+        background-color: #f0f0f0;
+        box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.2);
+    }
+
+
     & th.monthname {
         width: 42px;
         max-width: 42px;
     }
 
-    & th.bucket, & th.budget {
+    & th.avgmed, & th.budget {
         width: 47px;
         max-width: 47px;
     }
@@ -48,7 +62,7 @@ div.content {
         background-color: #e5fff4;
     }
 
-    & th.bucket, & td.bucket {
+    & th.avgmed, & td.avgmed {
         background-color: #abf1ff;
     }
 
@@ -65,17 +79,17 @@ div.content {
     }
 
 
-    & td.bucket {
+    & td.avgmed {
         -webkit-tap-highlight-color: rgba(255, 255, 255, 0);
         transition-duration: 0.7s;
         transition-property: background-color, color;
     }
 
-    & td.bucket.transfer_state_1 {
+    & td.avgmed.transfer_state_1 {
         background-color: #00a3c3;
         color: white;
     }
-    & td.bucket.transfer_state_2 {
+    & td.avgmed.transfer_state_2 {
         background-color: #00a3c3;
         color: white;
     }
@@ -121,18 +135,77 @@ div.content {
 
 footer {
     position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
+    bottom: 5px;
+    right: 5px;
+    border-radius: 8px;
+    width: 6px;
     display: flex;
     justify-content: space-between;
     padding: 0 10px;
     background-color: #f0f0f0;
-    border-top: 1px solid #d0d0d0;
     font-size: 12px;
     color: #666;
-    height: 30px;
+    /* height: 30px; */
 }
+
+
+#catsview {
+    position: relative;
+    padding: var(--padding-container);
+    box-sizing: border-box;
+    height: 90%;
+
+    &
+    h3 {
+        margin: 0 0 var(--padding-section-vert) 0;
+    padding: 3px 0 5px 0;
+    font-size: 16px;
+    border-bottom: 1px solid #e2e2e2;
+    }
+
+    & .parent {
+    padding: 0px 0 var(--padding-section-vert) 0;
+
+        &
+    h4 {
+            margin: 0;
+    padding: 0 0 var(--padding-minipad) 0;
+
+            &
+    a {
+                color: var(--actioncolor);
+    text-decoration: none;
+    display: inline-block;
+            }
+        }
+
+        & .sub {
+    padding: 0 0 0 0;
+    display: flex;
+    flex-wrap: wrap;
+
+            &
+    h6 {
+                width: 110px;
+    padding-bottom: 7px;
+    font-weight: 400;
+    box-sizing: border-box;
+    background: #bde5f1;
+    margin: 0 5px 5px 0;
+    padding: 3px 6px 5px 7px;
+    border-radius: 5px;
+            }
+        }
+    }
+;
+    margin-bottom: var(--padding-section-vert);
+    overflow-y: scroll;
+    border-bottom: 1px solid #d8d8d8;
+}
+
+    #catsview + button {
+        margin: 0 0 0 var(--padding-container);
+    }
 
 
 

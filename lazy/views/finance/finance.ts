@@ -1,33 +1,205 @@
 
 
+import { str } from "../../../../definitions.js"
 
-import { bool } from "../../../../definitions.js"
+import { AreaT, CatT, TagT, SourceT, TransactionT, CatCalcsT, TotalsT, SummaryT, FilterT } from '../../../finance_defs.js'
+import { knit_all, get_months, filter_transactions, sort_transactions, current_month_of_filtered_transactions, catcalcs, totals, summary } from '../../libs/finance_funcs.js'
 
-import { AreaT, CatT, TagT, SourceT, TransactionT, CatCalcsT, GroupCalcsT, FilterT } from '../../../finance_defs.js'
-import { knit_all, get_months, filter_transactions, sort_transactions, current_month_of_filtered_transactions, catcalcs } from '../../libs/finance_funcs.js'
-import './parts/bucket/bucket.js'
-
-declare var Firestore:any
+declare var FetchLassie:any
 declare var Lit_Render: any;
 declare var Lit_Html: any;
+declare var Lit_Directive: any;
+//declare var Lit_directive: any;
+declare var Lit_noChange: any;
 declare var SetDistCSS: any;
 
 
 
 
+enum KeyE { NONE, LISTEN_FOR_AREA }
 type State = {
     filter: FilterT,
     months: Date[],
-    bucket_transfer: { fromcat: CatT|null, tocat: CatT|null, show_ui: 0|1|2 },
-    transactiondetails: { show_ui: 0|1|2, t: TransactionT|null }
+    transactiondetails: { show_ui: 0|1|2, t: TransactionT|null },
+    catsview: { show_ui: 0|1|2, cats_with_deleteflag: {id:str, name:string}[] },
+    key: { listen_for: KeyE  },
+    tempe_showui: AnimateioStateE,
+    bumpe_showui: AnimateioStateE
 }
 
+
+
+
+enum AnimateioStateE  { PRELIM, INERT, NONE, HIDE, STEP1, STEP2 }
+enum AnimateioStylesE { FADE, SLIDE, PULSE }
+
+type AnimateioStyleT = {
+    name: string,
+    props: any[],
+    opts: KeyframeEffectOptions
+}
+
+const animateio_styles:AnimateioStyleT[] = [
+    {
+        name: "fade",
+        props: [
+            {opacity: "0", transform: "scale(1) translate3d(0px, 0px, 0px)"},
+            {opacity: "1", transform: "scale(2) translate3d(80px, 0px, 0px)"}
+        ],
+        opts: {
+            duration: 420,
+            easing: "cubic-bezier(.18,.24,.15,1)",
+            fill: "both",
+            iterations: 1,
+        }
+    },
+    {
+        name: "slide",
+        props: [
+            {transform: "scale(1)"},
+            {transform: "scale(2)"},
+        ],
+        opts: {
+            duration: 420,
+            easing: "ease-in-out",
+            fill: "both",
+            iterations: 1,
+        }
+    },
+    {
+        name: "pulse",
+        props: [
+            {transform: "scale(1)"},
+            {transform: "scale(0.3)"},
+            {transform: "scale(1)"},
+        ],
+        opts: {
+            duration: 420,
+            easing: "ease-in-out",
+            fill: "both",
+            iterations: 1,
+        }
+    }
+]
 
 
 
 let distcss = `{--distcss--}`;
 
 
+class Animateio extends Lit_Directive {
+
+    state = AnimateioStateE.PRELIM;
+    initial_state = AnimateioStateE.HIDE;
+    animatehandle:any = null;
+    element:HTMLElement = document.body;
+    styleindex:AnimateioStylesE = AnimateioStylesE.FADE;
+    keyframe_effects: KeyframeEffect;
+
+    constructor(part: any) {
+        super(part);
+        this.element = part.element
+        console.log("animateio constructor")
+
+        this.element.style.display = "none"
+        this.element.style.visibility = "invisible"
+    }
+
+    update(part: any, [new_state, styleindex]: any) {
+
+        console.log("animateio update")
+
+        if ( (this.state === AnimateioStateE.INERT && new_state <= AnimateioStateE.HIDE ) || new_state === this.state) {
+            console.log("animateio none")
+            return Lit_noChange;
+        }
+
+
+        if (this.state === AnimateioStateE.PRELIM) {
+
+            console.log("prelim")
+            this.state = AnimateioStateE.INERT
+            this.initial_state = new_state
+
+            if (this.initial_state === AnimateioStateE.NONE) {
+                part.element.style.display = "none"
+                part.element.style.visibility = "inherit"
+            } else if (this.initial_state === AnimateioStateE.HIDE) {
+                part.element.style.visibility = "hidden"
+                part.element.style.display = "inherit"
+            }
+
+        } else if (this.state === AnimateioStateE.INERT) {
+
+            console.log("inert")
+
+            this.keyframe_effects = new KeyframeEffect(
+                part.element,
+                animateio_styles[styleindex].props,
+                animateio_styles[styleindex].opts
+            )
+
+            this.animatehandle = new Animation(this.keyframe_effects, document.timeline);
+
+            this.animatehandle.onfinish = this.finished.bind(this)
+
+            this.state = this.initial_state
+        }
+
+
+        if (this.state === AnimateioStateE.HIDE && new_state > AnimateioStateE.HIDE) {
+            console.log("show visibility")
+            this.state = new_state
+            part.element.style.visibility = "visible";
+            this.startanim(this.animatehandle)
+
+        } else if (this.state === AnimateioStateE.NONE && new_state > AnimateioStateE.HIDE) {
+            console.log("show block")
+            this.state = new_state
+            part.element.style.display = "block";
+            part.element.offsetHeight; // trigger reflow
+            this.startanim(this.animatehandle)
+
+        } else if (this.state == AnimateioStateE.STEP1 && ( new_state === AnimateioStateE.NONE || new_state === AnimateioStateE.HIDE ) ) {
+            console.log("animate back")
+            this.state = new_state
+            this.animatehandle!.reverse()
+
+        } else if (this.state == AnimateioStateE.STEP1 && new_state === AnimateioStateE.STEP2 ) {
+            console.log("animate from step 1 to step 2")
+            this.state = new_state
+            this.animatehandle!.play()
+
+        } else if (this.state == AnimateioStateE.STEP2 && new_state === AnimateioStateE.STEP1 ) {
+            console.log("animate from step 2 to step 1")
+            this.state = new_state
+            this.animatehandle!.reverse()
+        }
+
+        return this.state;
+    }
+
+
+    startanim(animatehandle:Animation) {
+        animatehandle.playbackRate = 1
+        animatehandle.currentTime = 0
+        animatehandle.play()
+    }
+
+    finished() {
+
+        if(this.animatehandle.currentTime === 0) {
+            console.log("finished animation back to start")
+            if (this.state === AnimateioStateE.HIDE) {
+                this.element.style.visibility = "hidden"
+            } else if (this.state === AnimateioStateE.NONE) {
+                this.element.style.display = "none"
+            }
+        }
+    }
+}
+
+//const animateio = Lit_directive(Animateio);
 
 
 class VFinance extends HTMLElement {
@@ -44,7 +216,8 @@ m:{
     filtered_transactions:TransactionT[], 
     current_month_transactions:TransactionT[], 
     catcalcs:CatCalcsT[],
-    groupcalcs: GroupCalcsT[]
+    totals: TotalsT,
+    summary: SummaryT,
 }
 
 
@@ -54,10 +227,13 @@ constructor() {
     super(); 
 
     this.s = {
-        filter: { area: null, parentcat:null, cat: null, source: null, tags: null, daterange: null, merchant: null, note: null, amountrange: null },
+        filter: { area: null, parentcat:null, cat: null, cattags: [1,2,3], source: null, tags: null, daterange: null, merchant: null, note: null, amountrange: null },
         months: [],
-        bucket_transfer: { fromcat: null, tocat: null, show_ui: 0 },        
-        transactiondetails: { show_ui: 0, t: null }
+        transactiondetails: { show_ui: 0, t: null },
+        catsview: { show_ui: 0, cats_with_deleteflag: [] },
+        key: { listen_for: KeyE.NONE },
+        tempe_showui: AnimateioStateE.NONE,
+        bumpe_showui: AnimateioStateE.HIDE
     }
 
     this.m = {
@@ -69,14 +245,8 @@ constructor() {
         filtered_transactions: [],
         current_month_transactions: [],
         catcalcs: [],
-        groupcalcs: [
-            {
-                name: "fokes",
-                parentcats: ["personal","supplies"],
-                subcats: ["family:laura","family:rent"],
-                sums: []
-            }
-        ]
+        totals: { sums: [], budget: 0, med: 0, avg: 0 },
+        summary: { bucketin: 0, bucket_budget_diff: 0, bucket_sum_diff: 0, savings: 0 }
     }
 
     this.shadow = this.attachShadow({mode: 'open'});
@@ -89,8 +259,28 @@ constructor() {
 
 async connectedCallback() {
 
-    let res = await Firestore.Retrieve(['areas', 'cats', 'tags', 'sources', 'transactions']) 
-    let k = knit_all(res[0], res[1], res[2], res[3], res[4])
+    await this.grabfresh()
+
+    document.addEventListener('keydown', this.handle_keydown.bind(this))
+
+    this.dispatchEvent(new Event('hydrated'))
+}
+
+
+
+
+disconnectedCallback() {
+    document.removeEventListener('keydown', this.handle_keydown.bind(this))
+}
+
+
+
+
+grabfresh() { return new Promise(async (res,_rej)=> {
+
+    let results = await FetchLassie('/api/xen/finance/grab_em')
+
+    let k = knit_all(results.areas, results.cats, results.tags, results.sources, results.transactions)
 
     this.m.areas = k.areas
     this.m.cats = k.cats
@@ -98,16 +288,17 @@ async connectedCallback() {
     this.m.sources = k.sources
     this.m.transactions = k.transactions
 
-    this.s.filter.area = this.m.areas.find(area => area.name === "fam") as AreaT
+    if (this.s.filter.area === null) 
+        this.s.filter.area = this.m.areas.find(area => area.name === 'fam') as AreaT
 
-    this.reset_except_area()
+    this.set_default_except_area()
     
     this.parse_new_state()
 
     this.sc()
 
-    this.dispatchEvent(new Event('hydrated'))
-}
+    res(1)
+})}
 
 
 
@@ -116,14 +307,15 @@ parse_new_state() {
     this.s.filter.daterange = [this.s.months[0], this.s.months[this.s.months.length-1]]
     this.m.filtered_transactions = filter_transactions(this.m.transactions, this.s.filter)
     this.m.current_month_transactions = current_month_of_filtered_transactions(this.m.filtered_transactions, this.s.months[this.s.months.length-1])
-    this.m.catcalcs = catcalcs(this.m.current_month_transactions, this.s.filter.area as AreaT, this.m.cats, this.s.months)
-    this.catcalc_custom_groups();
+    this.m.catcalcs = catcalcs(this.m.current_month_transactions, this.s.filter.area as AreaT, this.s.filter.cattags, this.m.cats, this.s.months)
+    this.m.totals = totals(this.m.catcalcs, this.s.filter)
+    this.m.summary = summary(this.m.totals, this.s.filter.area!)
 }
 
 
 
 
-reset_except_area() {
+set_default_except_area() {
 
     const thismonth = new Date()
     thismonth.setDate(1)
@@ -134,13 +326,14 @@ reset_except_area() {
     this.s.filter.parentcat = null; this.s.filter.cat = null; this.s.filter.source = null;
     this.s.filter.tags = null; this.s.filter.daterange = null; this.s.filter.merchant = null;
     this.s.filter.note = null; this.s.filter.amountrange = null;
+    this.s.filter.cattags = [1,2,3]
 }
 
 
 
 
 set_area(areaname:string) {
-    this.reset_except_area()
+    this.set_default_except_area()
     this.s.filter.area = this.m.areas.find(area => area.name === areaname) as AreaT
     this.parse_new_state()
     this.sc()
@@ -158,44 +351,18 @@ filter_by_source(sourcename:string) {
 
 
 
-sort_transactions_by(sort_by:string, sort_direction:string) {
-    this.m.current_month_transactions = sort_transactions(this.m.current_month_transactions, sort_by, sort_direction)
+filter_by_cattag(tags:number[]) {
+    this.s.filter.cattags = tags
+    this.parse_new_state()
     this.sc()
 }
 
 
 
 
-catcalc_custom_groups() {
-
-    for(const customgroup of this.m.groupcalcs) {
-        customgroup.sums = Array(this.s.months.length).fill(0)
-
-        const customgroup_subcats = customgroup.subcats.map(sc => {
-            let x = sc.split(":");
-            return { parent: x[0], sub: x[1] }
-        })
-
-        for(const catcalc of this.m.catcalcs) {
-
-            if (customgroup.parentcats.includes(catcalc.cat.name)) {
-                for(let i=0; i<customgroup.sums.length; i++) {
-                    customgroup.sums[i] += catcalc.sums[i]
-                }
-            }
-
-            for(const customgroup_subcat of customgroup_subcats) {
-                if (catcalc.cat.name === customgroup_subcat.parent) {
-                    const catcalc_sub = catcalc.subs!.find(sub => sub.cat.name === customgroup_subcat.sub)
-
-                    for(let i=0; i<customgroup.sums.length; i++) {
-                        customgroup.sums[i] += catcalc_sub!.sums[i]
-                    }
-                }
-            }
-
-        }
-    }
+sort_transactions_by(sort_by:string, sort_direction:string) {
+    this.m.current_month_transactions = sort_transactions(this.m.current_month_transactions, sort_by, sort_direction)
+    this.sc()
 }
 
 
@@ -250,29 +417,11 @@ calccat_clicked(e:MouseEvent) {
 
 
 
-async bucket_amount_clicked(e:any) {
+async ynab_sync_categories() {
 
-    const el = e.currentTarget!.closest("[data-catcalc_sub_index]")
-    const cat_index = Number(el.dataset.catcalc_index)
-    const subcat_index = Number(el.dataset.catcalc_sub_index)
-    const cat = this.m.cats[cat_index].subs![subcat_index]
+    const r = await FetchLassie('/api/xen/finance/ynab_sync_categories')
 
-    let transfer_from_cat:CatT|null = null
-
-    for(const c of this.m.cats) {
-        const cat_ = c.subs?.find((c:any) => c.transfer_state === 1)
-        if(cat_) { transfer_from_cat = cat_; break }
-    }
-
-    if (transfer_from_cat) {
-        cat.transfer_state = 2
-        this.s.bucket_transfer.tocat = cat
-        this.s.bucket_transfer.show_ui = 1
-
-    } else {
-        cat.transfer_state = 1
-        this.s.bucket_transfer.fromcat = cat
-    }
+    this.s.catsview.cats_with_deleteflag = r.cats_with_deleteflag
 
     this.sc()
 }
@@ -280,30 +429,39 @@ async bucket_amount_clicked(e:any) {
 
 
 
-async bucket_saved(e:any) {
+async handle_keydown(e:KeyboardEvent) {
 
-    this.s.bucket_transfer.fromcat!.bucket.val = e.detail.fromnewval
-    this.s.bucket_transfer.tocat!.bucket.val = e.detail.tonewval
-
-    this.sc()
-}
-
-
-
-
-async bucket_closed(_e:Event) {
-
-    this.s.bucket_transfer.show_ui = 0; 
-
-    this.sc();
-
-    setTimeout(() => {
-        this.s.bucket_transfer.fromcat!.transfer_state = 0
-        this.s.bucket_transfer.tocat!.transfer_state = 0
+    if ( this.s.key.listen_for === KeyE.NONE && e.key === 'r') {
+        this.set_default_except_area()
+        this.parse_new_state()
         this.sc()
-    }, 1000)
-}
+    } 
 
+    else if ( this.s.key.listen_for === KeyE.NONE && e.key === 's') {
+        this.grabfresh()
+    }
+
+    else if ( this.s.key.listen_for === KeyE.NONE && e.key === 'c') {
+        this.s.catsview.show_ui = this.s.catsview.show_ui === 1 ? 2 : 1
+        this.sc()
+    }
+
+    else if ( this.s.key.listen_for === KeyE.NONE && e.key === 'a') {
+        this.s.key.listen_for = KeyE.LISTEN_FOR_AREA
+    } 
+
+    else if ( this.s.key.listen_for === KeyE.LISTEN_FOR_AREA) {
+
+        if (e.key === '6') 
+            this.set_area('fam')
+        else if (e.key === '7')
+            this.set_area('pers')
+        else if (e.key === '8')
+            this.set_area('rtm')
+       
+        this.s.key.listen_for = KeyE.NONE
+    }
+}
 
 
 

@@ -1,93 +1,93 @@
 
 #keycatcher_w {
-    width: 100%;
     box-sizing: border-box;
-    padding: 10px 10px 10px 10px;
+    
 
-    & > input#keycatcher {
-        width: 100%;
-        box-sizing: border-box;
-        font-size: 14px;
-        color: #6b6b6b;
-        padding: 5px 2px 5px 7px;
-        border-color: #d9d9d9;
-        border-width: 1px;
-        border-style: solid;
-        border-radius: 6px;
+    & >
+    input#keycatcher {
+        width: 60px;
+    box-sizing: border-box;
+    font-size: 14px;
+    color: #6b6b6b;
+    padding: 5px 2px 5px 7px;
+    border-color: #d9d9d9;
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 6px;
     }
+;
+    position: absolute;
+    top: 67px;
+    right: 10px;
 }
 
 #rawtransaction {
-    padding: 10px 10px 20px 10px;
-    border-radius: 6px;
 
     & > .a_transaction {
-        padding: 9px 10px;
-        border-radius: 6px;
+        padding: 7px 10px;
+        
 
         & .primary {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            padding-bottom: 7px;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: ;
+        padding-bottom: 7px;
+
+            & .ofnumber {
+        padding-right: 8px;
+            }
 
             & .date {
-                width: 22%;
+        padding-right: 8px;
             }
             & .longdesc {
-                width: 60%;
-                font-weight: 600;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
             }
             & .amount {
-                width: 18%;
-                text-align: right;
+        width: 18%;
+        text-align: right;
             }
-            & .amount:before {
+            & .amount:
+        before {
                 content: "$";
             }
         }
 
         & .secondary {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
 
             & .cat {
-                width: 24%;
-                text-align: left;
-                border: 2px solid #16f0e0;
-                padding: 1px 7px 3px 7px;
-                border-radius: 6px;
-                background-color: #00daca;
-            }
+        width: 24%;
+        text-align: left;
+        /* border: 1px solid #ffffffad; */
+        /* padding: 1px 7px 3px 7px; */
+        /* border-radius: 6px; */
+        }
             & .source {
-                width: 18%;
-                text-align: center;
-                border: 2px solid #08cbf2;
-                padding: 1px 7px 3px 7px;
-                border-radius: 6px;
-                background-color: #00bee4;
-            }
+        width: 18%;
+        text-align: center;
+        /* border: 1px solid #ffffffb3; */
+        /* padding: 1px 7px 3px 7px; */
+        /* border-radius: 6px; */
+        }
         }
 
         & .tertiary {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
 
             & .note {
-                width: 100%;
+        width: 100%;
             }
         }
-
-        & .anitem {
-            font-size: 17px;
-            color: gray;
-        }
-
+    ;
+        margin-bottom: 10px;
     }
     & > .a_transaction.active {
         background-color: #00accf;
@@ -106,10 +106,10 @@
         padding-bottom: 10px;
 
         & h4 {
-            font-size: 16px;
+            font-size: 14px;
             padding-bottom: 4px;
             padding-left: 1px;
-            font-weight: 400;
+            font-weight: 600;
         }
 
         & .subcats {
@@ -119,14 +119,14 @@
             & h6 {
                 height: 20px;
                 padding-top: 3px;
-                padding-left: 7px;
+                padding-left: 6px;
                 padding-right: 6px;
-                padding-bottom: 3px;
+                padding-bottom: 2px;
                 font-weight: 400;
                 color: white;
                 width: 75px;
                 overflow: hidden;
-                font-size: 15px;
+                font-size: 14px;
                 background: #00c9ba;
                 margin-right: 5px;
                 margin-bottom: 5px;

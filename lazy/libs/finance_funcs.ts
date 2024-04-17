@@ -2,7 +2,7 @@
 
 
 import { int } from "../../../definitions.js"
-import { AreaT, CatT, TagT, SourceT, TransactionT, CatCalcsT, FilterT } from '../../finance_defs'
+import { AreaT, CatT, TagT, SourceT, TransactionT, CatCalcsT, TotalsT, SummaryT, FilterT } from '../../finance_defs'
 
 
 
@@ -34,14 +34,14 @@ function knit_areas(raw_areas:any) : AreaT[] {
 
 function knit_cats(raw_areas:any, raw_cats:any) : CatT[] {
 
-    const cats = raw_cats.filter((raw_cat:any) => raw_cat.area._path.segments[1] !== "null" && raw_cat.parent._path.segments[1] == "null").map((raw_cat:any) => {
+    const cats = raw_cats.filter((raw_cat:any) => raw_cat.area !== null && raw_cat.parent == null).map((raw_cat:any) => {
         return {
             id: raw_cat.id,
             area: raw_areas.find((area:AreaT) => area.id === raw_cat.area._path.segments[1]) as AreaT,
-            bucket: raw_cat.bucket,
             budget: raw_cat.budget,
             name: raw_cat.name,
             parent:null,
+            tags: raw_cat.tags,
             subs: [],
             ts: raw_cat.ts,
             transfer_state: 0
@@ -49,23 +49,19 @@ function knit_cats(raw_areas:any, raw_cats:any) : CatT[] {
     })
 
     cats.forEach((cat:CatT) => {
-        cat.subs = raw_cats.filter((raw_cat:any) => raw_cat.parent._path.segments[1] === cat.id).map((raw_cat:any) => {
+        cat.subs = raw_cats.filter((raw_cat:any) => raw_cat.parent !== null && raw_cat.parent._path.segments[1] === cat.id).map((raw_cat:any) => {
             return {
                 id: raw_cat.id,
                 area: null,
-                bucket: raw_cat.bucket,
                 budget: raw_cat.budget,
                 name: raw_cat.name,
                 parent: cat,
+                tags: raw_cat.tags,
                 subs: null,
                 ts: raw_cat.ts,
                 transfer_state: 0
             }
         })
-
-        cat.bucket.val = cat.subs!.reduce((acc:number, subcat:CatT) => {   return acc + subcat.bucket.val!   }, 0)
-
-        cat.budget = cat.subs!.reduce((acc:number, subcat:CatT) => {   return acc + subcat.budget!   }, 0)
 
         cat.subs!.sort((a:CatT, b:CatT) => a.name.localeCompare(b.name))
     })
@@ -163,6 +159,7 @@ function filter_transactions(transactions:TransactionT[], filter:FilterT) : Tran
 
         if (filter.area && transaction.area !== filter.area) { return false }
         if (filter.cat && transaction.cat !== filter.cat) { return false }
+        if (filter.cattags && !transaction.cat.tags.some((t:number) => filter.cattags.includes(t))) { return false }
         if (filter.parentcat && transaction.cat.parent !== filter.parentcat) { return false }
         if (filter.source && transaction.source !== filter.source) { return false }
         if (filter.tags && !filter.tags.every((tag:TagT) => transaction.tags.find((t_tag:TagT) => t_tag === tag))) { return false }
@@ -235,7 +232,7 @@ function current_month_of_filtered_transactions(filtered_transactions:Transactio
 
 
 
-function catcalcs(transactions:TransactionT[], filter_area:AreaT, cats:CatT[], months:Date[]) : CatCalcsT[] {
+function catcalcs(transactions:TransactionT[], filter_area:AreaT, filter_cattags:number[], cats:CatT[], months:Date[]) : CatCalcsT[] {
 
     const all_catcalcs:CatCalcsT[] = []
 
@@ -247,27 +244,46 @@ function catcalcs(transactions:TransactionT[], filter_area:AreaT, cats:CatT[], m
         return { start, end }
     })
 
-    for (const cat of cats.filter((cat:CatT) => cat.area === filter_area)) {
+    const filteredcats = cats.filter((cat:CatT) => { 
+        const isofarea = cat.area === filter_area
 
-        const catcalc:CatCalcsT = { cat, subs: [], sums: [] }
+        const has_filter_a_cattag = cat.subs?.some((subcat:CatT) => subcat.tags.some((t:number) => filter_cattags.includes(t))) 
 
-        for (const subcat of cat.subs!) {
+        return (isofarea && has_filter_a_cattag)
+    })
 
-            const subcatcalc:CatCalcsT = { cat: subcat, subs: null, sums: [] }
+    for (const cat of filteredcats) {
+
+        const catcalc:CatCalcsT = { cat, subs: [], sums: [], budget:0, med:0, avg:0 }
+
+        const filtered_sub_cats = cat.subs!.filter((cat:CatT) => { 
+            return cat.tags.some((t:number) => filter_cattags.includes(t))
+        })
+
+        for (const subcat of filtered_sub_cats) {
+
+            const subcatcalc:CatCalcsT = { cat: subcat, subs: null, sums: [], budget:subcat.budget!, med:0, avg:0}
 
             for (const month_ts of months_ts) {
 
-                const sum = transactions.filter(transaction => {
+                const filtered_transactions = transactions.filter(transaction => {
                     return transaction.cat === subcat && transaction.ts > month_ts.start && transaction.ts < month_ts.end 
-                }).reduce((acc:number, transaction:TransactionT) => {
-                    return acc + transaction.amount
-                }, 0)
+                })
+
+                const sum = filtered_transactions.reduce((acc:number, transaction:TransactionT) => { return acc + transaction.amount }, 0)
     
                 subcatcalc.sums.push(sum)
             }
 
+            const sorted_sums_desc = subcatcalc.sums.slice().sort((a:number, b:number) => b - a)
+            subcatcalc.med = sorted_sums_desc[Math.floor(sorted_sums_desc.length / 2)]
+
+            subcatcalc.avg = subcatcalc.sums.reduce((acc:number, sum:number) => { return acc + sum }, 0) / subcatcalc.sums.length
+
             catcalc.subs!.push(subcatcalc)
         }
+
+        catcalc.budget = catcalc.subs!.reduce((acc:number, subcatcalc:CatCalcsT) => { return acc + subcatcalc.budget }, 0)
 
         all_catcalcs.push(catcalc)
     }
@@ -285,6 +301,12 @@ function catcalcs(transactions:TransactionT[], filter_area:AreaT, cats:CatT[], m
         }
 
         catcalc.sums = sums
+
+
+        const sorted_sums_desc = catcalc.sums.slice().sort((a:number, b:number) => b - a)
+        catcalc.med = sorted_sums_desc[Math.floor(sorted_sums_desc.length / 2)]
+
+        catcalc.avg = catcalc.sums.reduce((acc:number, sum:number) => { return acc + sum }, 0) / catcalc.sums.length
     }
 
     return all_catcalcs
@@ -293,6 +315,49 @@ function catcalcs(transactions:TransactionT[], filter_area:AreaT, cats:CatT[], m
 
 
 
-export { knit_all, knit_areas, knit_cats, knit_sources, knit_tags, get_months, filter_transactions, sort_transactions, current_month_of_filtered_transactions, catcalcs }
+function totals(catcalcs:CatCalcsT[], filter:FilterT) : TotalsT {
+
+    const catcalcs_f = catcalcs.filter((cc:CatCalcsT) => { 
+        const a = cc.cat.area === filter.area
+
+        const t = cc.cat.subs!.some((subcat:CatT) => subcat.tags.some((t:number) => filter.cattags.includes(t)))
+
+        return a && t
+    })
+
+    let budget = catcalcs_f.reduce((acc:number, catcalc:CatCalcsT) => { return acc + catcalc.budget }, 0)
+
+    const sums:number[] = catcalcs_f[0] ? catcalcs[0].sums.map(_ => { return 0 }) : []
+
+    for (const catcalc of catcalcs_f) {
+        for (let i = 0; i < catcalc.sums.length; i++) {
+            sums[i] += catcalc.sums[i]
+        }
+    }
+
+    const med = sums.slice().sort((a:number, b:number) => b - a)[Math.floor(sums.length / 2)]
+    const avg = sums.reduce((acc:number, sum:number) => { return acc + sum }, 0) / sums.length
+
+    return { sums, budget, med, avg }
+}
+
+
+
+
+function summary(totals:TotalsT, area:AreaT) : SummaryT {
+
+    const bucket = area.bucket
+    const savings = area.ynab_savings
+
+    const bucket_sum_diff = bucket - totals.sums[totals.sums.length - 1]
+    const bucket_budget_diff = bucket - totals.budget
+
+    return { bucket, bucket_budget_diff, bucket_sum_diff, savings }
+}
+
+
+
+
+export { knit_all, knit_areas, knit_cats, knit_sources, knit_tags, get_months, filter_transactions, sort_transactions, current_month_of_filtered_transactions, catcalcs, totals, summary }
 
 

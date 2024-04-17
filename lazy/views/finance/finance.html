@@ -1,18 +1,55 @@
 
+<!-- FEATURES
+
+- Category Tags. Quadrant 1, 2, 3 are Fixed Bills, Fluxuating Neccessities, and Comforts. Fourth Quadrant is for wants that make a desirable life. What we get to spend after      1,2,3 are covered.
+- Custom Category Tags. Number starts at 10 and up
+- Category popup. List that area's cats. 
+- Category popup button to sync cats with YNAB. Each cat sub can have #1,11 etc etc for cat tags. Auto gets parsed to firestore
+
+- CalcCat - Avg and Medians for each month for each cat
+- CalcCat - Can expand to show any number of months previous
+- CalcCat - Clicking on a cat filters transactions, etc to just that cat
+
+- Areas - Can quickly jump to each area
+
+- Transactions - Clicking on a transaction shows details popup
+- Transactions - Clicking on a column header sorts by that column
+
+- Reset - Keeps current area. Resets all other filters
+
+- Keyboard Shortcuts
+   - R -- Reset
+   - S -- Sync Transactions from YNAB
+   - A -- Switch area. Followed by number for specific area
+
+-->
 
 <div class="content">
 
-    <div id="calcs">
+    <div id="calcs"  class="p-6 max-w-sm mx-auto bg-white rounded-xl shadow-lg flex items-center space-x-4">
+
         <table>
             <tr>
-                <th class="cat"><i class="icon-list" style="font-size: 13px;position: relative;top: 1px; left: 1px; padding-right: 0px;"></i></th>
+                <th class="cat">
+                    <a @click="${()=>{this.s.catsview.show_ui=1;this.sc();}}"><i class="icon-list" style="font-size: 13px;position: relative;top: 1px; left: 1px; padding-right: 0px;"></i>&nbsp;</a>
+
+                    ${localStorage.getItem('user_email') === 'accounts@risingtiger.com' ? Lit_Html`
+                    <a @click="${()=>this.filter_by_cattag([1,2,3])}">&nbsp;-&nbsp;</a>
+                    <a @click="${()=>this.filter_by_cattag([1])}">&nbsp;1&nbsp;</a>
+                    <a @click="${()=>this.filter_by_cattag([2])}">&nbsp;2&nbsp;</a>
+                    <a @click="${()=>this.filter_by_cattag([3])}">&nbsp;3&nbsp;</a>
+                    <a @click="${()=>this.filter_by_cattag([4])}">&nbsp;4&nbsp;</a>
+                    ` : ''}
+
+                    <a @click="${()=>{this.set_default_except_area();this.parse_new_state();this.sc();}}">&nbsp;R&nbsp;</a>
+                </th>
 
                 ${_s.months.map((m,i) => Lit_Html`
                     <th class="monthname ${i === _s.months.length-1 ? 'current' : ''}" @click="${(e)=>this.calcmonth_clicked(e)}" data-month_i="${i}">${m.toLocaleString('default', { month: 'short' })}</th>
                 `)}
 
                 <th class="budget"><i class="icon-piggy" style="color: #097287; font-size: 13.5px;position: relative;top: 0.5px;left: 1px; padding-right: 0px;"></i></th>
-                <th class="bucket"><i class="icon-bucket" style="color: #138ba3; font-size: 12px;position: relative;top: 1.5px; left: 1px; padding-right: 0px; "></i></th>
+                <th class="avgmed"><i class="icon-piggy" style="color: #138ba3; font-size: 12px;position: relative;top: 1.5px; left: 1px; padding-right: 0px; "></i></th>
             </tr>
 
 
@@ -24,8 +61,8 @@
                     <td class="sum ${i === _s.months.length-1 ? 'current' : ''}">${Math.round(c.sums[i])}</td>
                     `)}
 
-                    <td class="budget">${_m.cats[i].budget}</td>
-                    <td class="bucket">${_m.cats[i].bucket.val}</td>
+                <td class="budget">${c.budget}</td>
+                    <td class="avgmed">${Math.round(c.avg)}</td>
                 </tr>
 
                 ${c.subs.map((cs,ii) => Lit_Html`
@@ -36,25 +73,32 @@
                             <td class="sum sub ${iii === _s.months.length-1 ? 'current' : ''}">${Math.round(cs.sums[iii])}</td>
                         `)}
 
-                        <td class="budget">${_m.cats[i].subs[ii].budget}</td>
-                        <td class="bucket transfer_state_${_m.cats[i].subs[ii].transfer_state}" @click="${(e)=>{ console.log("asdfasf"); this.bucket_amount_clicked(e); }}">${_m.cats[i].subs[ii].bucket.val}</td>
+                        <td class="budget">${cs.cat.budget}</td>
+                        <td class="avgmed">${Math.floor(cs.avg)}</td>
                     </tr>
                 `)}
             `)}
 
-            ${localStorage.getItem('user_email') === 'accounts@risingtiger.com' ? Lit_Html`
-                ${_m.groupcalcs.map((g,i) => Lit_Html`
-                    <tr class="">
-                        <td class="cat">${g.name}</td>
-                        ${_s.months.map((m,i) => Lit_Html`
-                            <td>${Math.round(g.sums[i])}</td>
-                        `)}
-                        <td></td>
-                        <td></td>
-                    </tr>
+            <tr class="totals">
+                <th class="cat">Totals</th>
+
+                ${_s.months.map((m,i) => Lit_Html`
+                <th class="sum ${i === _s.months.length-1 ? 'current' : ''}">${Math.round(_m.totals.sums[i])}</th>
                 `)}
-            ` : ''}
+
+                <th class="budget">${Math.round(_m.totals.budget)}</th>
+                <th class="avgmed">${Math.round(_m.totals.avg)}</th>
+            </tr>
+
         </table>
+
+        <div id="summary">
+            <h4>Summary</h4>
+            <p>Bucket: ${_m.summary.bucket}</p>
+            <p>Bucket Budget Diff: ${_m.summary.bucket_budget_diff}</p>
+            <p>Bucket Sum Diff: ${_m.summary.bucket_sum_diff}</p>
+            <p>Savings: ${_m.summary.savings}</p>
+        </div>
     </div>
 
 
@@ -69,7 +113,7 @@
                 <th class="amount" @click="${()=>this.sort_transactions_by('amount', 'asc')}">amount</th>
                 <th class="source" @click="${()=>this.sort_transactions_by('source', 'asc')}">source</th>
                 <th class="tags" @click="${()=>this.sort_transactions_by('tags', 'asc')}">tags</th>
-                <th class="notes" @click="${()=>this.sort_transactions_by('notes', 'asc')}">notes</th>
+                <th class="notes" @click="${()=>this.sort_transactions_by('notes', 'asc')}">notes <a @click="${()=>location.reload()}">&nbsp;S&nbsp;</a></th>
             </tr>
 
             ${_m.current_month_transactions.map((t,i) => Lit_Html`
@@ -87,22 +131,7 @@
         </table>
     </div>
 
-    <footer>
-
-        <a @click="${()=>window.location.hash='addtr'}"><i class="icon-checkcircle"></i>Categorize New</a>
-
-        ${localStorage.getItem('user_email') === 'accounts@risingtiger.com' ? Lit_Html`
-            <a @click="${()=>this.set_area('fam')}">Fam</a> &nbsp;
-            <a @click="${()=>this.set_area('pers')}">Pers</a> &nbsp;
-            <a @click="${()=>this.set_area('rtm')}">RTM</a> &nbsp;
-
-            <a @click="${()=>this.filter_by_source('barclay')}">Barclay Card</a> &nbsp;
-
-        ` : ''}
-
-        <a @click="${()=>{this.reset_except_area();this.parse_new_state();this.sc();}}">Reset</a> &nbsp;
-
-    </footer>
+    <footer><a @click="${()=>this.grabfresh()}">sync</a></footer>
 
 </div>
 
@@ -130,8 +159,33 @@ ${ _s.transactiondetails.show_ui !== 0 ? Lit_Html`
 
 
 
-${ _s.bucket_transfer.show_ui !== 0 ? Lit_Html`
-    <c-ol top="34" width="sm" height="full" @close="${()=> this.bucket_closed() }">
-        <vp-finance-bucket @saved="${(e)=>this.bucket_saved(e)}" cat_from="${_s.bucket_transfer.fromcat.id}" cat_to="${_s.bucket_transfer.tocat.id}"></vp-finance-bucket>
+${ _s.catsview.show_ui !== 0 ? Lit_Html`
+    <c-ol top="34" width="sm" height="full" ?close="${this.s.catsview.show_ui === 2}" @close="${()=> { this.s.catsview.show_ui = 0; this.sc(); } }">
+
+        <div id="catsview">
+
+            <h3>${_s.filter.area.longname} Categories</h3>
+
+            ${_m.cats.filter(c=> c.area === _s.filter.area).map((cat,i) => Lit_Html`
+                <div class="parent" data-i="${i}">
+                    <h4>${cat.name}</h4>
+                    <div class="sub">
+                        ${cat.subs.map(subcat=>Lit_Html`
+                            <h6>${subcat.name}</h6>
+                        `)}
+                    </div>
+                </div>
+            `)}
+        </div>
+
+        <button @click="${()=>this.ynab_sync_categories()}">Sync YNAB Cats</button>
+
+        ${_s.catsview.cats_with_deleteflag.map((cat,i) => Lit_Html`
+            <p>${cat.id} :: ${cat.name}</p>
+        `)}
+
     </c-ol>
 ` : ''}
+
+
+

@@ -1,7 +1,7 @@
 
 type str = string; type bool = boolean; type int = number;   
 
-import { AreaT, CatT, SourceT, TagT, RawTransactionT, TransactionT, FilterT } from '../../../finance_defs.js'
+import { AreaT, CatT, SourceT, TagT, RawTransactionT } from '../../../finance_defs.js'
 import { knit_areas, knit_cats, knit_sources, knit_tags } from '../../libs/finance_funcs.js'
 
 declare var FetchLassie:any
@@ -51,7 +51,7 @@ constructor() {
 
     this.s = {
         newcount: 0,
-        rawtransactions: [{ id: "", sourcename: "", long_desc: "", short_desc: "", amount: 0, ts: 0, note: ""}],
+        rawtransactions: [{skipsave:false, cat_id: "", ynab_id:"", amount:0, merchant: "", notes: "", source_id: "", tags:[], ts: 0}],
         focusedindex: 0,
         transactionindex: 0,
         splittotal: 0,
@@ -77,13 +77,8 @@ async connectedCallback() {
 
     const promises:any = []
 
-    await this.sync_latest()
-
-    const firestoredata = Firestore.Retrieve(["areas", "cats", "sources", "tags"])
-    const latest = FetchLassie('/api/xen/finance/get_latest_raw_transactions')
-
-    promises.push(firestoredata)
-    promises.push(latest)
+    promises.push(Firestore.Retrieve(["areas", "cats", "sources", "tags"]))
+    promises.push(FetchLassie('/api/xen/finance/get_ynab_raw_transactions', {}))
 
     const v = await Promise.all(promises)
 
@@ -92,14 +87,21 @@ async connectedCallback() {
     this.sources = knit_sources(v[0][2])
     this.tags = knit_tags(v[0][3])
 
-    if (localStorage.getItem("user_email") === 'accounts@risingtiger.com') {
-        this.latest_raw_transactions = v[1] as RawTransactionT[]
-    } else {
-        this.latest_raw_transactions = v[1].filter((tr:RawTransactionT) => tr.sourcename === "barclay") as RawTransactionT[]
-    }
+    const trs:any[] = (localStorage.getItem("user_email") === 'accounts@risingtiger.com') ? v[1].raw_transactions : v[1].raw_transactions.filter((tr:any) => tr.source === "17c0d30d-4e6f-496e-a8e4-91dae1de8b4a")
 
-    this.latest_raw_transactions.forEach((tr) => {
-        tr.source = this.sources.find(source => source.name === tr.sourcename) as SourceT
+    this.latest_raw_transactions = trs.map((tr) => {
+        return {
+            skipsave: false,
+            ynab_id: tr.ynab_id,
+            amount: tr.amount,
+            cat_id: null,
+            merchant: tr.merchant,
+            notes: tr.notes,
+            source_id: tr.source_id,
+            tags: tr.tags,
+            ts: tr.ts
+
+        } as RawTransactionT
     })
 
     if (this.latest_raw_transactions.length === 0) {
@@ -109,6 +111,7 @@ async connectedCallback() {
 
     this.s.transactionindex = 0
     this.s.newcount = this.latest_raw_transactions.length
+
     this.process_next_transaction()
 
     if (localStorage.getItem("user_email") !== 'accounts@risingtiger.com') {
@@ -134,14 +137,6 @@ disconnectedCallback() {
 
 
 
-async sync_latest() { return new Promise(async (resolve, _reject) => {
-    await FetchLassie('/api/xen/finance/sync_latest_gsheet', {})
-    resolve(1)
-})}
-
-
-
-
 async process_next_transaction() {
 
     this.s.focusedindex = 0
@@ -161,28 +156,12 @@ async process_next_transaction() {
 
 async save_focused_transaction_and_load_next() {
 
-    const trs = this.s.rawtransactions
+    const body = this.s.rawtransactions
 
-    const transaction_raw_id = trs[0].id
-    
-    const newtransactions:any[] = trs.map((tr) => {
-        return {
-            amount: Math.round(tr.amount * 100) / 100,
-            catid: tr.cat?.id,
-            merchant: tr.long_desc,
-            notes: tr.note,
-            sourceid: tr.source?.id,
-            tagids: [],
-            ts: tr.ts
-        }
+    await FetchLassie( `/api/xen/finance/save_transactions_and_delete_ynab_records`, { 
+        method:"POST", 
+        body:JSON.stringify(body) 
     })
-
-    const body = {
-        transaction_raw_id,
-        newtransactions
-    }
-
-    await FetchLassie('/api/xen/finance/save_raw_transaction', {method:"POST", body:JSON.stringify(body) })
 
     if (this.s.transactionindex == this.latest_raw_transactions.length - 1) {
         alert("all transactions processed. DONE")
@@ -228,29 +207,7 @@ keyup(e:KeyboardEvent) {
                 }
 
                 if (foundcat) {
-
-                    this.s.allow_split = false // only allow split before having chosen category. Must be first action after new raw transaction pops up
-
-                    this.s.rawtransactions[this.s.focusedindex].cat = foundcat
-
-                    if (this.s.rawtransactions.length > 1) {
-
-                        this.s.keyinput_mode = InputModeE.Amount
-
-                        if (this.s.focusedindex == this.s.rawtransactions.length - 1) {
-                            keycatcher_el.value = this.s.splittotal.toFixed(2)
-                        } else {
-                            keycatcher_el.value = ""
-                        }
-                    }
-                    else {
-                        this.s.keyinput_mode = InputModeE.Note
-                        keycatcher_el.value = ""
-                    }
-
-                    this.highlight_catnames_reset_all();
-                    this.sc()
-                    keycatcher_el.focus()
+                    this.setcat(foundcat)
                 } 
 
                 else {
@@ -291,23 +248,9 @@ keyup(e:KeyboardEvent) {
 
         else if (this.s.keyinput_mode === InputModeE.Note) {
 
-            this.s.rawtransactions[this.s.focusedindex].note = val
+            this.s.rawtransactions[this.s.focusedindex].notes = val
 
-            if (this.s.focusedindex === this.s.rawtransactions.length - 1) {
-                keycatcher_el.value = ""
-                keycatcher_el.focus()
-                this.sc()
-
-                this.save_focused_transaction_and_load_next()
-            }
-
-            else {
-                this.s.focusedindex++
-                this.s.keyinput_mode = InputModeE.Cat
-                keycatcher_el.value = ""
-                keycatcher_el.focus()
-                this.sc()
-            }
+            this.save_transaction_and_move_to_next()
         }
     }
 
@@ -340,6 +283,10 @@ keyup(e:KeyboardEvent) {
             this.sc()
         }
 
+        else if (e.key === ".") {
+            this.skip_transaction()
+        }
+
         else { 
             if (val.length > 1) {
                 this.highlight_catnames(val)
@@ -353,6 +300,86 @@ keyup(e:KeyboardEvent) {
 
     else if (this.s.keyinput_mode === InputModeE.Note) {
         // nothing
+    }
+}
+
+
+
+
+save_transaction_and_move_to_next() {
+
+    const keycatcher_el = this.shadow.querySelector("#keycatcher") as HTMLInputElement
+
+    if (this.s.focusedindex === this.s.rawtransactions.length - 1) {
+        keycatcher_el.value = ""
+        keycatcher_el.focus()
+        this.sc()
+
+        this.save_focused_transaction_and_load_next()
+    }
+
+    else {
+        this.s.focusedindex++
+        this.s.keyinput_mode = InputModeE.Cat
+        keycatcher_el.value = ""
+        keycatcher_el.focus()
+        this.sc()
+    }
+}
+
+
+
+skip_transaction() {
+    this.s.rawtransactions[this.s.focusedindex].skipsave = true
+    this.save_transaction_and_move_to_next()
+}
+
+
+
+
+setcat(cat:CatT) {
+
+    const keycatcher_el = this.shadow.querySelector("#keycatcher") as HTMLInputElement
+
+    this.s.allow_split = false // only allow split before having chosen category. Must be first action after new raw transaction pops up
+
+    this.s.rawtransactions[this.s.focusedindex].cat_id = cat.id
+
+    this.s.rawtransactions[this.s.focusedindex].cat_name = cat.name
+
+    if (this.s.rawtransactions.length > 1) {
+
+        this.s.keyinput_mode = InputModeE.Amount
+
+        if (this.s.focusedindex == this.s.rawtransactions.length - 1) {
+            keycatcher_el.value = this.s.splittotal.toFixed(2)
+        } else {
+            keycatcher_el.value = ""
+        }
+    }
+    else {
+        this.s.keyinput_mode = InputModeE.Note
+        keycatcher_el.value = ""
+    }
+
+    this.highlight_catnames_reset_all();
+    this.sc()
+    keycatcher_el.focus()
+}
+
+
+
+
+setcat_from_click(e:MouseEvent) {
+
+    const catid = (e.target as HTMLElement).dataset.id as str
+
+    for(const c of this.cats) {
+        const f = c.subs?.find(sub => sub.id === catid)
+        if (f) {
+            this.setcat(f)
+            break
+        }
     }
 }
 

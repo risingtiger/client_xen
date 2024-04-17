@@ -1,19 +1,21 @@
 
 type AreaT = {
     id: string,
+    bucket: number,
     name: string,
     longname: string,
+    ynab_savings: number,
     ts: number
 }
 
 type CatT = {
     id: string,
     area: AreaT,
-    bucket: { diffs: number[], val: number },
     budget: number|null,
     name: string,
     parent: CatT|null,
     subs: CatT[]|null,
+    tags: number[],
     ts: number,
     transfer_state: 0|1|2
 }
@@ -31,14 +33,14 @@ type SourceT = {
 }
 
 type RawTransactionT = {
-    id: string,
+    skipsave: boolean,
     amount: number,
-    long_desc: string,
-    short_desc: string,
-    cat?: CatT,
-    sourcename:string,
-    source?: SourceT,
-    note: string
+    ynab_id: string|null,
+    cat_id: string|null,
+    merchant: string,
+    notes: string
+    source_id: string,
+    tags: number[],
     ts: number,
 }
 
@@ -55,22 +57,33 @@ type TransactionT = {
 }
 
 type CatCalcsT = {
-    cat: CatT,
+    cat:  CatT,
     subs: CatCalcsT[]|null,
-    sums: Array<number>
+    sums: Array<number>,
+    budget: number,
+    med:  number,
+    avg:  number,
 }
 
-type GroupCalcsT = {
-    name: string,
-    parentcats: string[],
-    subcats: string[],
-    sums: Array<number>
+type TotalsT = {
+    sums: Array<number>,
+    budget: number,
+    med: number,
+    avg: number,
+}
+
+type SummaryT = {
+    bucket: number,
+    bucket_budget_diff: number,
+    bucket_sum_diff: number,
+    savings: number
 }
 
 type FilterT = {
     area: AreaT|null,
     parentcat: CatT|null,
     cat: CatT|null,
+    cattags: number[],
     source: SourceT|null,
     tags: TagT[]|null,
     daterange: [Date, Date]|null,
@@ -83,4 +96,5 @@ type FilterT = {
 
 
 
-export { AreaT, CatT, TagT, SourceT, RawTransactionT, TransactionT, CatCalcsT, GroupCalcsT, FilterT }
+
+export { AreaT, CatT, TagT, SourceT, RawTransactionT, TransactionT, CatCalcsT, TotalsT, SummaryT, FilterT }
