@@ -3,9 +3,15 @@
 
 
 div.content {
+    width: 100%;
+    height: 100%;
+}
+
+#calc_transactions_wrapper {
     display: flex;
     justify-content: space-between;
     height: 100%;
+    width: 100%;
 }
 
 #calcs, #transactions {
@@ -16,22 +22,48 @@ div.content {
         width: 100%;
     }
 
-    & td, th {
+    & td {
         border: 0;
         padding: 3px 4px;
     }
 
-    & th {
-        position: sticky;
-        top: 0;
+    & thead th {
         background-color: white;
         text-align: left;
-        border-bottom: 5px solid #9bdfee;
+        padding-bottom: 4px;
+        padding-top: 3px;
+        border: 0;
+        box-shadow: inset 0 -5px 0px 0px rgb(134 220 239);
+    }
+
+    & tfoot th {
+        background-color: white;
+        text-align: left;
+        padding-top: 9px;
+        padding-bottom: 7px;
+        box-shadow: inset 0 5px 0px 0px rgb(134 220 239);
     }
 }
 
+
 #calcs {
     flex: 22;
+
+    & #tablewrap {
+        overflow-y: scroll;
+        height: 86%;
+    }
+
+    & table thead, & table tfoot {
+        z-index: 1;
+        position: sticky;
+    }
+    & table thead {
+        top: 0;
+    }
+    & table tfoot {
+        bottom: 0;
+    }
 
     & p.tempe {
         position: absolute;
@@ -56,6 +88,10 @@ div.content {
 
     & th.cat, & td.cat {
         padding-left: 10px;
+    }
+
+    & th.cat a.active {
+    background: #86dcef;
     }
 
     & th.current, & td.current  {
@@ -101,11 +137,62 @@ div.content {
 
 
 #transactions {
+    position: relative;
     flex: 33;
+
+    & #tablewrap {
+        overflow-y: scroll;
+        height: 86%;
+    }
 
     & table {
         border-collapse: collapse;
         width: 100%;
+    }
+    
+    & td.notes {
+        overflow-x: scroll;
+        text-wrap: nowrap;
+
+        & .tag {
+        font-weight: bold;
+        }
+    }
+    & td.merchant {
+        overflow-x: scroll;
+        text-wrap: nowrap;
+    }
+
+    & td.amount {
+        min-width: 58px;
+    }
+}
+
+
+footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 87px;
+
+    & #snapshot {
+        background: #ececec;
+        width: 100%;
+        height: 100%;
+        padding: var(--padding-container);
+
+        & .snapshotrow {
+            display: flex;
+            justify-content: space-evenly;
+            margin-bottom: 10px;
+
+            &
+            p {
+                margin: 0;
+            padding: 0;
+            }
+        }
     }
 }
 
@@ -133,19 +220,82 @@ div.content {
 }
 
 
-footer {
-    position: fixed;
-    bottom: 5px;
-    right: 5px;
-    border-radius: 8px;
-    width: 6px;
-    display: flex;
-    justify-content: space-between;
-    padding: 0 10px;
-    background-color: #f0f0f0;
-    font-size: 12px;
-    color: #666;
-    /* height: 30px; */
+
+
+
+#paymentsview {
+    padding: var(--padding-container);
+
+    & > section {
+        display: flex;
+        flex-wrap: wrap;
+    }
+
+    & > hr {
+        border: 1px solid #ececec;
+        margin-bottom: 18px;
+    }
+    
+    & > section.payments {
+
+        & .payment {
+            position: relative;
+            margin-right: 10px;
+            padding: 0;
+            margin-bottom: 11px;
+            border-radius: 4px;
+            width: 16%;
+
+            & .notes {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            background: white;
+            }
+
+            &
+            strong {
+                color: #18c3c5;
+            }
+            &
+            strong.extra {
+                color: #a61b78;
+            }
+
+            & .breakdown {
+                &
+                b {
+                    font-weight: normal;
+                    display: inline-block;
+                    padding: 12px 0 0px 0;
+                }
+            ;
+                column-count: 5;
+            }
+        }
+        & .payment.hasbreakdown {
+            width: 100%;
+        }
+        
+    }
+
+    & h3 {
+        width: 100%;
+        font-size: 16px;
+        margin-bottom: 5px;
+    }
+    
+    & td {
+        overflow-x: hidden;
+    }
+
+    & td > span {
+        display: block;
+        width: 188px;
+        overflow-x: scroll;
+        text-wrap: nowrap;
+    }
 }
 
 
@@ -201,13 +351,43 @@ footer {
     margin-bottom: var(--padding-section-vert);
     overflow-y: scroll;
     border-bottom: 1px solid #d8d8d8;
-}
 
-    #catsview + button {
+    & button {
         margin: 0 0 0 var(--padding-container);
     }
+}
 
 
+
+
+
+#monthsnapshotview {
+
+    height: 100%;
+    overflow-y: scroll;
+
+    h3 {
+        padding: var(--padding-container);
+    }
+
+    h6 {
+        padding: var(--padding-container);
+    }
+
+    ul.items {
+        padding-bottom: 10px;
+    }
+}
+
+
+
+
+#tagsview {
+    
+    & h3 {
+        padding: var(--padding-container);
+    }
+}
 
 
 @media only screen and (max-device-width: 767px) {
@@ -227,3 +407,8 @@ footer {
 @media only screen and (min-device-width: 768px) {
 
 }
+
+
+
+
+

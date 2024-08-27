@@ -2,7 +2,7 @@
 type str = string; type bool = boolean; type int = number;   
 
 import { AreaT, CatT, SourceT, TagT, RawTransactionT } from '../../../finance_defs.js'
-import { knit_areas, knit_cats, knit_sources, knit_tags } from '../../libs/finance_funcs.js'
+import { knit_areas, knit_cats, knit_sources } from '../../libs/finance_funcs.js'
 
 declare var FetchLassie:any
 declare var Firestore:any
@@ -11,8 +11,7 @@ declare var Lit_Html: any;
 declare var SetDistCSS: any;
 
 
-
-enum InputModeE { Cat, Note, Amount }
+enum InputModeE { Cat, Tag, Note, Amount }
 
 type State = {
     newcount: int,
@@ -21,7 +20,8 @@ type State = {
     transactionindex: int,
     splittotal: int,
     allow_split: bool,
-    keyinput_mode: InputModeE
+    keyinput_mode: InputModeE,
+    instructions: str
 }
 
 
@@ -51,12 +51,13 @@ constructor() {
 
     this.s = {
         newcount: 0,
-        rawtransactions: [{skipsave:false, cat_id: "", ynab_id:"", amount:0, merchant: "", notes: "", source_id: "", tags:[], ts: 0}],
+        rawtransactions: [],
         focusedindex: 0,
         transactionindex: 0,
         splittotal: 0,
         allow_split: true,
-        keyinput_mode: InputModeE.Cat
+        keyinput_mode: InputModeE.Cat,
+        instructions: "category",
     }
 
     this.areas = []
@@ -77,7 +78,7 @@ async connectedCallback() {
 
     const promises:any = []
 
-    promises.push(Firestore.Retrieve(["areas", "cats", "sources", "tags"]))
+    promises.push(Firestore.Retrieve(["areas", "cats", "sources"]))
     promises.push(FetchLassie('/api/xen/finance/get_ynab_raw_transactions', {}))
 
     const v = await Promise.all(promises)
@@ -85,16 +86,20 @@ async connectedCallback() {
     this.areas = knit_areas(v[0][0])
     this.cats = knit_cats(this.areas, v[0][1])
     this.sources = knit_sources(v[0][2])
-    this.tags = knit_tags(v[0][3])
 
     const trs:any[] = (localStorage.getItem("user_email") === 'accounts@risingtiger.com') ? v[1].raw_transactions : v[1].raw_transactions.filter((tr:any) => tr.source === "17c0d30d-4e6f-496e-a8e4-91dae1de8b4a")
 
     this.latest_raw_transactions = trs.map((tr) => {
         return {
             skipsave: false,
+            preset_area_id: tr.preset_area_id || null,
+            preset_cat_name: tr.preset_cat_name || null,
             ynab_id: tr.ynab_id,
             amount: tr.amount,
             cat_id: null,
+            cat_name: null,
+            tag_ids: [],
+            tag_names: [],
             merchant: tr.merchant,
             notes: tr.notes,
             source_id: tr.source_id,
@@ -106,21 +111,22 @@ async connectedCallback() {
 
     if (this.latest_raw_transactions.length === 0) {
         alert ("no new transactions")
-        return this.sc()
     }
 
-    this.s.transactionindex = 0
-    this.s.newcount = this.latest_raw_transactions.length
+    else {
+        this.s.transactionindex = 0
+        this.s.newcount = this.latest_raw_transactions.length
 
-    this.process_next_transaction()
+        this.process_next_transaction()
 
-    if (localStorage.getItem("user_email") !== 'accounts@risingtiger.com') {
-        this.cats = this.cats.filter(cat => cat.area.name === "fam")
+        if (localStorage.getItem("user_email") !== 'accounts@risingtiger.com') {
+            this.cats = this.cats.filter(cat => cat.area.name === "fam")
+        }
+
+        const keycatcher_el = this.shadow.querySelector("#keycatcher") as HTMLInputElement
+        keycatcher_el.focus()
+        keycatcher_el.addEventListener("keyup", this.keyup.bind(this))
     }
-
-    const keycatcher_el = this.shadow.querySelector("#keycatcher") as HTMLInputElement
-    keycatcher_el.focus()
-    keycatcher_el.addEventListener("keyup", this.keyup.bind(this))
 
     this.sc()
 
@@ -156,33 +162,62 @@ async process_next_transaction() {
 
 async save_focused_transaction_and_load_next() {
 
-    const body = this.s.rawtransactions
+    const nextit = ()=> {
 
-    await FetchLassie( `/api/xen/finance/save_transactions_and_delete_ynab_records`, { 
-        method:"POST", 
-        body:JSON.stringify(body) 
-    })
-
-    if (this.s.transactionindex == this.latest_raw_transactions.length - 1) {
-        alert("all transactions processed. DONE")
+        if (this.s.transactionindex == this.latest_raw_transactions.length - 1) {
+            alert("all transactions processed. DONE")
+        }
+        else {
+            this.s.transactionindex++
+            this.process_next_transaction()
+        }
     }
-    else {
-        this.s.transactionindex++
-        this.process_next_transaction()
+
+
+    const unskipped_transactions = this.s.rawtransactions.filter(tr => !tr.skipsave)
+        
+    if (unskipped_transactions.length === 0) {
+        nextit()    
+        return;
+
+    } else {
+        const body = this.s.rawtransactions
+
+        await FetchLassie( `/api/xen/finance/save_transactions_and_delete_ynab_records`, { 
+            method:"POST", 
+            body:JSON.stringify(body) 
+        })
+        nextit()
     }
 }
     
 
 
 
-keyup(e:KeyboardEvent) {
+async keyup(e:KeyboardEvent) {
 
     const keycatcher_el = this.shadow.querySelector("#keycatcher") as HTMLInputElement
     const val = keycatcher_el.value.toLowerCase()
 
     if (e.key === "Enter") {
 
-        if (this.s.keyinput_mode === InputModeE.Cat) {
+        if (this.s.keyinput_mode === InputModeE.Tag) {
+
+            const tag_strings = val.split("#").filter((t) => t.length > 0).map((t) => t.trim())
+            const tags = this.tags.filter(tag => tag_strings.includes(tag.name))
+
+            if (tags.length === 0) {
+                alert("no tags found")
+                keycatcher_el.value = "#"
+                keycatcher_el.focus()
+                return;
+            }
+
+            this.settags(tags.map(tag => tag.id), tags.map(tag => tag.name))
+            
+        } 
+
+        else if (this.s.keyinput_mode === InputModeE.Cat) {
 
             if (val.length < 2) {
 
@@ -224,6 +259,7 @@ keyup(e:KeyboardEvent) {
             if (this.s.focusedindex == this.s.rawtransactions.length - 1) {
                 this.s.rawtransactions[this.s.focusedindex].amount = this.s.splittotal
                 this.s.keyinput_mode = InputModeE.Note
+                this.s.instructions = "note"
                 keycatcher_el.value = ""
                 keycatcher_el.focus()
                 this.sc()
@@ -239,6 +275,7 @@ keyup(e:KeyboardEvent) {
             }
 
             this.s.keyinput_mode = InputModeE.Note
+            this.s.instructions = "note"
             keycatcher_el.value = ""
             keycatcher_el.focus()
             this.s.rawtransactions[this.s.focusedindex].amount = n
@@ -299,7 +336,26 @@ keyup(e:KeyboardEvent) {
     }
 
     else if (this.s.keyinput_mode === InputModeE.Note) {
-        // nothing
+
+        if (e.key === "#") {
+
+            const results = await Firestore.Retrieve("tags")
+            this.tags = results[0] as Array<TagT>
+
+            this.tags.sort((a, b) => b.ts - a.ts)
+
+            const keycatcher_el = this.shadow.querySelector("#keycatcher") as HTMLInputElement
+
+            this.s.keyinput_mode = InputModeE.Tag
+
+            this.s.instructions = "tags"
+
+            keycatcher_el.value = "#"
+
+            this.sc()
+
+            keycatcher_el.focus()
+        }
     }
 }
 
@@ -312,6 +368,7 @@ save_transaction_and_move_to_next() {
 
     if (this.s.focusedindex === this.s.rawtransactions.length - 1) {
         keycatcher_el.value = ""
+        this.s.instructions = "category"
         keycatcher_el.focus()
         this.sc()
 
@@ -321,6 +378,7 @@ save_transaction_and_move_to_next() {
     else {
         this.s.focusedindex++
         this.s.keyinput_mode = InputModeE.Cat
+        this.s.instructions = "category"
         keycatcher_el.value = ""
         keycatcher_el.focus()
         this.sc()
@@ -345,11 +403,18 @@ setcat(cat:CatT) {
 
     this.s.rawtransactions[this.s.focusedindex].cat_id = cat.id
 
-    this.s.rawtransactions[this.s.focusedindex].cat_name = cat.name
+    for(const cat of this.cats) {
+        const f = cat.subs?.find(sub => sub.id === this.s.rawtransactions[this.s.focusedindex].cat_id)
+        if (f) {
+            this.s.rawtransactions[this.s.focusedindex].cat_name = f.name
+            break
+        }
+    }
 
     if (this.s.rawtransactions.length > 1) {
 
         this.s.keyinput_mode = InputModeE.Amount
+        this.s.instructions = "amount"
 
         if (this.s.focusedindex == this.s.rawtransactions.length - 1) {
             keycatcher_el.value = this.s.splittotal.toFixed(2)
@@ -359,7 +424,8 @@ setcat(cat:CatT) {
     }
     else {
         this.s.keyinput_mode = InputModeE.Note
-        keycatcher_el.value = ""
+        this.s.instructions = "note"
+        keycatcher_el.value = this.s.rawtransactions[this.s.focusedindex].notes || ""
     }
 
     this.highlight_catnames_reset_all();
@@ -367,6 +433,25 @@ setcat(cat:CatT) {
     keycatcher_el.focus()
 }
 
+
+
+
+settags(tag_ids:string[], tag_names:string[]) {
+
+    const keycatcher_el = this.shadow.querySelector("#keycatcher") as HTMLInputElement
+
+    this.s.rawtransactions[this.s.focusedindex].tag_ids = tag_ids
+    this.s.rawtransactions[this.s.focusedindex].tag_names = tag_names
+
+    this.s.keyinput_mode = InputModeE.Note
+    keycatcher_el.value = ""
+
+    this.s.instructions = "note"
+
+    this.sc()
+
+    keycatcher_el.focus()
+}
 
 
 
@@ -381,6 +466,18 @@ setcat_from_click(e:MouseEvent) {
             break
         }
     }
+}
+
+
+
+
+settag_from_click(e:MouseEvent) {
+
+    const tagid = (e.target as HTMLElement).dataset.id as str
+
+    const tag = this.tags.find(tag => tag.id === tagid) 
+
+    this.settags([tag!.id], [tag!.name])
 }
 
 

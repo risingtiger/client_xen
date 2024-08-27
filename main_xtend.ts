@@ -8,7 +8,8 @@ const INFO = {
     name: "xen",
     firebase: {
         project: 'xenition',
-        identity_platform_key: 'AIzaSyDfXcwqyiRGGO6pMBsG8CvNEtDIhdspKRI'
+        identity_platform_key: 'AIzaSyDfXcwqyiRGGO6pMBsG8CvNEtDIhdspKRI',
+        dbversion: 1
     },
 
     indexeddb_collections: ["transactions"]
@@ -50,8 +51,9 @@ const LAZYLOADS:Array<LazyLoadT> = [
         name: "addtr",
         instance: INFO.name,
         dependencies:[
+            {type: "directive", name: "animeio"},
         ],
-        auth: []
+        auth: ["admin"]
     },
 
     {

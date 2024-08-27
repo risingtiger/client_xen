@@ -1,4 +1,5 @@
 
+
 type AreaT = {
     id: string,
     bucket: number,
@@ -20,23 +21,29 @@ type CatT = {
     transfer_state: 0|1|2
 }
 
-type TagT = {
-    id: string,
-    ts: number,
-    name: string
-}
-
 type SourceT = {
     id: string,
     ts: number,
     name: string
 }
 
+type TagT = {
+    id: string,
+    area: AreaT,
+    name: string
+    ts: number,
+}
+
 type RawTransactionT = {
     skipsave: boolean,
-    amount: number,
+    preset_area_id: string|null,
+    preset_cat_name: string|null,
     ynab_id: string|null,
+    amount: number,
     cat_id: string|null,
+    cat_name: string|null,
+    tag_ids: string[],
+    tag_names: string[],
     merchant: string,
     notes: string
     source_id: string,
@@ -72,11 +79,17 @@ type TotalsT = {
     avg: number,
 }
 
-type SummaryT = {
+type MonthSnapShotT = {
+    area: AreaT,
+    month: string,
     bucket: number,
-    bucket_budget_diff: number,
-    bucket_sum_diff: number,
+    budget: number,
     savings: number
+}
+type MonthSnapShotExT = MonthSnapShotT & {
+    total: number,
+    quad4total: number,
+    quad123total: number,
 }
 
 type FilterT = {
@@ -92,9 +105,23 @@ type FilterT = {
     amountrange: [number, number]|null,
 }
 
+type PaymentT = {
+    id: string,
+    payee: string,
+    type: "creditcard"|"creditline"|"carloan"|"bill",
+    cat: CatT|null,
+    recurence: "yearly"|"monthly"|"weekly"|"daily"|"once",
+    day: number,
+    amount: number,
+    varies: boolean,
+    is_auto: boolean,
+    payment_source: SourceT|null,
+    breakdown: Array<string>,
+    notes: string
+}
 
 
 
 
 
-export { AreaT, CatT, TagT, SourceT, RawTransactionT, TransactionT, CatCalcsT, TotalsT, SummaryT, FilterT }
+export { AreaT, CatT, SourceT, TagT, RawTransactionT, TransactionT, CatCalcsT, TotalsT, MonthSnapShotT, MonthSnapShotExT, FilterT, PaymentT }

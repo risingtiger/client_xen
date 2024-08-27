@@ -2,12 +2,20 @@
 
 
 import { int } from "../../../definitions.js"
-import { AreaT, CatT, TagT, SourceT, TransactionT, CatCalcsT, TotalsT, SummaryT, FilterT } from '../../finance_defs'
+import { AreaT, CatT, SourceT, TagT, TransactionT, CatCalcsT, TotalsT, MonthSnapShotT, MonthSnapShotExT, FilterT } from '../../finance_defs'
 
 
 
 
-function knit_all(raw_areas:any, raw_cats:any, raw_tags:any, raw_sources:any, raw_transactions:any) : { areas: AreaT[], cats: CatT[], tags: TagT[], sources: SourceT[], transactions: TransactionT[] } {
+function knit_all(raw_areas:any, raw_cats:any, raw_sources:any, raw_tags:any, raw_transactions:any, raw_monthsnapshots:any) : 
+{ 
+    areas: AreaT[], 
+    cats: CatT[], 
+    sources: SourceT[], 
+    tags: TagT[],
+    transactions: TransactionT[], 
+    previous_static_monthsnapshots: MonthSnapShotT[]
+} {
 
     const areas = knit_areas(raw_areas)
 
@@ -15,11 +23,13 @@ function knit_all(raw_areas:any, raw_cats:any, raw_tags:any, raw_sources:any, ra
 
     const sources = knit_sources(raw_sources)
 
-    const tags = knit_tags(raw_tags)
+    const tags = knit_tags(areas, raw_tags)
 
-    const transactions = knit_transactions(cats, tags, sources, raw_transactions)
+    const transactions = knit_transactions(cats, sources, tags, raw_transactions)
 
-    return { areas, cats, tags, sources, transactions }
+    const previous_static_monthsnapshots = knit_monthsnapshots(raw_monthsnapshots, areas)
+
+    return { areas, cats, sources, tags, transactions, previous_static_monthsnapshots }
 }
 
 
@@ -81,14 +91,17 @@ function knit_sources(raw_sources:any) : SourceT[] {
 
 
 
-function knit_tags(raw_tags:any) : SourceT[] {
-    return raw_tags.map((raw_tag:any) => { return { id: raw_tag.id, ts: raw_tag.ts, name: raw_tag.name } })
+function knit_tags(areas:AreaT[], raw_tags:any) : TagT[] {
+    return raw_tags.map((raw_tag:any) => { 
+        const area = areas.find((area:AreaT) => area.id === raw_tag.area._path.segments[1]) as AreaT
+        return { id: raw_tag.id, ts: raw_tag.ts, name: raw_tag.name, area } 
+    })
 }
 
 
 
 
-function knit_transactions(cats:CatT[], tags:TagT[], sources:SourceT[], raw_transactions:any) : TransactionT[]  {
+function knit_transactions(cats:CatT[], sources:SourceT[], tags:TagT[], raw_transactions:any) : TransactionT[]  {
 
     const transactions:TransactionT[] = raw_transactions.map((raw_transaction:any) => {
 
@@ -104,7 +117,8 @@ function knit_transactions(cats:CatT[], tags:TagT[], sources:SourceT[], raw_tran
         }
 
         const trsource = sources.find((source:SourceT) => source.id === raw_transaction.source._path.segments[1])
-        const trtags = raw_transaction.tags.map((t_tag:any) => { return tags.find((tag:TagT) => tag.id === t_tag._path.segments[1]) })
+
+        const trtags = raw_transaction.tags.map((t:any) => tags.find((tag:TagT) => tag.id === t._path.segments[1]) as TagT)
 
         return {
             id: raw_transaction.id,
@@ -123,13 +137,27 @@ function knit_transactions(cats:CatT[], tags:TagT[], sources:SourceT[], raw_tran
 }
 
 
+
+
+function knit_monthsnapshots(raw_snaps:any, areas: AreaT[]) : MonthSnapShotT[] {
+    return raw_snaps.map((raw_source:any) => { 
+        return { 
+            ...raw_source,
+            area: areas.find((area:AreaT) => area.id === raw_source.area._path.segments[1]) as AreaT,
+        } as MonthSnapShotT
+    })
+}
+
+
+
+
 function get_months(month_end:Date, count:int) : Date[] {
 
     const months:Date[] = []
 
     for (let i = 0; i < count; i++) {
         months.push(new Date(month_end))
-        month_end.setMonth(month_end.getMonth() - 1)
+        month_end.setUTCMonth(month_end.getUTCMonth() - 1)
     }
 
     months.reverse()
@@ -147,7 +175,7 @@ function filter_transactions(transactions:TransactionT[], filter:FilterT) : Tran
     if (filter.daterange) {
         const end_of_last_month = new Date(filter.daterange[1])
 
-        end_of_last_month.setMonth( end_of_last_month.getMonth() + 1 )
+        end_of_last_month.setUTCMonth( end_of_last_month.getUTCMonth() + 1 )
 
         const end_of_last_month_ts = end_of_last_month.getTime() - 1000
 
@@ -159,10 +187,10 @@ function filter_transactions(transactions:TransactionT[], filter:FilterT) : Tran
 
         if (filter.area && transaction.area !== filter.area) { return false }
         if (filter.cat && transaction.cat !== filter.cat) { return false }
-        if (filter.cattags && !transaction.cat.tags.some((t:number) => filter.cattags.includes(t))) { return false }
+        if (filter.cattags && filter.cattags.length && !transaction.cat.tags.some((t:number) => filter.cattags.includes(t))) { return false }
         if (filter.parentcat && transaction.cat.parent !== filter.parentcat) { return false }
         if (filter.source && transaction.source !== filter.source) { return false }
-        if (filter.tags && !filter.tags.every((tag:TagT) => transaction.tags.find((t_tag:TagT) => t_tag === tag))) { return false }
+        if (filter.tags && !filter.tags.every(tag=> transaction.tags.find(t_tag=> t_tag === tag))) { return false }
         if (filter.daterange && (transaction.ts < daterange.begin || transaction.ts > daterange.end)) { return false }
         if (filter.merchant && !transaction.merchant.toLowerCase().includes(filter.merchant)) { return false }
         if (filter.note && !transaction.notes.toLowerCase().includes(filter.note)) { return false }
@@ -200,7 +228,7 @@ function sort_transactions(transactions:TransactionT[], sort_by:string, sort_dir
         }
 
         if (sort_by === "tags") {
-            return sort_direction === "asc" ? a.tags.map((tag:TagT) => tag.name).join().localeCompare(b.tags.map((tag:TagT) => tag.name).join()) : b.tags.map((tag:TagT) => tag.name).join().localeCompare(a.tags.map((tag:TagT) => tag.name).join())
+            return sort_direction === "asc" ? a.tags.join().localeCompare(b.tags.join()) : b.tags.join().localeCompare(a.tags.join())
         }
 
         if (sort_by === "ts") {
@@ -216,16 +244,16 @@ function sort_transactions(transactions:TransactionT[], sort_by:string, sort_dir
 
 function current_month_of_filtered_transactions(filtered_transactions:TransactionT[], month:Date) : TransactionT[] {
 
-    const month_end = new Date(month)
+    const m = new Date(month)
 
-    month_end.setMonth(month_end.getMonth() + 1)
+    const month_start_ts = m.getTime() / 1000
 
-    const month_start_ts = month.getTime() / 1000
-    
-    const month_end_ts = month_end.getTime() / 1000 - 1
+    const month_end_ts = m.setUTCMonth(m.getUTCMonth() + 1) / 1000 - 1
+
+    const daterange = { begin: Math.floor(month_start_ts), end: Math.floor(month_end_ts) }
 
     return filtered_transactions.filter((transaction:TransactionT) => {
-        return transaction.ts > month_start_ts && transaction.ts < month_end_ts
+        return transaction.ts >= daterange.begin && transaction.ts < daterange.end
     }) 
 }
 
@@ -237,19 +265,28 @@ function catcalcs(transactions:TransactionT[], filter_area:AreaT, filter_cattags
     const all_catcalcs:CatCalcsT[] = []
 
     const months_ts = months.map((month:Date) => {
-        const start = month.getTime() / 1000
+        const start = Math.floor(month.getTime() / 1000)
         const end_d = new Date(month)
-        end_d.setMonth(end_d.getMonth() + 1)
-        const end = end_d.getTime() / 1000 - 1
+        end_d.setUTCMonth(end_d.getUTCMonth() + 1)
+        const end = Math.floor(end_d.getTime() / 1000) - 1
         return { start, end }
     })
 
     const filteredcats = cats.filter((cat:CatT) => { 
+
+        if (cat.area !== filter_area) { return false }
+
         const isofarea = cat.area === filter_area
 
-        const has_filter_a_cattag = cat.subs?.some((subcat:CatT) => subcat.tags.some((t:number) => filter_cattags.includes(t))) 
+        if (filter_cattags.length === 0) return isofarea
 
-        return (isofarea && has_filter_a_cattag)
+        const has_filter_a_cattag = cat.subs?.some((subcat:CatT) => {
+            return subcat.tags.some((t:number) => { 
+                return filter_cattags.includes(t) 
+            })
+        })
+
+        return (has_filter_a_cattag)
     })
 
     for (const cat of filteredcats) {
@@ -257,17 +294,21 @@ function catcalcs(transactions:TransactionT[], filter_area:AreaT, filter_cattags
         const catcalc:CatCalcsT = { cat, subs: [], sums: [], budget:0, med:0, avg:0 }
 
         const filtered_sub_cats = cat.subs!.filter((cat:CatT) => { 
+            if (filter_cattags.length === 0) { return true }
             return cat.tags.some((t:number) => filter_cattags.includes(t))
         })
 
         for (const subcat of filtered_sub_cats) {
 
+
             const subcatcalc:CatCalcsT = { cat: subcat, subs: null, sums: [], budget:subcat.budget!, med:0, avg:0}
 
-            for (const month_ts of months_ts) {
+            for (let m = 0; m < months_ts.length; m++) {
+
+                const month_ts = months_ts[m]
 
                 const filtered_transactions = transactions.filter(transaction => {
-                    return transaction.cat === subcat && transaction.ts > month_ts.start && transaction.ts < month_ts.end 
+                    return (transaction.cat === subcat && transaction.ts > month_ts.start && transaction.ts < month_ts.end) 
                 })
 
                 const sum = filtered_transactions.reduce((acc:number, transaction:TransactionT) => { return acc + transaction.amount }, 0)
@@ -343,21 +384,74 @@ function totals(catcalcs:CatCalcsT[], filter:FilterT) : TotalsT {
 
 
 
+function monthsnapshot(date:Date, area:AreaT, cats:CatT[], transactions:TransactionT[], previous_static_monthsnapshots:MonthSnapShotT[]) : MonthSnapShotExT {
 
-function summary(totals:TotalsT, area:AreaT) : SummaryT {
+    const clonedate = new Date(date)
+    clonedate.setUTCDate(15) // middle of the month so our monthstr doesnt slip into the past month because of timezone offset when using toISOString
+    const monthstr = clonedate.toISOString().slice(0,7)
+    const msp = previous_static_monthsnapshots.find(ms=> ms.area === area && ms.month === monthstr)
 
-    const bucket = area.bucket
-    const savings = area.ynab_savings
+    const totals = month_totals(area, transactions, date)
 
-    const bucket_sum_diff = bucket - totals.sums[totals.sums.length - 1]
-    const bucket_budget_diff = bucket - totals.budget
+    if ( msp ) {
 
-    return { bucket, bucket_budget_diff, bucket_sum_diff, savings }
+        return {
+            area: msp.area,
+            month: msp.month,
+            bucket: msp.bucket,
+            budget: msp.budget,
+            savings: msp.savings,
+            total: totals.total,
+            quad4total: totals.quad4total,
+            quad123total: totals.quad123total
+        }
+
+    } else {
+
+        const budget = month_budget_total(area, cats)
+
+        return { area, month: monthstr, bucket: area.bucket, budget, savings: area.ynab_savings, ...totals }
+    }
 }
 
 
 
 
-export { knit_all, knit_areas, knit_cats, knit_sources, knit_tags, get_months, filter_transactions, sort_transactions, current_month_of_filtered_transactions, catcalcs, totals, summary }
+function month_totals(area:AreaT, transactions:TransactionT[], month:Date) : { total:int, quad4total:int, quad123total:int } {
+
+    const clonedate = new Date(month)
+    const rangetimestart = Math.floor(clonedate.getTime()/1000)
+    const rangetimeend = Math.floor(clonedate.setUTCMonth(clonedate.getUTCMonth() + 1)/1000)
+
+    const filtered_transactions = transactions.filter(t=> t.area === area && t.ts >= rangetimestart && t.ts < rangetimeend)
+
+    const quad4transactions = filtered_transactions.filter(t=> t.cat.tags.includes(4) )
+
+    const total        =  Math.round(    filtered_transactions.reduce((a,b)=> a+b.amount, 0)   )
+    const quad4total   =  Math.round(        quad4transactions.reduce((a,b)=> a+b.amount, 0)   )
+
+    const quad123total = total - quad4total
+
+    return { total, quad4total, quad123total }
+}
+
+
+
+
+function month_budget_total(area:AreaT, cats:CatT[]) : int {
+
+    let budget_total = 0
+
+    cats.filter(c=>c.area === area).forEach(cat => {
+        budget_total += cat.subs?.reduce((a,b)=> a+b.budget!, 0) as number
+    })
+
+    return budget_total
+}
+
+
+
+
+export { knit_all, knit_areas, knit_cats, knit_sources, get_months, filter_transactions, sort_transactions, current_month_of_filtered_transactions, catcalcs, totals, monthsnapshot }
 
 

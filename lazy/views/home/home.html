@@ -9,7 +9,9 @@
 
     <div id="admin">
 
-        <h5 @click="${()=>this.adminetc('firestore_misc_update')}">firestore_misc_update</h5>
+        ${localStorage.getItem("auth_group") === 'admin' ? Lit_Html`
+            <h5 @click="${()=>this.adminetc('firestore_misc_update')}">firestore_misc_update</h5>
+        ` : ''}
         
         <div style="height: 200px; overflow-y:scroll;">
             ${Array.isArray(_s.admin_return_str) ? _s.admin_return_str.map((item, index) => Lit_Html`
@@ -20,6 +22,15 @@
         </div>
 
         <h5 @click="${()=>window.location.hash='finance'}">Finance</h5>
+
+        ${localStorage.getItem("auth_group") === 'admin' ? Lit_Html`
+            <br><br>
+            <h5 @click="${()=>window.location.hash='addtr'}">AddTr</h5>
+        ` : ''}
+
+        <br><br>
+
+        <h5 @click="${()=>window.location.hash='auth'}">Auth</h5>
 
     </div>
 

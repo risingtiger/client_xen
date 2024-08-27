@@ -24,114 +24,180 @@
 
 -->
 
-<div class="content">
+<div class="content touchroot">
 
-    <div id="calcs"  class="p-6 max-w-sm mx-auto bg-white rounded-xl shadow-lg flex items-center space-x-4">
+    <div id="calc_transactions_wrapper">
 
-        <table>
-            <tr>
-                <th class="cat">
-                    <a @click="${()=>{this.s.catsview.show_ui=1;this.sc();}}"><i class="icon-list" style="font-size: 13px;position: relative;top: 1px; left: 1px; padding-right: 0px;"></i>&nbsp;</a>
+        <div id="calcs"  class="p-6 max-w-sm mx-auto bg-white rounded-xl shadow-lg flex items-center space-x-4">
+            <div id="tablewrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="cat">
 
-                    ${localStorage.getItem('user_email') === 'accounts@risingtiger.com' ? Lit_Html`
-                    <a @click="${()=>this.filter_by_cattag([1,2,3])}">&nbsp;-&nbsp;</a>
-                    <a @click="${()=>this.filter_by_cattag([1])}">&nbsp;1&nbsp;</a>
-                    <a @click="${()=>this.filter_by_cattag([2])}">&nbsp;2&nbsp;</a>
-                    <a @click="${()=>this.filter_by_cattag([3])}">&nbsp;3&nbsp;</a>
-                    <a @click="${()=>this.filter_by_cattag([4])}">&nbsp;4&nbsp;</a>
-                    ` : ''}
+                                <a class="${_s.filter.cattags[0] === 1 && _s.filter.cattags[1] === 2 && _s.filter.cattags[2] === 3 && !_s.filter.cattags[3] ? 'active' : ''}" @click="${()=>this.filter_by_cattag([1,2,3])}" data-cattags='1,2,3'>&nbsp;○&nbsp;</a>
 
-                    <a @click="${()=>{this.set_default_except_area();this.parse_new_state();this.sc();}}">&nbsp;R&nbsp;</a>
-                </th>
+                                <a class="${_s.filter.cattags[0] === 1 && !_s.filter.cattags[1] ? 'active' : ''}" @click="${()=>this.filter_by_cattag([1])}" data-cattags='1'>&nbsp;1&nbsp;</a>
+                                <a class="${_s.filter.cattags[0] === 2 && !_s.filter.cattags[1] ? 'active' : ''}" @click="${()=>this.filter_by_cattag([2])}" data-cattags='2'>&nbsp;2&nbsp;</a>
+                                <a class="${_s.filter.cattags[0] === 3 && !_s.filter.cattags[1] ? 'active' : ''}" @click="${()=>this.filter_by_cattag([3])}" data-cattags='3'>&nbsp;3&nbsp;</a>
+                                <a class="${_s.filter.cattags[0] === 4 && !_s.filter.cattags[1] ? 'active' : ''}" @click="${()=>this.filter_by_cattag([4])}" data-cattags='4'>&nbsp;4&nbsp;</a>
 
-                ${_s.months.map((m,i) => Lit_Html`
-                    <th class="monthname ${i === _s.months.length-1 ? 'current' : ''}" @click="${(e)=>this.calcmonth_clicked(e)}" data-month_i="${i}">${m.toLocaleString('default', { month: 'short' })}</th>
-                `)}
+                                <a class="${_s.filter.cattags[0] === 1 && _s.filter.cattags[1] === 2 && _s.filter.cattags[2] === 3 && _s.filter.cattags[3] === 4 ? 'active' : ''}" @click="${()=>this.filter_by_cattag([1,2,3,4])}" data-cattags='1,2,3,4'>&nbsp;●&nbsp;</a>
 
-                <th class="budget"><i class="icon-piggy" style="color: #097287; font-size: 13.5px;position: relative;top: 0.5px;left: 1px; padding-right: 0px;"></i></th>
-                <th class="avgmed"><i class="icon-piggy" style="color: #138ba3; font-size: 12px;position: relative;top: 1.5px; left: 1px; padding-right: 0px; "></i></th>
-            </tr>
+                            </th>
 
+                            ${_s.months_display_str.map((m,i) => Lit_Html`
+                                <th class="monthname ${i === _s.months.length-1 ? 'current' : ''}" @click="${(e)=>this.calcmonth_clicked(e)}" data-month_i="${i}">${m}</th>
+                            `)}
 
-            ${_m.catcalcs.map((c,i) => Lit_Html`
-                <tr class="topcatrow">
-                    <td class="cat" @click="${(e)=>this.calccat_clicked(e)}" data-i="${i}">${c.cat.name}</td>
+                            <th class="budget">B</th>
+                            <th class="avgmed" @click="${()=>this.avgormed_clicked()}">${_s.prefs.avgormed === 1 ? 'A' : 'M'}</th>
+                        </tr>
+                    </thead>
 
-                    ${_s.months.map((m,i) => Lit_Html`
-                    <td class="sum ${i === _s.months.length-1 ? 'current' : ''}">${Math.round(c.sums[i])}</td>
-                    `)}
+                    <tbody>
+                        ${_m.catcalcs.map((c,i) => Lit_Html`
+                            <tr class="topcatrow">
+                                <td class="touch_catquad cat" @click="${(e)=>this.calccat_clicked(e)}" data-i="${i}">${c.cat.name}</td>
 
-                <td class="budget">${c.budget}</td>
-                    <td class="avgmed">${Math.round(c.avg)}</td>
-                </tr>
+                                ${_s.months.map((m,i) => Lit_Html`
+                                <td class="touch_month sum ${i === _s.months.length-1 ? 'current' : ''}">${Math.round(c.sums[i])}</td>
+                                `)}
 
-                ${c.subs.map((cs,ii) => Lit_Html`
-                    <tr class="subcatrow ${ii === c.subs.length-1 ? 'lastsubcat' : ''}" data-catcalc_index="${i}" data-catcalc_sub_index="${ii}">
-                        <td class="cat sub" @click="${(e)=>this.calccat_clicked(e)}" data-i="${i}" data-ii="${ii}">${cs.cat.name}</td>
+                                <td class="touch_area budget">${c.budget}</td>
+                                <td class="touch_area avgmed">${Math.round(c.avg)}</td>
+                            </tr>
 
-                        ${_s.months.map((m,iii) => Lit_Html`
-                            <td class="sum sub ${iii === _s.months.length-1 ? 'current' : ''}">${Math.round(cs.sums[iii])}</td>
+                            ${c.subs.map((cs,ii) => Lit_Html`
+                                <tr class="subcatrow ${ii === c.subs.length-1 ? 'lastsubcat' : ''}" data-catcalc_index="${i}" data-catcalc_sub_index="${ii}">
+                                    <td class="touch_catquad cat sub" @click="${(e)=>this.calccat_clicked(e)}" data-i="${i}" data-ii="${ii}">${cs.cat.name}</td>
+
+                                    ${_s.months.map((m,iii) => Lit_Html`
+                                        <td class="touch_month sum sub ${iii === _s.months.length-1 ? 'current' : ''}">${Math.round(cs.sums[iii])}</td>
+                                    `)}
+
+                                    <td class="touch_area budget">${cs.cat.budget}</td>
+                                    <td class="touch_area avgmed">${Math.floor(   (_s.prefs.avgormed === 1 ? cs.avg : cs.med)   )}</td>
+                                </tr>
+                            `)}
                         `)}
+                    </tbody>
 
-                        <td class="budget">${cs.cat.budget}</td>
-                        <td class="avgmed">${Math.floor(cs.avg)}</td>
-                    </tr>
-                `)}
-            `)}
+                    <tfoot>
+                        <tr class="totals">
+                            <th class="cat">Totals</th>
 
-            <tr class="totals">
-                <th class="cat">Totals</th>
+                            ${_s.months.map((m,i) => Lit_Html`
+                            <th class="sum ${i === _s.months.length-1 ? 'current' : ''}">${Math.round(_m.totals.sums[i])}</th>
+                            `)}
 
-                ${_s.months.map((m,i) => Lit_Html`
-                <th class="sum ${i === _s.months.length-1 ? 'current' : ''}">${Math.round(_m.totals.sums[i])}</th>
-                `)}
-
-                <th class="budget">${Math.round(_m.totals.budget)}</th>
-                <th class="avgmed">${Math.round(_m.totals.avg)}</th>
-            </tr>
-
-        </table>
-
-        <div id="summary">
-            <h4>Summary</h4>
-            <p>Bucket: ${_m.summary.bucket}</p>
-            <p>Bucket Budget Diff: ${_m.summary.bucket_budget_diff}</p>
-            <p>Bucket Sum Diff: ${_m.summary.bucket_sum_diff}</p>
-            <p>Savings: ${_m.summary.savings}</p>
+                            <th class="budget">${Math.round(_m.totals.budget)}</th>
+                            <th class="avgmed">${Math.round(_m.totals.avg)}</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
         </div>
+
+
+        <div id="transactions">
+            <div id="tablewrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="date" @click="${()=>this.sort_transactions_by('ts', 'asc')}">date</th>
+                            <th class="merchant" @click="${()=>this.sort_transactions_by('merchant', 'asc')}">merchant</i></th>
+                            <th class="category" @click="${()=>this.sort_transactions_by('cat', 'asc')}">category</th>
+                            <th class="amount" @click="${()=>this.sort_transactions_by('amount', 'asc')}">amount</th>
+                            <th class="source" @click="${()=>this.sort_transactions_by('source', 'asc')}">source</th>
+                            <th class="notes" @click="${()=>this.sort_transactions_by('notes', 'asc')}">notes &nbsp;  
+                            </th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                    ${_m.current_month_transactions.map((t,i) => Lit_Html`
+                        <tr @click="${(e)=>this.transactionrow_clicked(e)}" data-id="${t.id}">
+                            <td class="date">${(new Date(t.ts*1000)).toLocaleDateString().slice(0,-5)}</td>
+                            <td class="merchant">${t.merchant.toLowerCase().slice(0,18)}</td>
+                            <td class="category">${t.cat.name.slice(0,9)}</td>
+                            <td class="amount">${Math.round(t.amount)}</td>
+                            <td class="source">${t.source.name}</td>
+                            <td class="notes">${t.tags.map(tg=>Lit_Html`<span class='tag' @click="${(e)=>this.transaction_tag_clicked(e)}" data-id="${tg.id}">#${tg.name} </span>`)} ${t.notes}</td>
+                        </tr>
+                    `)}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
     </div>
 
+    <footer class="touch_switch_calcs_transactions">
+        <div id="snapshot">
 
+            <div>
+                <a @click="${()=>location.reload()}">&nbsp;Sync&nbsp;</a>
+                &nbsp; &nbsp; &nbsp;
+                <a @click="${()=>{this.reset()}}">&nbsp;R&nbsp;</a>
+                &nbsp;
+                <a @click="${()=>{this.toggle_show_tags()}}">&nbsp;T&nbsp;</a>
+                &nbsp;
+                <a @click="${()=>{this.s.paymentsview.show_ui = this.s.paymentsview.show_ui === 1 ? 2 : 1; this.sc()}}">&nbsp;P&nbsp;</a>
+                &nbsp;
+                <a @click="${()=>{this.s.catsview.show_ui=1;this.sc();}}">&nbsp;C&nbsp;</a>
+            </div>
 
+            <div class="snapshotrow">
 
-    <div id="transactions">
-        <table>
-            <tr>
-                <th class="date" @click="${()=>this.sort_transactions_by('ts', 'asc')}">date</th>
-                <th class="merchant" @click="${()=>this.sort_transactions_by('merchant', 'asc')}">merchant</i></th>
-                <th class="category" @click="${()=>this.sort_transactions_by('cat', 'asc')}">category</th>
-                <th class="amount" @click="${()=>this.sort_transactions_by('amount', 'asc')}">amount</th>
-                <th class="source" @click="${()=>this.sort_transactions_by('source', 'asc')}">source</th>
-                <th class="tags" @click="${()=>this.sort_transactions_by('tags', 'asc')}">tags</th>
-                <th class="notes" @click="${()=>this.sort_transactions_by('notes', 'asc')}">notes <a @click="${()=>location.reload()}">&nbsp;S&nbsp;</a></th>
-            </tr>
+                <p class="total">
+                    <strong style="color: #097287;">T</strong>
+                    ${Math.round(_s.current_monthsnapshot.total)}
+                </p>
+                <p class="quad4total">
+                    <strong style="color: #097287;">T4</strong>
+                    ${Math.round(_s.current_monthsnapshot.quad4total)}
+                </p>
+                <p class="quad123total">
+                    <strong style="color: #097287;">T123</strong>
+                    ${Math.round(_s.current_monthsnapshot.quad123total)}
+                </p>
+                <p class="bucket">
+                    <i class="icon-bucket" style="color: #097287; font-size: 13.5px;position: relative;top: 0.5px;left: 1px; padding-right: 0px;"></i> 
+                    ${Math.round(_s.current_monthsnapshot.bucket)}
+                </p>
+                <p class="budget">
+                    <strong style="color: #097287;">B</strong>
+                    ${Math.round(_s.current_monthsnapshot.budget)}
+                </p>
+                <p class="savings">
+                    <i class="icon-piggy" style="color: #097287; font-size: 13.5px;position: relative;top: 0.5px;left: 1px; padding-right: 0px;"></i> 
+                    ${Math.round(_s.current_monthsnapshot.savings)}
+                </p>
+            </div>
 
-            ${_m.current_month_transactions.map((t,i) => Lit_Html`
-                <tr @click="${(e)=>this.transactionrow_clicked(e)}" data-id="${t.id}">
-                    <td class="date">${(new Date(t.ts*1000)).toLocaleDateString().slice(0,-5)}</td>
-                    <td class="merchant">${t.merchant.toLowerCase().slice(0,18)}</td>
-                    <td class="category">${t.cat.name.slice(0,9)}</td>
-                    <td class="amount">${Math.round(t.amount)}</td>
-                    <td class="source">${t.source.name}</td>
-                    <td class="tags">${t.tags.map(tag=>Lit_Html`<span>${tag}</span>`)}</td>
-                    <td class="notes">${t.notes.slice(0,9)}</td>
-                </tr>
-            `)}
+            <div class="snapshotrow">
 
-        </table>
-    </div>
+                <p class="budget_t123_diff">
+                    <strong style="color: #097287;">B</strong> - <strong style="color: #097287;">T123</strong>
+                    ${Math.round(_s.current_monthsnapshot.budget - _s.current_monthsnapshot.quad123total)}
+                </p>
 
-    <footer><a @click="${()=>this.grabfresh()}">sync</a></footer>
+                <!--
+                <p class="bucket_total_diff">
+                    <i class="icon-bucket" style="color: #097287; font-size: 13.5px;position: relative;top: 0.5px;left: 1px; padding-right: 0px;"></i> - <strong style="color: #097287;">T</strong>
+                    ${Math.round(_s.current_monthsnapshot.bucket - _s.current_monthsnapshot.total)}
+                </p>
+                -->
+
+                <p class="bucket_budget_diff">
+                    <i class="icon-bucket" style="color: #097287; font-size: 13.5px;position: relative;top: 0.5px;left: 1px; padding-right: 0px;"></i> - <strong style="color: #097287;">B</strong>
+                    ${Math.round(_s.current_monthsnapshot.bucket - _s.current_monthsnapshot.budget)}
+                </p>
+            </div>
+        </div>
+
+    </footer>
 
 </div>
 
@@ -149,7 +215,7 @@ ${ _s.transactiondetails.show_ui !== 0 ? Lit_Html`
                 <li><h5>Category</h5><p>${_s.transactiondetails.t.cat.parent.area.name} :: ${_s.transactiondetails.t.cat.parent.name} :: ${_s.transactiondetails.t.cat.name}</p></li>
                 <li><h5>Source</h5><p>${_s.transactiondetails.t.source.name}</p></li>
                 <li><h5>Tags</h5><p>${_s.transactiondetails.t.tags.map(tag=>Lit_Html`<span>${tag}</span>`)}</p></li>
-                <li><h5>Note</h5><p>${_s.transactiondetails.t.note}</p></li>
+                <li><h5>Note</h5><p>${_s.transactiondetails.t.notes}</p></li>
                 <li><h5>ID</h5><p>${_s.transactiondetails.t.id}</p></li>
             </ul>
         </div>
@@ -188,4 +254,92 @@ ${ _s.catsview.show_ui !== 0 ? Lit_Html`
 ` : ''}
 
 
+${ _s.paymentsview.show_ui !== 0 ? Lit_Html`
+    <c-ol top="34" width="sm" height="full" ?close="${this.s.paymentsview.show_ui === 2}" @close="${()=> { this.s.paymentsview.show_ui = 0; this.sc(); } }">
+
+    <div id="paymentsview">
+
+        <section class="payments">
+            ${_m.payments.filter(p=>p.type === 'creditcard').map(p=>this.payments_r(p))}
+        </section>
+        <hr>
+        <hr>
+        <section class="payments">
+            ${_m.payments.filter(p=>p.type === 'carloan').map(p=>this.payments_r(p))}
+        </section>
+        <hr>
+        <section class="payments">
+            ${_m.payments.filter(p=>p.type === 'bill').map(p=>this.payments_r(p))}
+        </section>
+
+        <!--
+        <table>
+            <tr>
+                <th>payee</th>
+                <th>type</th>
+                <th>day</th>
+                <th>auto</th>
+                <th>amount</th>
+                <th>nointerest</th>
+                <th>pingschecking</th>
+                <th>notes</th>
+            </tr>
+
+            ${_m.payments.map((p,i) => Lit_Html`
+                <tr>
+                    <td>${p.payee}</td>
+                    <td>${p.type}</td>
+                    <td>${p.day}</td>
+                    <td>${p.is_auto ? 'yes' : 'no'}</td>
+                    <td>${p.amount}</td>
+                    <td>${p.nointerest_ifby}</td>
+                    <td>${p.is_auto && p.payment_source && p.payment_source.name === 'checkpers' ? 'yes' : ''}</td>
+                    <td><span>${p.notes}</span></td>
+                </tr>
+
+                ${p.breakdown.map(b=> Lit_Html`
+                <tr>
+                    <td>${b.split(':')[0]}</td>
+                    <td>aggregate</td>
+                    <td>0</td>
+                    <td>-</td>
+                    <td>${b.split(':')[1]}</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                </tr>
+                `)}
+            `)}
+        </table>
+-->
+    </div>
+
+    </c-ol>
+` : ''}
+
+
+
+
+${ _s.tagsview.show_ui !== 0 ? Lit_Html`
+    <c-ol top="34" width="sm" height="full" ?close="${this.s.tagsview.show_ui === 2}" @close="${()=> { this.s.tagsview.show_ui = 0; this.sc(); } }">
+
+        <div id="tagsview">
+
+            <h3>Tags</h3>
+
+            <ul class="items">
+                ${_s.tagsview.tagtotals.map(t=>Lit_Html`
+                <li @click="${(e)=>{this.tagsview_tag_clicked(e)}}" data-id="${t.id}">
+                        <h5>${t.name}</h5>
+                        <p>
+                            <span>${Math.round(t.total)}</span>
+                        </p>
+                    </li>
+                `)}
+            </ul>
+
+        </div>
+
+    </c-ol>
+` : ''}
 

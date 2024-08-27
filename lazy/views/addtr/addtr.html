@@ -13,6 +13,12 @@
 
 <div class="content">
 
+    <div id="keycatcher_w">
+        <input id="keycatcher" type="email" spellcheck="false" inputmode="email"></input>
+        <div id="keycatcher_instructions">
+            <span>${_s.instructions}</span>
+        </div>
+    </div>
 
     <div id="rawtransaction">
         ${_s.rawtransactions.map((rawtransaction,i)=>Lit_Html`
@@ -23,12 +29,14 @@
                     <div class="anitem longdesc">${rawtransaction.merchant}</div>
                     <div class="anitem amount">${rawtransaction.amount.toFixed(2)}</div>
                 </div>
+
                 <div class="secondary">
-                    <div class="anitem cat">${ rawtransaction.cat_name || '...'}</div>
+                <div class="anitem cat">${ rawtransaction.cat_name || '...'} &nbsp; </div>
                     <div class="anitem source">${(_sources.find(s=> s.id === rawtransaction.source_id)).name}</div>
                 </div>
-                <div class="tertiary">
-                    <div class="anitem note">${rawtransaction.note}</div>
+
+                <div class="tertiary"> 
+                    <div class="anitem note">${rawtransaction.tag_names.map(tn=> '#' + tn + ' ')} ${rawtransaction.notes} ${ rawtransaction.preset_area_id ? _areas.find(a=>a.id === rawtransaction.preset_area_id).name : ''}::${ rawtransaction.preset_cat_name || ''}</div>
                 </div>
             </div>
         `)}
@@ -47,6 +55,12 @@
         `)}
     </div>
 
+    <div id="tags" ${animeio( (_s.keyinput_mode === 1), 0 )}>
+        ${_tags.map(tag=>Lit_Html`
+            <h6 @click="${(e)=>this.settag_from_click(e)}" data-id="${tag.id}">${tag.name}</h6>
+        `)}
+    </div>
+
     <!--
     <div class="keyinput_indicator active">
         ${_s.keyinput_mode == 0 ? Lit_Html`
@@ -61,10 +75,9 @@
     </div>
     -->
 
-    <a @click="${()=> this.sync_latest()}">sync latest</a>
+    <footer id="pagefooter">
+        <a class="syncgetter" @click="${()=> window.location.reload()}">sync latest</a>
+    </footer>
 
-    <div id="keycatcher_w">
-        <input id="keycatcher" type="email" spellcheck="false" inputmode="email"></input>
-    </div>
 </div>
 
