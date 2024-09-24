@@ -55,7 +55,7 @@
         `)}
     </div>
 
-    <div id="tags" ${animeio( (_s.keyinput_mode === 1), 0 )}>
+	<div id="tags" class="${_s.keyinput_mode === 1 ? 'active' : ''}">
         ${_tags.map(tag=>Lit_Html`
             <h6 @click="${(e)=>this.settag_from_click(e)}" data-id="${tag.id}">${tag.name}</h6>
         `)}

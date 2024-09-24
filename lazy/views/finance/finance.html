@@ -24,6 +24,15 @@
 
 -->
 
+<header class="viewheader" style="display:none;">
+    <a class="left"><span>‸</span><span></span></a>
+    <div class="middle">
+        <h1>Ya</h1>
+    </div>
+    <div class="right">
+    </div>
+</header>
+
 <div class="content touchroot">
 
     <div id="calc_transactions_wrapper">
@@ -202,10 +211,17 @@
 </div>
 
 
+${ _s.editview.show_ui !== 0 ? Lit_Html`
+    <c-ol shape="1" title="Edit Transaction" @close="${()=> { this.s.editview.show_ui = 0; this.sc(); } }">
+        <vp-transaction-edit transaction="${_s.editview.transaction_id}"></vp-transaction-edit>
+    </c-ol>
+` : '' }
 
 
+
+<!--
 ${ _s.transactiondetails.show_ui !== 0 ? Lit_Html`
-    <c-ol top="34" width="sm" height="full" @close="${()=> this.transactiondetails_close() }">
+    <c-ol shape="1" title="Details" @close="${()=> this.transactiondetails_close() }">
         <div id="transactiondetails">
             <h4>Transaction Details</h4>
             <ul class="items">
@@ -221,12 +237,13 @@ ${ _s.transactiondetails.show_ui !== 0 ? Lit_Html`
         </div>
     </c-ol>
 ` : ''}
+-->
 
 
 
 
 ${ _s.catsview.show_ui !== 0 ? Lit_Html`
-    <c-ol top="34" width="sm" height="full" ?close="${this.s.catsview.show_ui === 2}" @close="${()=> { this.s.catsview.show_ui = 0; this.sc(); } }">
+    <c-ol shape="1" title="Categories" ?close="${this.s.catsview.show_ui === 2}" @close="${()=> { this.s.catsview.show_ui = 0; this.sc(); } }">
 
         <div id="catsview">
 
@@ -255,7 +272,7 @@ ${ _s.catsview.show_ui !== 0 ? Lit_Html`
 
 
 ${ _s.paymentsview.show_ui !== 0 ? Lit_Html`
-    <c-ol top="34" width="sm" height="full" ?close="${this.s.paymentsview.show_ui === 2}" @close="${()=> { this.s.paymentsview.show_ui = 0; this.sc(); } }">
+    <c-ol shape="1" title="Payments" ?close="${this.s.paymentsview.show_ui === 2}" @close="${()=> { this.s.paymentsview.show_ui = 0; this.sc(); } }">
 
     <div id="paymentsview">
 

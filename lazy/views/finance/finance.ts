@@ -15,48 +15,25 @@ const dummyArea:AreaT = { id: "1", bucket:0, name: "", longname: "", ynab_saving
 
 
 
-import { str,int } from "../../../../definitions.js"
+import { str,num } from "../../../../definitions.js"
 
-import { AreaT, CatT, SourceT, TagT, TransactionT, CatCalcsT, TotalsT, MonthSnapShotT, FilterT, PaymentT } from '../../../finance_defs.js'
+import { AreaT, CatT, SourceT, TagT, PaymentT, TransactionT, CatCalcsT, TotalsT, MonthSnapShotT, FilterT } from '../../../finance_defs.js'
 import { knit_all, get_months, filter_transactions, sort_transactions, current_month_of_filtered_transactions, catcalcs, totals, monthsnapshot  } from '../../libs/finance_funcs.js'
+
+import './parts/edit_transaction/edit_transaction.js'
 
 declare var FetchLassie:any
 declare var Lit_Render: any;
 declare var Lit_Html: any;
-declare var SetDistCSS: any;
+declare var DataSync: any;
 
 
 
 
 enum KeyE { NONE }
-type State = {
-    filter: FilterT,
-    months: Date[],
-    transactiondetails: { show_ui: 0|1|2, t: TransactionT|null },
-    catsview: { show_ui: 0|1|2, cats_with_deleteflag: {id:str, name:string}[] },
-    paymentsview: { show_ui: 0|1|2 },
-    tagsview: { show_ui: 0|1|2, tagtotals: {id:str, name:str, sort:int, total:number}[] },
-    current_monthsnapshot: MonthSnapShotT,
-    months_display_str: string[],
-    touch: { isactive:boolean, beginx: number, beginy: number, origin_action:'month'|'catquad'|'area'|'switch_calcs_transactions_view'},
-    key: { listen_for: KeyE  },
-    prefs: { avgormed: 1|2 }
-}
 
-
-
-
-let distcss = `{--distcss--}`;
-
-
-
-
-class VFinance extends HTMLElement {
-
-s:State
-shadow:ShadowRoot
-
-m:{
+type Model = {
+	ynab_accounts:any[],
     areas:AreaT[], 
     cats:CatT[], 
     sources:SourceT[], 
@@ -70,6 +47,32 @@ m:{
     payments: PaymentT[]
 }
 
+type State = {
+	touch_attached: boolean,
+    filter: FilterT,
+    months: Date[],
+    transactiondetails: { show_ui: 0|1|2, t: TransactionT|null },
+    catsview: { show_ui: 0|1|2, cats_with_deleteflag: {id:str, name:string}[] },
+    paymentsview: { show_ui: 0|1|2 },
+    tagsview: { show_ui: 0|1|2, tagtotals: {id:str, name:str, sort:num, total:number}[] },
+	editview: { show_ui: 0|1|2, transaction_id: str },
+    current_monthsnapshot: MonthSnapShotT,
+    months_display_str: string[],
+    touch: { isactive:boolean, beginx: number, beginy: number, origin_action:'month'|'catquad'|'area'|'switch_calcs_transactions_view'},
+    key: { listen_for: KeyE  },
+    prefs: { avgormed: 1|2 },
+}
+
+
+
+
+
+class VFinance extends HTMLElement {
+
+m:Model
+s:State
+shadow:ShadowRoot
+
 
 
 constructor() {   
@@ -77,12 +80,14 @@ constructor() {
     super(); 
 
     this.s = {
+		touch_attached: false,
         filter: { area: null, parentcat: null, cat: null, source: null, tags: null, daterange: null, merchant: null, note: null, amountrange: null, cattags: [] },
         months: [],
         transactiondetails: { show_ui: 0, t: null },
         catsview: { show_ui: 0, cats_with_deleteflag: [] },
         paymentsview: { show_ui: 0 },
         tagsview: { show_ui: 0, tagtotals: []},
+		editview: { show_ui: 0, transaction_id: '' },
         current_monthsnapshot: { area: dummyArea, month: "", bucket: 0, budget: 0, savings: 0 },
         months_display_str: [],
         touch: { isactive: false, beginx: 0, beginy: 0, origin_action: 'month'},
@@ -91,6 +96,7 @@ constructor() {
     }
 
     this.m = {
+		ynab_accounts: [],
         areas: [],
         cats: [],
         sources: [],
@@ -105,323 +111,101 @@ constructor() {
     }
 
     this.shadow = this.attachShadow({mode: 'open'});
-
-    SetDistCSS(this.shadow, distcss)
 }
 
 
 
 
-async connectedCallback() {
+	async connectedCallback() {
 
-    await this.grabfresh()
+		this.setAttribute("backhash", "home")
+		
+		DataSync.Subscribe(["areas", "cats", "sources", "tags", "payments", "transactions", "monthsnapshots"], this)
+		FetchLassie('/api/xen/finance/grab_em').then((data:any)=> {   this.m.ynab_accounts = data.ynab_accounts;   })
 
-    const eltoattach = this.shadow.querySelector('.touchroot') as HTMLElement
-
-    eltoattach.addEventListener("touchstart", this.handle_touch_start.bind(this));
-    eltoattach.addEventListener("touchend", this.handle_touch_end.bind(this));
-    eltoattach.addEventListener("touchcancel", this.handle_touch_cancel.bind(this));
-    eltoattach.addEventListener("touchmove", this.handle_touch_move.bind(this));
-
-    document.addEventListener('keydown', this.handle_keydown.bind(this))
-
-    this.dispatchEvent(new Event('hydrated'))
-}
+	}
 
 
 
 
-disconnectedCallback() {
+	async DataSync_Updated() {
 
-    const eltoattach = this.shadow.querySelector('.touchroot') as HTMLElement
+		console.time("getall")
+		const idata = await (window as any).IndexedDB.GetAll(["areas", "cats", "sources", "tags", "payments", "transactions", "monthsnapshots"])
+		console.timeEnd("getall")
 
-    eltoattach.removeEventListener("touchstart", this.handle_touch_start.bind(this));
-    eltoattach.removeEventListener("touchend", this.handle_touch_end.bind(this));
-    eltoattach.removeEventListener("touchcancel", this.handle_touch_cancel.bind(this));
-    eltoattach.removeEventListener("touchmove", this.handle_touch_move.bind(this));
+		checkit.bind(this)()
+		
 
-    document.removeEventListener('keydown', this.handle_keydown.bind(this))
-}
+		function checkit() {
+
+			if (this.m.ynab_accounts.length) {
+
+				this.runit(idata)
+
+				this.dispatchEvent(new Event('hydrated'))
+
+				const eltoattach = this.shadow.querySelector('.touchroot') as HTMLElement
+
+				if (!this.s.touch_attached) {
+					eltoattach.addEventListener("touchstart", this.handle_touch_start.bind(this));
+					eltoattach.addEventListener("touchend", this.handle_touch_end.bind(this));
+					eltoattach.addEventListener("touchcancel", this.handle_touch_cancel.bind(this));
+					eltoattach.addEventListener("touchmove", this.handle_touch_move.bind(this));
+
+					document.addEventListener('keydown', this.handle_keydown.bind(this))
+
+					this.s.touch_attached = true
+				}
+
+			} else {
+				setTimeout(checkit.bind(this), 10)
+			}
+		}
+	}
+
+
+
+	disconnectedCallback() {
+
+		const eltoattach = this.shadow.querySelector('.touchroot') as HTMLElement
+
+		eltoattach.removeEventListener("touchstart", this.handle_touch_start.bind(this));
+		eltoattach.removeEventListener("touchend", this.handle_touch_end.bind(this));
+		eltoattach.removeEventListener("touchcancel", this.handle_touch_cancel.bind(this));
+		eltoattach.removeEventListener("touchmove", this.handle_touch_move.bind(this));
+
+		document.removeEventListener('keydown', this.handle_keydown.bind(this))
+	}
 
 
 
 
-grabfresh() { return new Promise(async (res,_rej)=> {
+runit(data:any) { return new Promise(async (res,_rej)=> {
 
-    let results = await FetchLassie('/api/xen/finance/grab_em')
+    data.get("areas").forEach((m:any)=> { // loop through areas
+        const ynab_account = this.m.ynab_accounts.find((n:any)=> n.id === m.ynab_savings_id)
+        m.ynab_savings = ynab_account.balance / 1000
+    })
 
-    let k = knit_all(results.areas, results.cats, results.sources, results.tags, results.transactions, results.previous_static_monthsnapshots)
+    let k = knit_all(data.get("areas"), data.get("cats"), data.get("sources"), data.get("tags"), data.get("payments"), data.get("transactions"), data.get("monthsnapshots"))
 
     this.m.areas = k.areas
     this.m.cats = k.cats
     this.m.sources = k.sources
     this.m.tags = k.tags
+    this.m.payments = k.payments
     this.m.transactions = k.transactions
     this.m.previous_static_monthsnapshots = k.previous_static_monthsnapshots
 
 
-    if (this.s.filter.area === null) 
-        this.s.filter.area = this.m.areas.find(area => area.name === 'fam') as AreaT
+	this.s.filter.area = this.m.areas.find(area => area.name === 'fam') as AreaT
 
     this.set_default_date()
     this.set_default_cattags()
     this.set_default_except_area_and_date_and_cattags()
     
     this.parse_new_state()
-
-    this.m.payments = [
-        {
-            id: "1",
-            payee: "Apple",
-            type: "creditcard",
-            cat: null,
-            recurence: "monthly",
-            day: 1,
-            amount: 0,
-            varies: true,
-            is_auto: false,
-            payment_source: null,
-            breakdown: [],
-            notes: ""
-        }, 
-        {
-            id: "3",
-            payee: "Chase",
-            type: "creditcard",
-            cat: null,
-            recurence: "monthly",
-            day: 1,
-            amount: 0,
-            varies: true,
-            is_auto: false,
-            payment_source: null,
-            breakdown: [],
-            notes: ""
-        }, 
-        {
-            id: "6",
-            payee: "Visa 36K",
-            type: "creditcard",
-            cat: null,
-            recurence: "monthly",
-            day: 30,
-            amount: 0,
-            varies: true,
-            is_auto: false,
-            payment_source: null,
-            breakdown: [],
-            notes: ""
-        }, 
-        {
-            id: "7",
-            payee: "Visa Family",
-            type: "creditcard",
-            cat: null,
-            recurence: "monthly",
-            day: 30,
-            amount: 0,
-            varies: true,
-            is_auto: false,
-            payment_source: null,
-            breakdown: [],
-            notes: ""
-        }, 
-        {
-            id: "8",
-            payee: "Paypal",
-            type: "creditcard",
-            cat: null, 
-            recurence: "monthly",
-            day: 8,
-            amount: 0,
-            varies: false,
-            is_auto: true,
-            payment_source: this.m.sources.find(source => source.name === "checkpers") as SourceT,
-            breakdown: [],
-            notes: ""
-        }, 
-        {
-            id: "9",
-            payee: "Wells Fargo",
-            type: "creditcard",
-            cat: null, 
-            recurence: "monthly",
-            day: 18,
-            amount: 200,
-            varies: false,
-            is_auto: true,
-            payment_source: this.m.sources.find(source => source.name === "checkpers") as SourceT,
-            breakdown: [],
-            notes: ""
-        }, 
-        {
-            id: "9",
-            payee: "Prime Store",
-            type: "creditcard",
-            cat: null, 
-            recurence: "monthly",
-            day: 25,
-            amount: 0,
-            varies: true,
-            is_auto: false,
-            payment_source: null,
-            breakdown: [],
-            notes: ""
-        }, 
-        {
-            id: "5",
-            payee: "Barclay",
-            type: "creditcard",
-            cat: null,
-            recurence: "monthly",
-            day: 20,
-            amount: 0,
-            varies: true,
-            is_auto: false,
-            payment_source: null,
-            breakdown: [],
-            notes: ""
-        }, 
-
-        {
-            id: "20",
-            payee: "4Runner",
-            type: "carloan",
-            cat: null,
-            recurence: "monthly",
-            day: 7,
-            amount: 358,
-            varies: false,
-            is_auto: false,
-            payment_source: null,
-            breakdown: [],
-            notes: ""
-        }, 
-        {
-            id: "21",
-            payee: "Subaru",
-            type: "carloan",
-            cat: null,
-            recurence: "monthly",
-            day: 9,
-            amount: 375,
-            varies: false,
-            is_auto: false,
-            payment_source: null,
-            breakdown: [],
-            notes: ""
-        }, 
-
-
-        {
-            id: "25",
-            payee: "Verizon",
-            type: "bill",
-            cat: null,
-            recurence: "monthly",
-            day: 1,
-            amount: 116,
-            varies: false,
-            is_auto: true,
-            payment_source: this.m.sources.find(source => source.name === "checkpers") as SourceT,
-            breakdown: [],
-            notes: ""
-        }, 
-        {
-            id: "26",
-            payee: "South Central",
-            type: "bill",
-            cat: null,
-            recurence: "monthly",
-            day: 15,
-            amount: 101,
-            varies: false,
-            is_auto: true,
-            payment_source: null,
-            breakdown: [],
-            notes: ""
-        }, 
-        {
-            id: "27",
-            payee: "Garkane Electric",
-            type: "bill",
-            cat: null,
-            recurence: "monthly",
-            day: 14,
-            amount: 200,
-            varies: true,
-            is_auto: true,
-            payment_source: null,
-            breakdown: [],
-            notes: ""
-        }, 
-        {
-            id: "28",
-            payee: "Hildale Utilities",
-            type: "bill",
-            cat: null,
-            recurence: "monthly",
-            day: 1,
-            amount: 60,
-            varies: true,
-            is_auto: true,
-            payment_source: null,
-            breakdown: [],
-            notes: ""
-        }, 
-        {
-            id: "29",
-            payee: "House Rent",
-            type: "bill",
-            cat: null,
-            recurence: "monthly",
-            day: 1,
-            amount: 1550,
-            varies: false,
-            is_auto: false,
-            payment_source: null,
-            breakdown: [],
-            notes: ""
-        }, 
-        {
-            id: "30",
-            payee: "Landmark",
-            type: "bill",
-            cat: null,
-            recurence: "monthly",
-            day: 20,
-            amount: 75,
-            varies: false,
-            is_auto: true,
-            payment_source: null,
-            breakdown: [],
-            notes: ""
-        }, 
-        {
-            id: "31",
-            payee: "Aggregate on Apple Card",
-            type: "bill",
-            cat: null,
-            recurence: "monthly",
-            day: 1,
-            amount: 102,
-            varies: true,
-            is_auto: true,
-            payment_source: null,
-            breakdown: [
-                'GitHub Pro:4',
-                'GitHub CoPilot:12',
-                'Youtube:24',
-                'iCloud:1',
-                'Google Workspace:8',
-                'Patreon:5',
-                'Google Cloud:19',
-                'InfluxDB:2',
-                'ChatGPT:22',
-            ],
-            notes: ""
-        }, 
-    ]
 
     this.sc()
 
@@ -549,13 +333,9 @@ sort_transactions_by(sort_by:string, sort_direction:string) {
 
 transactionrow_clicked(e:MouseEvent) {
     const el = e.currentTarget as HTMLElement
-    this.s.transactiondetails.t = this.m.transactions.find(t => t.id === el.dataset.id) as TransactionT
-    this.s.transactiondetails.show_ui = 1
+	this.s.editview.transaction_id = el.dataset.id as string
+    this.s.editview.show_ui = 1
     this.sc()
-}
-transactiondetails_close() { 
-    this.s.transactiondetails.show_ui = 0
-    this.sc() 
 }
 
 
@@ -858,7 +638,6 @@ async handle_keydown(e:KeyboardEvent) {
         }
 
         else if (e.key === 's') {
-            //this.grabfresh()
             document.location.reload()
         }
 
@@ -959,7 +738,7 @@ payments_r(p:PaymentT) {
 
 
 
-template = (_s:State, _m:any) => { return Lit_Html`{--devservercss--}{--html--}`; };
+template = (_s:State, _m:any) => { return Lit_Html`{--css--}{--html--}`; };
 
 
 }

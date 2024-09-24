@@ -7,7 +7,10 @@
 
 <div class="content">
 
+	<ct-temp>Placeholder</ct-temp>
     <div id="admin">
+
+		<div id="hldr">Placeholder</div>
 
         ${localStorage.getItem("auth_group") === 'admin' ? Lit_Html`
             <h5 @click="${()=>this.adminetc('firestore_misc_update')}">firestore_misc_update</h5>
@@ -32,6 +35,9 @@
 
         <h5 @click="${()=>window.location.hash='auth'}">Auth</h5>
 
+		<a @click="${()=>this.ya1()}">ya1</a> &nbsp; &nbsp;
+		<a @click="${()=>this.ya2()}">ya2</a> &nbsp; &nbsp;
+		<a @click="${()=>this.ya3()}">ya3</a>
     </div>
 
 </div>

@@ -1,9 +1,11 @@
 
+import { IndexedDBStoreMetaT } from "../definitions.js";
+
 
 import { LazyLoadT } from "../definitions.js";
 
 
-const INFO = {
+const INFO:{name:str, firebase:any, indexeddb_stores:IndexedDBStoreMetaT[]} = {
 
     name: "xen",
     firebase: {
@@ -12,7 +14,15 @@ const INFO = {
         dbversion: 1
     },
 
-    indexeddb_collections: ["transactions"]
+    indexeddb_stores: [
+		{ name: "areas", url:"areas"},
+		{ name: "cats", url:"cats"},
+		{ name: "sources", url:"sources"},
+		{ name: "tags", url:"tags"},
+		{ name: "payments", url:"payments"},
+		{ name: "transactions", url:"transactions"},
+		{ name: "monthsnapshots", url:"monthsnapshots"},
+	]
 };
 
 
@@ -39,8 +49,11 @@ const LAZYLOADS:Array<LazyLoadT> = [
         instance: INFO.name,
         dependencies:[
             {type:"component", name: "ol"},
+            {type:"component", name: "reveal"},
             {type:"component", name: "form"},
-            {type:"component", name: "in"}
+            {type:"component", name: "in"},
+            {type:"component", name: "btn"},
+            {type:"component", name: "toast"},
         ],
         auth: []
     },
@@ -51,19 +64,8 @@ const LAZYLOADS:Array<LazyLoadT> = [
         name: "addtr",
         instance: INFO.name,
         dependencies:[
-            {type: "directive", name: "animeio"},
         ],
         auth: ["admin"]
-    },
-
-    {
-        type: "view",
-        urlmatch: "^addtr$",
-        name: "addtr",
-        instance: INFO.name,
-        dependencies:[
-        ],
-        auth: []
     },
 
     {

@@ -1,10 +1,6 @@
-
-
-
 #keycatcher_w {
-
     position: relative;
-    
+
     & #keycatcher_instructions {
         position: absolute;
         top: 1px;
@@ -17,8 +13,7 @@
         text-align: right;
     }
 
-    & >
-    input#keycatcher {
+    & > input#keycatcher {
         width: 100%;
         box-sizing: border-box;
         font-size: 14px;
@@ -33,71 +28,66 @@
 }
 
 #rawtransaction {
-
     & > .a_transaction {
         padding: 7px 10px;
-        
 
         & .primary {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: ;
-        padding-bottom: 7px;
+            display: flex;
+            flex-wrap: wrap;
+            padding-bottom: 7px;
 
             & .ofnumber {
-        padding-right: 8px;
+                padding-right: 8px;
             }
 
             & .date {
-        padding-right: 8px;
+                padding-right: 8px;
             }
             & .longdesc {
-        font-weight: 600;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+                font-weight: 600;
+                /* white-space: nowrap; */
+                /* overflow: hidden; */
+                /* text-overflow: ellipsis; */
             }
             & .amount {
-        width: 18%;
-        text-align: right;
+                width: 18%;
+                text-align: right;
             }
-            & .amount:
-        before {
+            & .amount:before {
                 content: "$";
             }
         }
 
         & .secondary {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: space-between;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
 
             & .cat {
-        width: 24%;
-        text-align: left;
-        /* border: 1px solid #ffffffad; */
-        /* padding: 1px 7px 3px 7px; */
-        /* border-radius: 6px; */
-        }
+                width: 24%;
+                text-align: left;
+                /* border: 1px solid #ffffffad; */
+                /* padding: 1px 7px 3px 7px; */
+                /* border-radius: 6px; */
+            }
             & .source {
-        width: 18%;
-        text-align: center;
-        /* border: 1px solid #ffffffb3; */
-        /* padding: 1px 7px 3px 7px; */
-        /* border-radius: 6px; */
-        }
+                width: 18%;
+                text-align: center;
+                /* border: 1px solid #ffffffb3; */
+                /* padding: 1px 7px 3px 7px; */
+                /* border-radius: 6px; */
+            }
         }
 
         & .tertiary {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: space-between;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
 
             & .note {
-        width: 100%;
+                width: 100%;
             }
         }
-    ;
         margin-bottom: 10px;
     }
     & > .a_transaction.active {
@@ -144,11 +134,11 @@
                 border-radius: 6px;
 
                 & > .cathighlight {
-                display: inline-block;
-                height: 100%;
-                background-color: #05accf;
-                color: white;
-                font-weight: 500;
+                    display: inline-block;
+                    height: 100%;
+                    background-color: #05accf;
+                    color: white;
+                    font-weight: 500;
                 }
             }
             h6.hidden {
@@ -162,33 +152,35 @@
 }
 
 #tags {
+    display: none;
     position: absolute;
-    top: 99px;
+    top: 132px;
     left: 0;
     width: 100%;
     height: 70px;
-
-    &
-    h6 {
-        height: 20px;
-    padding-top: 3px;
-    padding-left: 6px;
-    padding-right: 6px;
-    padding-bottom: 2px;
-    font-weight: 400;
-    color: white;
-    width: 75px;
-    overflow: hidden;
-    font-size: 14px;
-    background: #00c9ba;
-    margin-right: 5px;
-    margin-bottom: 5px;
-    border-radius: 6px;
-    display: inline-block;
-    }
-;
     background: white;
     padding: var(--padding-container);
+
+    & h6 {
+        height: 20px;
+        padding-top: 3px;
+        padding-left: 6px;
+        padding-right: 6px;
+        padding-bottom: 2px;
+        font-weight: 400;
+        color: white;
+        width: 75px;
+        overflow: hidden;
+        font-size: 14px;
+        background: #00c9ba;
+        margin-right: 5px;
+        margin-bottom: 5px;
+        border-radius: 6px;
+        display: inline-block;
+    }
+}
+#tags.active {
+    display: block;
 }
 
 .keyinput_indicator {
@@ -210,19 +202,21 @@
     display: block;
 }
 
-
-
-
 input#merchantedit {
     padding-bottom: 30px;
 }
 
-
-
 footer#pagefooter {
-    position: fixed;bottom: 0;left: 0;width: 100%;height: 30px;background: #ededed;color: #4e4e4e;text-align: center;padding: var(--padding-container);font-size: 14px;font-weight: 400;border-top: 1px solid #cccccc;}
-
-    & .syncgetter {
-    }
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 30px;
+    background: #ededed;
+    color: #4e4e4e;
+    text-align: center;
+    padding: var(--padding-container);
+    font-size: 14px;
+    font-weight: 400;
+    border-top: 1px solid #cccccc;
 }
-

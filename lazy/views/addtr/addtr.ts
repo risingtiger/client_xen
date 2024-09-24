@@ -8,7 +8,7 @@ declare var FetchLassie:any
 declare var Firestore:any
 declare var Lit_Render: any;
 declare var Lit_Html: any;
-declare var SetDistCSS: any;
+declare var FirestoreLive: any;
 
 
 enum InputModeE { Cat, Tag, Note, Amount }
@@ -23,11 +23,6 @@ type State = {
     keyinput_mode: InputModeE,
     instructions: str
 }
-
-
-
-
-let distcss = `{--distcss--}`;
 
 
 
@@ -67,14 +62,14 @@ constructor() {
     this.latest_raw_transactions = []
 
     this.shadow = this.attachShadow({mode: 'open'});
-
-    SetDistCSS(this.shadow, distcss)
 }
 
 
 
 
 async connectedCallback() {
+
+	this.setAttribute("backhash", "home")
 
     const promises:any = []
 
@@ -557,7 +552,7 @@ sc() {
 
 
 
-template = (_s:any, _areas:any, _cats:any, _sources:any, _tags:any) => { return Lit_Html`{--devservercss--}{--html--}`; };
+template = (_s:any, _areas:any, _cats:any, _sources:any, _tags:any) => { return Lit_Html`{--css--}{--html--}`; };
 
 }
 

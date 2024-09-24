@@ -2,17 +2,18 @@
 
 
 import { int } from "../../../definitions.js"
-import { AreaT, CatT, SourceT, TagT, TransactionT, CatCalcsT, TotalsT, MonthSnapShotT, MonthSnapShotExT, FilterT } from '../../finance_defs'
+import { AreaT, CatT, SourceT, TagT, PaymentT, TransactionT, CatCalcsT, TotalsT, MonthSnapShotT, MonthSnapShotExT, FilterT } from '../../finance_defs'
 
 
 
 
-function knit_all(raw_areas:any, raw_cats:any, raw_sources:any, raw_tags:any, raw_transactions:any, raw_monthsnapshots:any) : 
+function knit_all(raw_areas:any, raw_cats:any, raw_sources:any, raw_tags:any, raw_payments:any, raw_transactions:any, raw_monthsnapshots:any) : 
 { 
     areas: AreaT[], 
     cats: CatT[], 
     sources: SourceT[], 
     tags: TagT[],
+	payments: PaymentT[],
     transactions: TransactionT[], 
     previous_static_monthsnapshots: MonthSnapShotT[]
 } {
@@ -25,11 +26,13 @@ function knit_all(raw_areas:any, raw_cats:any, raw_sources:any, raw_tags:any, ra
 
     const tags = knit_tags(areas, raw_tags)
 
+	const payments = knit_payments(sources, raw_payments)
+
     const transactions = knit_transactions(cats, sources, tags, raw_transactions)
 
     const previous_static_monthsnapshots = knit_monthsnapshots(raw_monthsnapshots, areas)
 
-    return { areas, cats, sources, tags, transactions, previous_static_monthsnapshots }
+    return { areas, cats, sources, tags, payments, transactions, previous_static_monthsnapshots }
 }
 
 
@@ -101,6 +104,24 @@ function knit_tags(areas:AreaT[], raw_tags:any) : TagT[] {
 
 
 
+function knit_payments(sources:SourceT[], raw_payments:any[]) : PaymentT[] {
+
+    const processed_payments = raw_payments.map((rp:any) => { 
+
+        rp.source = sources.find((s:SourceT) => {
+			if (rp.payment_source === null) return false;
+			return rp.payment_source._path.segments[1] === s.id
+		})
+		rp.cat = null; // not dealing with this yet
+
+		return rp
+    })
+
+	return processed_payments
+}
+
+
+
 function knit_transactions(cats:CatT[], sources:SourceT[], tags:TagT[], raw_transactions:any) : TransactionT[]  {
 
     const transactions:TransactionT[] = raw_transactions.map((raw_transaction:any) => {
@@ -120,13 +141,16 @@ function knit_transactions(cats:CatT[], sources:SourceT[], tags:TagT[], raw_tran
 
         const trtags = raw_transaction.tags.map((t:any) => tags.find((tag:TagT) => tag.id === t._path.segments[1]) as TagT)
 
+		console.log("need to put transacted_ts into all transactions in the database. and make client refer to transacted_ts instead of ts")
+
         return {
             id: raw_transaction.id,
             amount: raw_transaction.amount,
             area: trarea,
             cat: trcat,
             merchant: raw_transaction.merchant,
-            ts: raw_transaction.ts,
+            ts: raw_transaction.transacted_ts ? raw_transaction.transacted_ts : raw_transaction.ts,
+			transacted_ts: raw_transaction.transacted_ts ? raw_transaction.transacted_ts : raw_transaction.ts,
             notes: raw_transaction.notes,
             source: trsource,
             tags: trtags

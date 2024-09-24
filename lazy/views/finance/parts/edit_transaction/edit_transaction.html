@@ -1,0 +1,12 @@
+
+
+<c-form name="mainform">
+	<c-in label="Date" name="date" type="text" val="${_m.transaction.ts}"></c-in>
+	<c-in label="Merchant" name="merchant" type="text" val="${_m.transaction.merchant}" @save="${(e)=>this.merchant_changed(e)}"></c-in>
+	<c-in label="Amount" name="amount" type="number" val="${_m.transaction.amount}"></c-in>
+	<c-in label="Source" name="source" type="text" val="${_m.transaction.source.name}"></c-in>
+	<c-in label="Tags" name="tags" type="text" val="${_m.transaction.tags.map(tag=>Lit_Html`<span>${tag}</span>`)}"></c-in>
+	<c-in label="Note" name="note" type="text" val="${_m.transaction.notes}"></c-in>
+	<c-in label="ID" name="id" type="text" val="${_m.transaction.id}"></c-in>
+</c-form>
+

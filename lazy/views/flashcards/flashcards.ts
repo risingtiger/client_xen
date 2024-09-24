@@ -7,7 +7,6 @@
 declare var Firestore:any
 declare var Lit_Render: any;
 declare var Lit_Html: any;
-declare var SetDistCSS: any;
 
 
 type FlashCardT = {
@@ -21,9 +20,6 @@ type State = {
     props: any,
 }
 
-
-
-let distcss = `{--distcss--}`;
 
 
 
@@ -47,8 +43,6 @@ constructor() {
     this.flashcards = []
 
     this.shadow = this.attachShadow({mode: 'open'});
-
-    SetDistCSS(this.shadow, distcss)
 }
 
 
@@ -75,7 +69,7 @@ sc(state_changes = {}) {
 
 
 
-template = (_s:any, _flashcards:FlashCardT[]) => { return Lit_Html`{--devservercss--}{--html--}`; };
+template = (_s:any, _flashcards:FlashCardT[]) => { return Lit_Html`{--css--}{--html--}`; };
 
 }
 
