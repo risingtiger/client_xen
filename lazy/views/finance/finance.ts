@@ -15,17 +15,15 @@ const dummyArea:AreaT = { id: "1", bucket:0, name: "", longname: "", ynab_saving
 
 
 
-import { str,num } from "../../../../definitions.js"
+import { str,$NT, num } from "../../../../defs_client.js"
 
 import { AreaT, CatT, SourceT, TagT, PaymentT, TransactionT, CatCalcsT, TotalsT, MonthSnapShotT, FilterT } from '../../../finance_defs.js'
 import { knit_all, get_months, filter_transactions, sort_transactions, current_month_of_filtered_transactions, catcalcs, totals, monthsnapshot  } from '../../libs/finance_funcs.js'
-
 import './parts/edit_transaction/edit_transaction.js'
 
-declare var FetchLassie:any
 declare var Lit_Render: any;
 declare var Lit_Html: any;
-declare var DataSync: any;
+declare var $N: $NT;
 
 
 
@@ -44,7 +42,8 @@ type Model = {
     current_month_transactions:TransactionT[], 
     catcalcs:CatCalcsT[],
     totals: TotalsT,
-    payments: PaymentT[]
+    payments: PaymentT[],
+	data_to_sync: string[]
 }
 
 type State = {
@@ -69,49 +68,50 @@ type State = {
 
 class VFinance extends HTMLElement {
 
-m:Model
-s:State
-shadow:ShadowRoot
+	m:Model
+	s:State
+	shadow:ShadowRoot
 
 
 
-constructor() {   
+	constructor() {   
 
-    super(); 
+		super(); 
 
-    this.s = {
-		touch_attached: false,
-        filter: { area: null, parentcat: null, cat: null, source: null, tags: null, daterange: null, merchant: null, note: null, amountrange: null, cattags: [] },
-        months: [],
-        transactiondetails: { show_ui: 0, t: null },
-        catsview: { show_ui: 0, cats_with_deleteflag: [] },
-        paymentsview: { show_ui: 0 },
-        tagsview: { show_ui: 0, tagtotals: []},
-		editview: { show_ui: 0, transaction_id: '' },
-        current_monthsnapshot: { area: dummyArea, month: "", bucket: 0, budget: 0, savings: 0 },
-        months_display_str: [],
-        touch: { isactive: false, beginx: 0, beginy: 0, origin_action: 'month'},
-        key: { listen_for: KeyE.NONE },
-        prefs: { avgormed: 1 }
-    }
+		this.s = {
+			touch_attached: false,
+			filter: { area: null, parentcat: null, cat: null, source: null, tags: null, daterange: null, merchant: null, note: null, amountrange: null, cattags: [] },
+			months: [],
+			transactiondetails: { show_ui: 0, t: null },
+			catsview: { show_ui: 0, cats_with_deleteflag: [] },
+			paymentsview: { show_ui: 0 },
+			tagsview: { show_ui: 0, tagtotals: []},
+			editview: { show_ui: 0, transaction_id: '' },
+			current_monthsnapshot: { area: dummyArea, month: "", bucket: 0, budget: 0, savings: 0 },
+			months_display_str: [],
+			touch: { isactive: false, beginx: 0, beginy: 0, origin_action: 'month'},
+			key: { listen_for: KeyE.NONE },
+			prefs: { avgormed: 1 }
+		}
 
-    this.m = {
-		ynab_accounts: [],
-        areas: [],
-        cats: [],
-        sources: [],
-        tags: [],
-        transactions: [],
-        previous_static_monthsnapshots: [],
-        filtered_transactions: [],
-        current_month_transactions: [],
-        catcalcs: [],
-        totals: { sums: [], budget: 0, med: 0, avg: 0 },
-        payments: []
-    }
+		this.m = {
+			ynab_accounts: [],
+			areas: [],
+			cats: [],
+			sources: [],
+			tags: [],
+			transactions: [],
+			previous_static_monthsnapshots: [],
+			filtered_transactions: [],
+			current_month_transactions: [],
+			catcalcs: [],
+			totals: { sums: [], budget: 0, med: 0, avg: 0 },
+			payments: [], 
+			data_to_sync: ["areas", "cats", "sources", "tags", "payments", "transactions", "monthsnapshots"]
+		}
 
-    this.shadow = this.attachShadow({mode: 'open'});
-}
+		this.shadow = this.attachShadow({mode: 'open'});
+	}
 
 
 
@@ -120,8 +120,8 @@ constructor() {
 
 		this.setAttribute("backhash", "home")
 		
-		DataSync.Subscribe(["areas", "cats", "sources", "tags", "payments", "transactions", "monthsnapshots"], this)
-		FetchLassie('/api/xen/finance/grab_em').then((data:any)=> {   this.m.ynab_accounts = data.ynab_accounts;   })
+		$N.DataSync.Subscribe(this.m.data_to_sync, this)
+		$N.FetchLassie('/api/xen/finance/grab_em').then((data:any)=> {   this.m.ynab_accounts = data.ynab_accounts;   })
 
 	}
 
@@ -130,9 +130,9 @@ constructor() {
 
 	async DataSync_Updated() {
 
-		console.time("getall")
-		const idata = await (window as any).IndexedDB.GetAll(["areas", "cats", "sources", "tags", "payments", "transactions", "monthsnapshots"])
-		console.timeEnd("getall")
+		console.time("indexeddb getall")
+		const idata = await $N.IndexedDB.GetAll(this.m.data_to_sync)
+		console.timeEnd("indexeddb getall")
 
 		checkit.bind(this)()
 		
@@ -181,36 +181,34 @@ constructor() {
 
 
 
-runit(data:any) { return new Promise(async (res,_rej)=> {
+	runit(data:any) {
 
-    data.get("areas").forEach((m:any)=> { // loop through areas
-        const ynab_account = this.m.ynab_accounts.find((n:any)=> n.id === m.ynab_savings_id)
-        m.ynab_savings = ynab_account.balance / 1000
-    })
+		data.get("areas").forEach((m:any)=> { // loop through areas
+			const ynab_account = this.m.ynab_accounts.find((n:any)=> n.id === m.ynab_savings_id)
+			m.ynab_savings = ynab_account.balance / 1000
+		})
 
-    let k = knit_all(data.get("areas"), data.get("cats"), data.get("sources"), data.get("tags"), data.get("payments"), data.get("transactions"), data.get("monthsnapshots"))
+		let k = knit_all(data.get("areas"), data.get("cats"), data.get("sources"), data.get("tags"), data.get("payments"), data.get("transactions"), data.get("monthsnapshots"))
 
-    this.m.areas = k.areas
-    this.m.cats = k.cats
-    this.m.sources = k.sources
-    this.m.tags = k.tags
-    this.m.payments = k.payments
-    this.m.transactions = k.transactions
-    this.m.previous_static_monthsnapshots = k.previous_static_monthsnapshots
+		this.m.areas = k.areas
+		this.m.cats = k.cats
+		this.m.sources = k.sources
+		this.m.tags = k.tags
+		this.m.payments = k.payments
+		this.m.transactions = k.transactions
+		this.m.previous_static_monthsnapshots = k.previous_static_monthsnapshots
 
 
-	this.s.filter.area = this.m.areas.find(area => area.name === 'fam') as AreaT
+		this.s.filter.area = this.m.areas.find(area => area.name === 'fam') as AreaT
 
-    this.set_default_date()
-    this.set_default_cattags()
-    this.set_default_except_area_and_date_and_cattags()
-    
-    this.parse_new_state()
+		this.set_default_date()
+		this.set_default_cattags()
+		this.set_default_except_area_and_date_and_cattags()
+		
+		this.parse_new_state()
 
-    this.sc()
-
-    res(1)
-})}
+		this.sc()
+	}
 
 
 
@@ -235,7 +233,7 @@ parse_new_state() {
  
     this.s.current_monthsnapshot = monthsnapshot(this.s.filter.daterange[1], this.s.filter.area!, this.m.cats, this.m.transactions, this.m.previous_static_monthsnapshots)
 
-    this.m.current_month_transactions = sort_transactions(this.m.current_month_transactions, "ts", "desc")
+    this.m.current_month_transactions = sort_transactions(this.m.current_month_transactions, "date", "desc")
 }
 
 
@@ -439,7 +437,7 @@ tagsview_tag_clicked(e:MouseEvent) {
 
 async ynab_sync_categories() {
 
-    const r = await FetchLassie('/api/xen/finance/ynab_sync_categories')
+    const r = await $N.FetchLassie('/api/xen/finance/ynab_sync_categories')
 
     this.s.catsview.cats_with_deleteflag = r.cats_with_deleteflag
 
@@ -607,6 +605,11 @@ async handle_touch_move(e:TouchEvent) {
 
 async handle_keydown(e:KeyboardEvent) {
 
+	if (this.shadow.querySelector('.content + c-ol[title="Transaction Details"]')) {
+		return
+	}
+
+
     if ( this.s.key.listen_for === KeyE.NONE) {
 
         if (e.key === 'h') {
@@ -650,21 +653,24 @@ async handle_keydown(e:KeyboardEvent) {
             this.sc()
         }
 
-        else if (e.key === 'p') {
+        else if (e.key === 'b') {
             this.s.paymentsview.show_ui = this.s.paymentsview.show_ui === 1 ? 2 : 1
             this.sc()
         }
 
-        if (e.key === '6') {
+        if (e.key === 'u') {
             this.set_area('fam')
         }
-        if (e.key === '7') {
+        if (e.key === 'i') {
             this.set_area('pers')
         }
-        if (e.key === '8') {
+        if (e.key === 'o') {
             this.set_area('rtm')
         }
 
+        if (e.key === '`') {
+            this.filter_by_cattag([1,2,3])
+        }
         if (e.key === '1') {
             this.filter_by_cattag([1])
         }
@@ -715,20 +721,28 @@ sc(state_changes = {}) {
 
 payments_r(p:PaymentT) {
 
+	let breakdown = p.breakdown.map(b=> {
+		let s = b.split(":")
+		return {name:s[0], cycle:s[1], day:s[2], amount:s[3]}
+	})
+
     return Lit_Html`
         <div class="payment ${p.breakdown.length ? 'hasbreakdown' : ''}" @click="${(e:any)=>{let el = e.currentTarget.querySelector('.notes'); el.style.display = el.style.display === 'block' ? 'none' : 'block';}}">
             <h4>${p.payee} ${p.notes ? '..' : ''}</h4>
             <p>
                 ${ p.is_auto ? Lit_Html`<strong>A</strong>&nbsp;` : '' }
-                ${ p.is_auto && p.payment_source && p.payment_source.name === 'checkpers' ? Lit_Html`<strong class="extra">B</strong>&nbsp;` : '' }
+                ${ p.is_auto && p.source && p.source.name === 'checkpers' ? Lit_Html`<strong class="extra">B</strong>&nbsp;` : '' }
                 ${p.day}&nbsp;
                 ${p.amount ? "$"+p.amount : ''}
             </p>
             <p class="notes">${p.notes}</p>
-            ${p.breakdown.length ? Lit_Html`
+            ${breakdown ? Lit_Html`
                 <div class="breakdown">
-                   ${p.breakdown.map(b=> Lit_Html`
-                        <b>${b}</b>
+                   ${breakdown.map(b=> Lit_Html`
+						<div class="item">
+							<h6>${b.name}</h6>
+							<p>${b.cycle}${b.day} - ${b.amount}</p>	
+						</div>
                    `)}
                 </div>
             ` : ''}

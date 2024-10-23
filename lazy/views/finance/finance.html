@@ -137,25 +137,26 @@
                     `)}
                     </tbody>
                 </table>
+				<br><br>
             </div>
         </div>
 
     </div>
 
     <footer class="touch_switch_calcs_transactions">
+		<div id="footactions">
+			<a @click="${()=>location.reload()}">&nbsp;Sync&nbsp;</a>
+			&nbsp; &nbsp; &nbsp;
+			<a @click="${()=>{this.reset()}}">&nbsp;R&nbsp;</a>
+			&nbsp;
+			<a @click="${()=>{this.toggle_show_tags()}}">&nbsp;T&nbsp;</a>
+			&nbsp;
+			<a @click="${()=>{this.s.paymentsview.show_ui = this.s.paymentsview.show_ui === 1 ? 2 : 1; this.sc()}}">&nbsp;B&nbsp;</a>
+			&nbsp;
+			<a @click="${()=>{this.s.catsview.show_ui=1;this.sc();}}">&nbsp;C&nbsp;</a>
+		</div>
         <div id="snapshot">
 
-            <div>
-                <a @click="${()=>location.reload()}">&nbsp;Sync&nbsp;</a>
-                &nbsp; &nbsp; &nbsp;
-                <a @click="${()=>{this.reset()}}">&nbsp;R&nbsp;</a>
-                &nbsp;
-                <a @click="${()=>{this.toggle_show_tags()}}">&nbsp;T&nbsp;</a>
-                &nbsp;
-                <a @click="${()=>{this.s.paymentsview.show_ui = this.s.paymentsview.show_ui === 1 ? 2 : 1; this.sc()}}">&nbsp;P&nbsp;</a>
-                &nbsp;
-                <a @click="${()=>{this.s.catsview.show_ui=1;this.sc();}}">&nbsp;C&nbsp;</a>
-            </div>
 
             <div class="snapshotrow">
 
@@ -183,11 +184,10 @@
                     <i class="icon-piggy" style="color: #097287; font-size: 13.5px;position: relative;top: 0.5px;left: 1px; padding-right: 0px;"></i> 
                     ${Math.round(_s.current_monthsnapshot.savings)}
                 </p>
-            </div>
+			</div>
 
-            <div class="snapshotrow">
-
-                <p class="budget_t123_diff">
+			<div class="snapshotrow">
+                <p class="budget_t123_diff diffs">
                     <strong style="color: #097287;">B</strong> - <strong style="color: #097287;">T123</strong>
                     ${Math.round(_s.current_monthsnapshot.budget - _s.current_monthsnapshot.quad123total)}
                 </p>
@@ -199,7 +199,7 @@
                 </p>
                 -->
 
-                <p class="bucket_budget_diff">
+                <p class="bucket_budget_diff diffs">
                     <i class="icon-bucket" style="color: #097287; font-size: 13.5px;position: relative;top: 0.5px;left: 1px; padding-right: 0px;"></i> - <strong style="color: #097287;">B</strong>
                     ${Math.round(_s.current_monthsnapshot.bucket - _s.current_monthsnapshot.budget)}
                 </p>
@@ -212,7 +212,7 @@
 
 
 ${ _s.editview.show_ui !== 0 ? Lit_Html`
-    <c-ol shape="1" title="Edit Transaction" @close="${()=> { this.s.editview.show_ui = 0; this.sc(); } }">
+    <c-ol shape="1" title="Transaction Details" @close="${()=> { this.s.editview.show_ui = 0; this.sc(); } }">
         <vp-transaction-edit transaction="${_s.editview.transaction_id}"></vp-transaction-edit>
     </c-ol>
 ` : '' }
@@ -272,21 +272,21 @@ ${ _s.catsview.show_ui !== 0 ? Lit_Html`
 
 
 ${ _s.paymentsview.show_ui !== 0 ? Lit_Html`
-    <c-ol shape="1" title="Payments" ?close="${this.s.paymentsview.show_ui === 2}" @close="${()=> { this.s.paymentsview.show_ui = 0; this.sc(); } }">
+    <c-ol shape="1" title="Bills" ?close="${this.s.paymentsview.show_ui === 2}" @close="${()=> { this.s.paymentsview.show_ui = 0; this.sc(); } }">
 
     <div id="paymentsview">
 
         <section class="payments">
-            ${_m.payments.filter(p=>p.type === 'creditcard').map(p=>this.payments_r(p))}
-        </section>
-        <hr>
-        <hr>
-        <section class="payments">
-            ${_m.payments.filter(p=>p.type === 'carloan').map(p=>this.payments_r(p))}
+            ${_m.payments.filter(p=>p.type === 'creditcard').sort((a,b)=> a.payee.localeCompare(b.payee)).map(p=>this.payments_r(p))}
         </section>
         <hr>
         <section class="payments">
-            ${_m.payments.filter(p=>p.type === 'bill').map(p=>this.payments_r(p))}
+            ${_m.payments.filter(p=>p.type === 'carloan').sort((a,b)=> a.payee.localeCompare(b.payee)).map(p=>this.payments_r(p))}
+        </section>
+        <hr>
+        <section class="payments">
+
+            ${_m.payments.filter(p=>p.type === 'bill').sort((a,b)=> a.payee.localeCompare(b.payee)).map(p=>this.payments_r(p))}
         </section>
 
         <!--

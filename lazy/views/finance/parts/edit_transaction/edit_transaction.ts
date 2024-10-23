@@ -1,17 +1,18 @@
 
 
-import { str, bool, int } from "../../../../../../definitions.js"
+import { str, bool, num, $NT } from "../../../../../../defs_client.js"
 import { TransactionT } from '../../../../../finance_defs.js'
 
 declare var Lit_Render: any;
 declare var Lit_Html: any;
-declare var Firestore: any;
+declare var $N: $NT;
 
 
 
 
 type Model = {
 	prop: str,
+	cats: any[],
 	transaction:TransactionT|null,
 }
 
@@ -39,6 +40,7 @@ class VPTransactionEdit extends HTMLElement {
 		this.m = {
 			prop: "",
 			transaction: null,
+			cats: [],
 		}
 
 		this.s = {
@@ -53,7 +55,9 @@ class VPTransactionEdit extends HTMLElement {
 
 	async connectedCallback() {   
 
-		const transaction = await Firestore.Retrieve(`transactions/${this.getAttribute("transaction")}`)
+		const transaction = await $N.Firestore.Retrieve(`transactions/${this.getAttribute("transaction")}`)
+		const idata = await $N.IndexedDB.GetAll(["cats"])
+		this.m.cats = idata.get("cats")!.sort((a:any, b:any) => a.name.localeCompare(b.name))
 
 		this.m.transaction = transaction[0];
 		this.sc()
@@ -64,22 +68,28 @@ class VPTransactionEdit extends HTMLElement {
 
 
 
-	async merchant_changed(e:any) {
+	async prop_changed(e:any) {
 
-		const el = this.shadow.querySelector("c-in[name='merchant']") as any
+		let saveobj:any = {}
 
-		if (!e.detail.newval) { 
-			alert("Merchnat cannot be empty")
-			return
+		if (e.detail.name === "merchant") {
+			saveobj.merchant = e.detail.newval
 		}
 
-		await Firestore.Patch(`transactions/${this.m.transaction!.id}`, {"merchant": e.detail.newval});
+		else if (e.detail.name === "amount") {
+			saveobj.amount = parseFloat(e.detail.newval)
+		}
 
-		el.SaveResponse( e.detail.newval );
+		else if (e.detail.name === "notes") {
+			saveobj.notes = e.detail.newval
+		}
 
-		(window as any).ToastShow("Merchant Updated")
-
-		this.sc()
+		const r = await $N.Firestore.Patch(`transactions/${this.m.transaction!.id}`, saveobj);
+		if (r.err) {
+			e.detail.set_save_fail(r.err)
+		} else {
+			e.detail.set_save_success(e.detail.newval)
+		}
 	}
 
 

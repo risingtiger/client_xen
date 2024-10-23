@@ -32,6 +32,7 @@ div.content {
         text-align: left;
         padding-bottom: 4px;
         padding-top: 3px;
+        padding-left: 4px;
         border: 0;
         box-shadow: inset 0 -5px 0px 0px rgb(134 220 239);
     }
@@ -41,7 +42,8 @@ div.content {
         text-align: left;
         padding-top: 9px;
         padding-bottom: 7px;
-        box-shadow: inset 0 5px 0px 0px rgb(134 220 239);
+        /* box-shadow: inset 0 5px 0px 0px rgb(134 220 239); */
+        background: #f5f5f5 !important;
     }
 }
 
@@ -51,7 +53,7 @@ div.content {
 
     & #tablewrap {
         overflow-y: scroll;
-        height: 86%;
+        height: calc(100% - 87px);
     }
 
     & table thead, & table tfoot {
@@ -142,7 +144,7 @@ div.content {
 
     & #tablewrap {
         overflow-y: scroll;
-        height: 86%;
+        height: calc(100% - 87px);
     }
 
     & table {
@@ -177,44 +179,56 @@ footer {
     height: 87px;
 
     & #snapshot {
-        background: #ececec;
+        background: #ffffff;
+        border-top: 5px solid #86dcef;
         width: 100%;
         height: 100%;
         padding: var(--padding-container);
+        box-sizing: border-box;
 
         & .snapshotrow {
             display: flex;
-            justify-content: space-evenly;
+            justify-content: flex-start;
             margin-bottom: 10px;
+            flex-wrap: wrap;
 
-            &
-            p {
+            & p {
                 margin: 0;
-            padding: 0;
+                padding: 0 0 10px 0;
+                width: 80px;
+                min-width: 80px;
             }
+			& p.diffs {
+				width: 160px;
+			}
         }
     }
+
+	& #footactions {
+		position: absolute;
+		right: 5px;
+		bottom: 87px;
+		background: #ffffff;
+		padding: 4px 4px;
+	}
 }
 
 
 #transactiondetails {
     padding: 0;
 
-    &
-    h4 {
+    & h4 {
         margin: 0;
         padding: 10px 0 0 12px;
         font-size: 17px;
     }
 
-    &
-    ul.items {
+    & ul.items {
         padding: 0;
 
-        &
-    li {
+        & li {
             padding: 0;
-    margin: 0;
+			margin: 0;
         }
     }
 }
@@ -240,11 +254,11 @@ footer {
 
         & .payment {
             position: relative;
-            margin-right: 10px;
+            margin-right: 0;
             padding: 0;
-            margin-bottom: 11px;
+            margin-bottom: 22px;
             border-radius: 4px;
-            width: 22%;
+            width: 50%;
 
             & .notes {
             display: none;
@@ -253,6 +267,7 @@ footer {
             left: 0;
             background: white;
             }
+
 
             &
             strong {
@@ -264,14 +279,29 @@ footer {
             }
 
             & .breakdown {
-                &
-                b {
-                    font-weight: normal;
-                    display: inline-block;
-                    padding: 12px 0 0px 0;
-                }
-            ;
-                column-count: 5;
+                column-count: 3;
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+				& .item {
+					& h6 {
+						font-weight: normal;
+						display: block;
+						padding: 0px 0 0px 0;
+					}
+					& p {
+						font-weight: normal;
+						display: block;
+						padding: 0 0 13px 0;
+					}
+				}
             }
         }
         & .payment.hasbreakdown {
@@ -305,8 +335,7 @@ footer {
     box-sizing: border-box;
     height: 90%;
 
-    &
-    h3 {
+    & h3 {
         margin: 0 0 var(--padding-section-vert) 0;
     padding: 3px 0 5px 0;
     font-size: 16px;
@@ -316,26 +345,24 @@ footer {
     & .parent {
     padding: 0px 0 var(--padding-section-vert) 0;
 
-        &
-    h4 {
+        & h4 {
             margin: 0;
     padding: 0 0 var(--padding-minipad) 0;
 
-            &
-    a {
+            & a {
                 color: var(--actioncolor);
-    text-decoration: none;
-    display: inline-block;
+				text-decoration: none;
+				display: inline-block;
             }
         }
+
 
         & .sub {
     padding: 0 0 0 0;
     display: flex;
     flex-wrap: wrap;
 
-            &
-    h6 {
+            & h6 {
                 width: 110px;
     padding-bottom: 7px;
     font-weight: 400;

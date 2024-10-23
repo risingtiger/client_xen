@@ -58,6 +58,7 @@ type TransactionT = {
     cat: CatT,
     merchant: string,
     ts: number,
+    date: number,
     notes: string,
     source: SourceT,
     tags: TagT[]

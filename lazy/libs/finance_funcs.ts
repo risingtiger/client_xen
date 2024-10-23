@@ -1,7 +1,8 @@
 
 
 
-import { int } from "../../../definitions.js"
+import { num } from "../../../defs_client.js"
+import {  } from "../../defs_instance_client.js"
 import { AreaT, CatT, SourceT, TagT, PaymentT, TransactionT, CatCalcsT, TotalsT, MonthSnapShotT, MonthSnapShotExT, FilterT } from '../../finance_defs'
 
 
@@ -56,7 +57,7 @@ function knit_cats(raw_areas:any, raw_cats:any) : CatT[] {
             parent:null,
             tags: raw_cat.tags,
             subs: [],
-            ts: raw_cat.ts,
+            ts: raw_cat.date,
             transfer_state: 0
         }
     })
@@ -71,7 +72,7 @@ function knit_cats(raw_areas:any, raw_cats:any) : CatT[] {
                 parent: cat,
                 tags: raw_cat.tags,
                 subs: null,
-                ts: raw_cat.ts,
+                ts: raw_cat.date,
                 transfer_state: 0
             }
         })
@@ -88,7 +89,7 @@ function knit_cats(raw_areas:any, raw_cats:any) : CatT[] {
 
 
 function knit_sources(raw_sources:any) : SourceT[] {
-    return raw_sources.map((raw_source:any) => { return { id: raw_source.id, ts: raw_source.ts, name: raw_source.name } })
+    return raw_sources.map((raw_source:any) => { return { id: raw_source.id, ts: raw_source.date, name: raw_source.name } })
 }
 
 
@@ -97,7 +98,7 @@ function knit_sources(raw_sources:any) : SourceT[] {
 function knit_tags(areas:AreaT[], raw_tags:any) : TagT[] {
     return raw_tags.map((raw_tag:any) => { 
         const area = areas.find((area:AreaT) => area.id === raw_tag.area._path.segments[1]) as AreaT
-        return { id: raw_tag.id, ts: raw_tag.ts, name: raw_tag.name, area } 
+        return { id: raw_tag.id, ts: raw_tag.date, name: raw_tag.name, area } 
     })
 }
 
@@ -141,16 +142,15 @@ function knit_transactions(cats:CatT[], sources:SourceT[], tags:TagT[], raw_tran
 
         const trtags = raw_transaction.tags.map((t:any) => tags.find((tag:TagT) => tag.id === t._path.segments[1]) as TagT)
 
-		console.log("need to put transacted_ts into all transactions in the database. and make client refer to transacted_ts instead of ts")
-
         return {
             id: raw_transaction.id,
             amount: raw_transaction.amount,
             area: trarea,
             cat: trcat,
             merchant: raw_transaction.merchant,
-            ts: raw_transaction.transacted_ts ? raw_transaction.transacted_ts : raw_transaction.ts,
-			transacted_ts: raw_transaction.transacted_ts ? raw_transaction.transacted_ts : raw_transaction.ts,
+			date: raw_transaction.date,
+            ts: raw_transaction.ts,
+			transacted_ts: raw_transaction.transacted_ts ? raw_transaction.transacted_ts : raw_transaction.date,
             notes: raw_transaction.notes,
             source: trsource,
             tags: trtags
@@ -175,7 +175,7 @@ function knit_monthsnapshots(raw_snaps:any, areas: AreaT[]) : MonthSnapShotT[] {
 
 
 
-function get_months(month_end:Date, count:int) : Date[] {
+function get_months(month_end:Date, count:num) : Date[] {
 
     const months:Date[] = []
 
@@ -215,7 +215,7 @@ function filter_transactions(transactions:TransactionT[], filter:FilterT) : Tran
         if (filter.parentcat && transaction.cat.parent !== filter.parentcat) { return false }
         if (filter.source && transaction.source !== filter.source) { return false }
         if (filter.tags && !filter.tags.every(tag=> transaction.tags.find(t_tag=> t_tag === tag))) { return false }
-        if (filter.daterange && (transaction.ts < daterange.begin || transaction.ts > daterange.end)) { return false }
+        if (filter.daterange && (transaction.date < daterange.begin || transaction.date > daterange.end)) { return false }
         if (filter.merchant && !transaction.merchant.toLowerCase().includes(filter.merchant)) { return false }
         if (filter.note && !transaction.notes.toLowerCase().includes(filter.note)) { return false }
         if (filter.amountrange && (transaction.amount < filter.amountrange[0] || transaction.amount > filter.amountrange[1])) { return false }
@@ -255,8 +255,8 @@ function sort_transactions(transactions:TransactionT[], sort_by:string, sort_dir
             return sort_direction === "asc" ? a.tags.join().localeCompare(b.tags.join()) : b.tags.join().localeCompare(a.tags.join())
         }
 
-        if (sort_by === "ts") {
-            return sort_direction === "asc" ? a.ts - b.ts : b.ts - a.ts
+        if (sort_by === "date") {
+            return sort_direction === "asc" ? a.date - b.date : b.date - a.date
         }
 
         return 0
@@ -277,7 +277,7 @@ function current_month_of_filtered_transactions(filtered_transactions:Transactio
     const daterange = { begin: Math.floor(month_start_ts), end: Math.floor(month_end_ts) }
 
     return filtered_transactions.filter((transaction:TransactionT) => {
-        return transaction.ts >= daterange.begin && transaction.ts < daterange.end
+        return transaction.date >= daterange.begin && transaction.date < daterange.end
     }) 
 }
 
@@ -332,7 +332,7 @@ function catcalcs(transactions:TransactionT[], filter_area:AreaT, filter_cattags
                 const month_ts = months_ts[m]
 
                 const filtered_transactions = transactions.filter(transaction => {
-                    return (transaction.cat === subcat && transaction.ts > month_ts.start && transaction.ts < month_ts.end) 
+                    return (transaction.cat === subcat && transaction.date > month_ts.start && transaction.date < month_ts.end) 
                 })
 
                 const sum = filtered_transactions.reduce((acc:number, transaction:TransactionT) => { return acc + transaction.amount }, 0)
@@ -441,13 +441,13 @@ function monthsnapshot(date:Date, area:AreaT, cats:CatT[], transactions:Transact
 
 
 
-function month_totals(area:AreaT, transactions:TransactionT[], month:Date) : { total:int, quad4total:int, quad123total:int } {
+function month_totals(area:AreaT, transactions:TransactionT[], month:Date) : { total:num, quad4total:num, quad123total:num } {
 
     const clonedate = new Date(month)
     const rangetimestart = Math.floor(clonedate.getTime()/1000)
     const rangetimeend = Math.floor(clonedate.setUTCMonth(clonedate.getUTCMonth() + 1)/1000)
 
-    const filtered_transactions = transactions.filter(t=> t.area === area && t.ts >= rangetimestart && t.ts < rangetimeend)
+    const filtered_transactions = transactions.filter(t=> t.area === area && t.date >= rangetimestart && t.date < rangetimeend)
 
     const quad4transactions = filtered_transactions.filter(t=> t.cat.tags.includes(4) )
 
@@ -462,7 +462,7 @@ function month_totals(area:AreaT, transactions:TransactionT[], month:Date) : { t
 
 
 
-function month_budget_total(area:AreaT, cats:CatT[]) : int {
+function month_budget_total(area:AreaT, cats:CatT[]) : num {
 
     let budget_total = 0
 

@@ -1,14 +1,13 @@
 
-type str = string; type bool = boolean; type int = number;   
+type int = number;   
 
+import { str, bool, num, $NT } from "../../../../defs_client.js"
 import { AreaT, CatT, SourceT, TagT, RawTransactionT } from '../../../finance_defs.js'
 import { knit_areas, knit_cats, knit_sources } from '../../libs/finance_funcs.js'
 
-declare var FetchLassie:any
-declare var Firestore:any
 declare var Lit_Render: any;
 declare var Lit_Html: any;
-declare var FirestoreLive: any;
+declare var $N: $NT;
 
 
 enum InputModeE { Cat, Tag, Note, Amount }
@@ -73,8 +72,8 @@ async connectedCallback() {
 
     const promises:any = []
 
-    promises.push(Firestore.Retrieve(["areas", "cats", "sources"]))
-    promises.push(FetchLassie('/api/xen/finance/get_ynab_raw_transactions', {}))
+    promises.push($N.Firestore.Retrieve(["areas", "cats", "sources"]))
+    promises.push($N.FetchLassie('/api/xen/finance/get_ynab_raw_transactions', {}))
 
     const v = await Promise.all(promises)
 
@@ -178,7 +177,7 @@ async save_focused_transaction_and_load_next() {
     } else {
         const body = this.s.rawtransactions
 
-        await FetchLassie( `/api/xen/finance/save_transactions_and_delete_ynab_records`, { 
+        await $N.FetchLassie( `/api/xen/finance/save_transactions_and_delete_ynab_records`, { 
             method:"POST", 
             body:JSON.stringify(body) 
         })
@@ -334,7 +333,7 @@ async keyup(e:KeyboardEvent) {
 
         if (e.key === "#") {
 
-            const results = await Firestore.Retrieve("tags")
+            const results = await $N.Firestore.Retrieve("tags")
             this.tags = results[0] as Array<TagT>
 
             this.tags.sort((a, b) => b.ts - a.ts)

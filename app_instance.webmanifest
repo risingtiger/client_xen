@@ -1,7 +1,7 @@
 {
-    "name": "Xenition",
+    "name": "Xen",
     "short_name": "Xen",
-    "description": "Xenition Etc",
+    "description": "Xen",
     "theme_color": "#fff",
     "background_color": "#fff",
     "icons": [
@@ -12,6 +12,6 @@
     ],
     "scope": "ignored",
     "start_url": "ignored",
-    "version":"3027",
+    "version":"3325",
     "display": "ignored"
 }

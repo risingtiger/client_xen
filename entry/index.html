@@ -1,0 +1,75 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <title></title>
+
+    <meta charset="utf-8">
+    <meta name="description" content="App">
+
+    <meta name="theme-color" content="#fff">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+	<meta name="mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-title" content="PWTApp">
+    <meta name="mobile-web-app-status-bar-style" content="default">
+
+    <script name="lithtml">
+		// make lithtml available for entry
+    </script>
+
+	<script>window.identity_platform_key="AIzaSyDfXcwqyiRGGO6pMBsG8CvNEtDIhdspKRI"</script>
+	
+    <script src="/entry/index.js" type="module"></script>
+    <link rel="stylesheet" href="/entry/index.css">
+
+</head>
+
+	<body>
+
+		<!--<div id="litroot">-->
+
+			<div id="update">
+				<div id="update_progress">&nbsp;</div>		
+				<div id="update_done">&nbsp;</div>
+			</div>
+
+			<div id="login">
+				<h1>Pure Water Login</h1>
+
+				<ul class="items">
+					<li>
+						<h5>Email</h5>
+						<input type="text" name="username" id="email" value="">
+					</li>
+
+					<li>
+						<h5>Password</h5>
+						<input type="password" name="password" id="password" value="">
+					</li>
+				</ul>
+
+				<div class="btn" id="submit_login_button">login</div>
+
+
+				<div id="login_errormsg"></div>
+
+
+			</div>
+
+			<div id="logged_out">
+				<div id="login_button" class="btn"><a>Pure Water Login</a></div>
+			</div>
+
+			<div id="logged_in">
+				<div id="home_button" class="btn"><a href="/v#home">Pure Water Dashboard Home</a></div>
+				<!--<div id="logout_button" class="btn"><a>Log out</a></div>-->
+			</div>
+
+		<!--</div>-->
+
+	</body>
+
+</html>
