@@ -15,7 +15,7 @@ const dummyArea:AreaT = { id: "1", bucket:0, name: "", longname: "", ynab_saving
 
 
 
-import { str,$NT, num } from "../../../../defs_client.js"
+import { str,$NT, num } from "../../../defs_client.js"
 
 import { AreaT, CatT, SourceT, TagT, PaymentT, TransactionT, CatCalcsT, TotalsT, MonthSnapShotT, FilterT } from '../../../finance_defs.js'
 import { knit_all, get_months, filter_transactions, sort_transactions, current_month_of_filtered_transactions, catcalcs, totals, monthsnapshot  } from '../../libs/finance_funcs.js'
@@ -119,6 +119,12 @@ class VFinance extends HTMLElement {
 	async connectedCallback() {
 
 		this.setAttribute("backhash", "home")
+
+		this.s.filter.area = this.m.areas.find(area => area.name === 'fam') as AreaT
+
+		this.set_default_date()
+		this.set_default_cattags()
+		this.set_default_except_area_and_date_and_cattags()
 		
 		$N.DataSync.Subscribe(this.m.data_to_sync, this)
 		$N.FetchLassie('/api/xen/finance/grab_em').then((data:any)=> {   this.m.ynab_accounts = data.ynab_accounts;   })
@@ -130,9 +136,9 @@ class VFinance extends HTMLElement {
 
 	async DataSync_Updated() {
 
-		console.time("indexeddb getall")
+		console.time("indexeddb getall finance data")
 		const idata = await $N.IndexedDB.GetAll(this.m.data_to_sync)
-		console.timeEnd("indexeddb getall")
+		console.timeEnd("indexeddb getall finance data")
 
 		checkit.bind(this)()
 		
@@ -197,13 +203,6 @@ class VFinance extends HTMLElement {
 		this.m.payments = k.payments
 		this.m.transactions = k.transactions
 		this.m.previous_static_monthsnapshots = k.previous_static_monthsnapshots
-
-
-		this.s.filter.area = this.m.areas.find(area => area.name === 'fam') as AreaT
-
-		this.set_default_date()
-		this.set_default_cattags()
-		this.set_default_except_area_and_date_and_cattags()
 		
 		this.parse_new_state()
 
@@ -213,13 +212,10 @@ class VFinance extends HTMLElement {
 
 
 
-reset() {
-    this.set_default_cattags()
-    this.set_default_date()
-    this.set_default_except_area_and_date_and_cattags()
-    this.parse_new_state()
-    this.sc()
-}
+	reset() {
+		alert("reset")
+		document.location.reload()
+	}
 
 
 
@@ -723,7 +719,7 @@ payments_r(p:PaymentT) {
 
 	let breakdown = p.breakdown.map(b=> {
 		let s = b.split(":")
-		return {name:s[0], cycle:s[1], day:s[2], amount:s[3]}
+		return {name:s[0], date:s[1], amount:s[2]}
 	})
 
     return Lit_Html`
@@ -741,7 +737,7 @@ payments_r(p:PaymentT) {
                    ${breakdown.map(b=> Lit_Html`
 						<div class="item">
 							<h6>${b.name}</h6>
-							<p>${b.cycle}${b.day} - ${b.amount}</p>	
+							<p>${b.date} &nbsp; $${b.amount}</p>	
 						</div>
                    `)}
                 </div>

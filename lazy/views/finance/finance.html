@@ -145,8 +145,6 @@
 
     <footer class="touch_switch_calcs_transactions">
 		<div id="footactions">
-			<a @click="${()=>location.reload()}">&nbsp;Sync&nbsp;</a>
-			&nbsp; &nbsp; &nbsp;
 			<a @click="${()=>{this.reset()}}">&nbsp;R&nbsp;</a>
 			&nbsp;
 			<a @click="${()=>{this.toggle_show_tags()}}">&nbsp;T&nbsp;</a>
@@ -184,26 +182,22 @@
                     <i class="icon-piggy" style="color: #097287; font-size: 13.5px;position: relative;top: 0.5px;left: 1px; padding-right: 0px;"></i> 
                     ${Math.round(_s.current_monthsnapshot.savings)}
                 </p>
-			</div>
 
-			<div class="snapshotrow">
                 <p class="budget_t123_diff diffs">
                     <strong style="color: #097287;">B</strong> - <strong style="color: #097287;">T123</strong>
                     ${Math.round(_s.current_monthsnapshot.budget - _s.current_monthsnapshot.quad123total)}
                 </p>
 
-                <!--
                 <p class="bucket_total_diff">
                     <i class="icon-bucket" style="color: #097287; font-size: 13.5px;position: relative;top: 0.5px;left: 1px; padding-right: 0px;"></i> - <strong style="color: #097287;">T</strong>
                     ${Math.round(_s.current_monthsnapshot.bucket - _s.current_monthsnapshot.total)}
                 </p>
-                -->
 
                 <p class="bucket_budget_diff diffs">
                     <i class="icon-bucket" style="color: #097287; font-size: 13.5px;position: relative;top: 0.5px;left: 1px; padding-right: 0px;"></i> - <strong style="color: #097287;">B</strong>
                     ${Math.round(_s.current_monthsnapshot.bucket - _s.current_monthsnapshot.budget)}
                 </p>
-            </div>
+			</div>
         </div>
 
     </footer>

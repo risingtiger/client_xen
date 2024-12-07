@@ -194,22 +194,18 @@ footer {
 
             & p {
                 margin: 0;
-                padding: 0 0 10px 0;
-                width: 80px;
-                min-width: 80px;
+                padding: 0 20px 7px 0;
             }
-			& p.diffs {
-				width: 160px;
-			}
         }
     }
 
 	& #footactions {
 		position: absolute;
-		right: 5px;
-		bottom: 87px;
+		left: 5px;
+		bottom: 4px;
 		background: #ffffff;
 		padding: 4px 4px;
+		z-index: 1000;
 	}
 }
 
@@ -261,11 +257,11 @@ footer {
             width: 50%;
 
             & .notes {
-            display: none;
-            position: absolute;
-            top: 0;
-            left: 0;
-            background: white;
+				display: none;
+				position: absolute;
+				top: 0;
+				left: 0;
+				background: white;
             }
 
 
@@ -279,18 +275,12 @@ footer {
             }
 
             & .breakdown {
-                column-count: 3;
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
+                display: flex;
+				flex-wrap: wrap;
+
 				& .item {
+					width: 30%;
+
 					& h6 {
 						font-weight: normal;
 						display: block;
