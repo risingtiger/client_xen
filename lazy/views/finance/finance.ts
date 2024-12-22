@@ -461,12 +461,25 @@ class VFinance extends HTMLElement {
 			this.s.bucketview.cat_to_id = cat.id;                                                                      
 			this.s.bucketview.cat_to_name = cat.name;                                                                  
 
-			this.s.bucketview.show_ui = 1;                                                                             
+            const cat_from_bucket_available = this.compute_bucket_available(this.s.bucketview.cat_from_id);
+            const cat_to_bucket_available = this.compute_bucket_available(this.s.bucketview.cat_to_id);
 
-			const prevSelected = this.shadow.querySelector('#calcs td.bucket.transferable.selected');                         
-			if (prevSelected) {                                                                                        
-				prevSelected.classList.remove('selected');                                                               
-			}
+            const vpFinanceBucketEl = this.shadow.querySelector('vp-finance-bucket') as any;
+            if (vpFinanceBucketEl && typeof vpFinanceBucketEl.show_selector === 'function') {
+                vpFinanceBucketEl.show_selector(
+                    this.s.bucketview.cat_from_id,
+                    this.s.bucketview.cat_from_name,
+                    cat_from_bucket_available,
+                    this.s.bucketview.cat_to_id,
+                    this.s.bucketview.cat_to_name,
+                    cat_to_bucket_available
+                );
+            }
+
+            const prevSelected = this.shadow.querySelector('#calcs td.bucket.transferable.selected');                         
+            if (prevSelected) {                                                                                        
+                prevSelected.classList.remove('selected');                                                               
+            }
 		}
 
 		this.sc();                                                                                                   
