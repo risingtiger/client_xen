@@ -186,6 +186,8 @@
 
     </footer>
 
+    <vp-finance-bucket></vp-finance-bucket>
+
 </div>
 
 
@@ -196,18 +198,6 @@ ${ _s.editview.show_ui !== 0 ? Lit_Html`
 ` : '' }
 
 
-${ _s.bucketview.show_ui !== 0 ? Lit_Html`
-    <c-ol shape="1" title="Bucket" @close="${()=> { this.s.bucketview.show_ui = 0; this.sc(); } }">
-        <vp-finance-bucket 
-			cat_from_id="${_s.bucketview.cat_from_id}"
-			cat_from_name="${_s.bucketview.cat_from_name}"
-			cat_from_bucket_available="${_s.bucketview.cat_from_bucket_available}"
-			cat_to_id="${_s.bucketview.cat_to_id}"
-			cat_to_name="${_s.bucketview.cat_to_name}"
-			cat_to_bucket_available="${_s.bucketview.cat_to_bucket_available}">
-		</vp-finance-bucket>
-    </c-ol>
-` : '' }
 
 
 

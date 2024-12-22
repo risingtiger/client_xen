@@ -554,6 +554,15 @@ class VFinance extends HTMLElement {
 
 
 
+   compute_bucket_available(cat_id: string): number {
+       const cat = this.m.cats.flatMap(c => c.subs || []).find(c => c.id === cat_id);
+       if (!cat) return 0;
+        
+       // Placeholder value for bucket available
+       const bucketAvailable = 1000; // Replace this with actual computation logic
+       return bucketAvailable;
+   }
+
 async handle_touch_start(e:TouchEvent) {
 
     console.log("start")

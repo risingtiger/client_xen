@@ -42,22 +42,44 @@ class VPFinanceBucket extends HTMLElement {
     constructor() {   
         super();
         this.m = {
-            cat_from_id: this.getAttribute('cat_from_id') || '',
-            cat_from_name: this.getAttribute('cat_from_name') || '',
-            cat_from_bucket_available: parseFloat(this.getAttribute('cat_from_bucket_available') || '0'),
-            cat_to_id: this.getAttribute('cat_to_id') || '',
-            cat_to_name: this.getAttribute('cat_to_name') || '',
-            cat_to_bucket_available: parseFloat(this.getAttribute('cat_to_bucket_available') || '0')
+            cat_from_id: '',
+            cat_from_name: '',
+            cat_from_bucket_available: 0,
+            cat_to_id: '',
+            cat_to_name: '',
+            cat_to_bucket_available: 0
         };
         
-        const defaultTransfer = this.m.cat_from_bucket_available * 0.25;
         this.s = {
-            amount_transfer: defaultTransfer,
-            cat_from_remaining: this.m.cat_from_bucket_available - defaultTransfer,
-            cat_to_new_total: this.m.cat_to_bucket_available + defaultTransfer
+            amount_transfer: 0,
+            cat_from_remaining: 0,
+            cat_to_new_total: 0
         };
         
         this.shadow = this.attachShadow({mode: 'open'});
+    }
+
+    show_selector(
+        cat_from_id: string,
+        cat_from_name: string,
+        cat_from_bucket_available: number,
+        cat_to_id: string,
+        cat_to_name: string,
+        cat_to_bucket_available: number
+    ) {
+        this.m.cat_from_id = cat_from_id;
+        this.m.cat_from_name = cat_from_name;
+        this.m.cat_from_bucket_available = cat_from_bucket_available;
+        this.m.cat_to_id = cat_to_id;
+        this.m.cat_to_name = cat_to_name;
+        this.m.cat_to_bucket_available = cat_to_bucket_available;
+
+        const defaultTransfer = this.m.cat_from_bucket_available * 0.25;
+        this.s.amount_transfer = defaultTransfer;
+        this.s.cat_from_remaining = this.m.cat_from_bucket_available - defaultTransfer;
+        this.s.cat_to_new_total = this.m.cat_to_bucket_available + defaultTransfer;
+
+        this.sc();
     }
 
 
