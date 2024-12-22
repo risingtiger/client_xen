@@ -7,7 +7,56 @@ import { AreaT, TransactionT, CatT  } from '../../../defs.js'
 
 
 
+function flattenCats(cats: CatT[]): CatT[] {
+    const result: CatT[] = [];
+    function helper(cat: CatT) {
+        if (cat.subs && cat.subs.length > 0) {
+            for (const sub of cat.subs) {
+                helper(sub);
+            }
+        } else {
+            result.push(cat);
+        }
+    }
+    for (const cat of cats) {
+        helper(cat);
+    }
+    return result;
+}
+
 function bucket_amount_remainder(area:AreaT, cats:CatT[], cattag:number, transactions:TransactionT[]) : {cat:CatT, remainder:number}[] {
+    // Flatten and filter categories
+    const childCats = flattenCats(cats);
+    const filteredCats = childCats.filter(cat =>
+        cat.area.id === area.id && cat.tags.includes(cattag)
+    );
+
+    // Create set of filtered category IDs for efficient lookup
+    const catIdSet = new Set(filteredCats.map(cat => cat.id));
+
+    // Get reference timestamp from area
+    const ref_ts_key = `bucketquad${cattag}_ref_ts` as keyof AreaT;
+    const ref_ts = area[ref_ts_key] as number;
+
+    // Filter transactions by area and timestamp
+    const filteredTransactions = transactions.filter(txn =>
+        txn.area.id === area.id && txn.ts >= ref_ts
+    );
+
+    // Sum transaction amounts for each category
+    const catSums: { [catId: string]: number } = {};
+    for (const txn of filteredTransactions) {
+        const catId = txn.cat.id;
+        if (catIdSet.has(catId)) {
+            catSums[catId] = (catSums[catId] || 0) + txn.amount;
+        }
+    }
+
+    // Calculate remainder for each filtered category
+    return filteredCats.map(cat => ({
+        cat,
+        remainder: (cat.bucket || 0) - (catSums[cat.id] || 0)
+    }));
 }
 
 
