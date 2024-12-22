@@ -2,19 +2,37 @@
 
 
 <div id="snapshots_synopsis">
-	${_s.snapshots_for_ui.synopsis_by_area.map((sa,i) => Lit_Html`
-		<div class="area">
-			<div class="name_area">${sa.name_area.slice(0,1)}</div>
-			<div class="quads">
-				${ sa.quads.map((q,i) => Lit_Html`
-					<div class="quad quad${i+1}">
-						<span>${q[0]}</span>
-						<span>${q[1]}</span>
-					</div>
-				`)}
-			</div>
-		</div>
-	`)}
+    ${_s.snapshots_for_ui.map((sa) => Lit_Html`
+        <div class="area">
+            <div class="name_area">${sa.areaName.slice(0,1)}</div>
+            <div class="quads">
+                <div class="quad quad1">
+                    <span>${sa.quad1_spent}</span>
+                    <span>${sa.quad1_budget}</span>
+                </div>
+                <div class="quad quad2">
+                    <span>${sa.quad2_spent}</span>
+                    <span>${sa.quad2_budget}</span>
+                </div>
+                <div class="quad quad3">
+                    <span>${sa.quad3_spent}</span>
+                    <span>${sa.quad3_budget}</span>
+                </div>
+                <div class="quad quad4">
+                    <span>${sa.quad4_spent}</span>
+                    <span>${sa.quad4_budget}</span>
+                </div>
+                <div class="quad quad5">
+                    <span>${sa.sum_quad1_2_spent}</span>
+                    <span>${sa.sum_quad1_2_budget}</span>
+                </div>
+                <div class="quad quad6">
+                    <span>${sa.sum_quad1_2_3_spent}</span>
+                    <span>${sa.sum_quad1_2_3_budget}</span>
+                </div>
+            </div>
+        </div>
+    `)}
 	<div class="area">
 		<div class="name_area">s</div>
 		<div class="quads">
