@@ -1,0 +1,60 @@
+
+
+
+<div id="snapshots_synopsis">
+	${_s.snapshots_for_ui.synopsis_by_area.map((sa,i) => Lit_Html`
+		<div class="area">
+			<div class="name_area">${sa.name_area.slice(0,1)}</div>
+			<div class="quads">
+				${ sa.quads.map((q,i) => Lit_Html`
+					<div class="quad quad${i+1}">
+						<span>${q[0]}</span>
+						<span>${q[1]}</span>
+					</div>
+				`)}
+			</div>
+		</div>
+	`)}
+	<div class="area">
+		<div class="name_area">s</div>
+		<div class="quads">
+			${ _s.snapshots_for_ui.synopsis_by_area_sums.quads.map((q,i) => Lit_Html`
+				<div class="quad quad${i+1}">
+					<span>${q[0]}</span>
+					<span>${q[1]}</span>
+				</div>
+			`)}
+		</div>
+	</div>
+</div>
+
+<div id="snapshots_by_month">
+	${_s.snapshots_for_ui.months.map((s,i) => Lit_Html`
+		<div class="snapshot_month">
+			${s.map((sa,i) => Lit_Html`
+				<div class="snapshot_month_area">
+					<div class="name_area">${sa.name_area}</div>
+					<div class="name_month">${sa.name_month}</div>
+					<div class="bucket">
+						<i class="icon-bucket" style="font-size: 12px;position: relative;top: 1px;"></i>
+						${sa.bucket}
+					</div>
+					<div class="savings">
+						<i class="icon-piggy" style="font-size: 13px;position: relative;top: 0px;"></i>
+						${sa.savings}
+					</div>
+
+					<div class="quads">
+						${ sa.quads.map((q,i) => Lit_Html`
+							<div class="quad quad${i+1}">
+								<span>${q[0]}</span>
+								<span>${q[1]}</span>
+							</div>
+						`)}
+					</div>
+				</div>
+			`)}
+		</div>
+	`)}
+</div>
+
