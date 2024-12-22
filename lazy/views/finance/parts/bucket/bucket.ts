@@ -97,33 +97,7 @@ class VPFinanceBucket extends HTMLElement {
         this.dispatchEvent(new CustomEvent('buckets_changed', eventDetail));
     }
 
-    template = (_s:State, _m:Model) => {
-        return Lit_Html`
-            <style>
-                ${require('./bucket.css')}
-            </style>
-            <div class="container">
-                <div class="category from-category">
-                    <h3>From: ${_m.cat_from_name}</h3>
-                    <p>Total Available: \$${_m.cat_from_bucket_available.toFixed(2)}</p>
-                    <p>Amount Transferred: \$${_s.amount_transfer.toFixed(2)}</p>
-                    <p>Remaining: \$${_s.cat_from_remaining.toFixed(2)}</p>
-                </div>
-                <div class="slider-container">
-                    <input type="range" min="0" max="${_m.cat_from_bucket_available}" 
-                           step="0.01" value="${_s.amount_transfer}"
-                           @input="${(e: Event) => this.onTransferChange(e)}">
-                </div>
-                <div class="category to-category">
-                    <h3>To: ${_m.cat_to_name}</h3>
-                    <p>Total Available: \$${_m.cat_to_bucket_available.toFixed(2)}</p>
-                    <p>Amount Received: \$${_s.amount_transfer.toFixed(2)}</p>
-                    <p>New Total: \$${_s.cat_to_new_total.toFixed(2)}</p>
-                </div>
-                <button @click="${() => this.onSubmit()}">Submit Transfer</button>
-            </div>
-        `;
-    }
+	template = (_s:State, _m:Model) => { return Lit_Html`{--css--}{--html--}`; } 
 
 }
 

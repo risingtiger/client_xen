@@ -37,7 +37,7 @@
 
     <div id="calc_transactions_wrapper">
 
-        <div id="calcs"  class="p-6 max-w-sm mx-auto bg-white rounded-xl shadow-lg flex items-center space-x-4">
+		<div id="calcs" class="${_s.calcs_view_size === 'large' ? 'full' : ''}">
             <div id="tablewrap">
                 <table>
                     <thead>
@@ -59,8 +59,9 @@
                                 <th class="monthname ${i === _s.months.length-1 ? 'current' : ''}" @click="${(e)=>this.calcmonth_clicked(e)}" data-month_i="${i}">${m}</th>
                             `)}
 
+                            <th class="avgmed" @click="${()=>this.avgormed_clicked()}">${_s.prefs.avgormed === 1 ? 'A' : 'M'} </th>
                             <th class="budget">B</th>
-                            <th class="avgmed" @click="${()=>this.avgormed_clicked()}">${_s.prefs.avgormed === 1 ? 'A' : 'M'}</th>
+                            <th class="bucket">B</th>
                         </tr>
                     </thead>
 
@@ -73,8 +74,9 @@
                                 <td class="touch_month sum ${i === _s.months.length-1 ? 'current' : ''}">${Math.round(c.sums[i])}</td>
                                 `)}
 
-                                <td class="touch_area budget">${c.budget}</td>
                                 <td class="touch_area avgmed">${Math.round(c.avg)}</td>
+								<td class="touch_area budget">${c.budget}</td>
+                                <td class="bucket">null</td>
                             </tr>
 
                             ${c.subs.map((cs,ii) => Lit_Html`
@@ -85,8 +87,9 @@
                                         <td class="touch_month sum sub ${iii === _s.months.length-1 ? 'current' : ''}">${Math.round(cs.sums[iii])}</td>
                                     `)}
 
-                                    <td class="touch_area budget">${cs.cat.budget}</td>
                                     <td class="touch_area avgmed">${Math.floor(   (_s.prefs.avgormed === 1 ? cs.avg : cs.med)   )}</td>
+                                    <td class="touch_area budget">${cs.cat.budget}</td>
+                                    <td class="bucket transferable" data-id="${cs.cat.id}" @click="${(e)=> this.bucket_select(e)}">1000</td>
                                 </tr>
                             `)}
                         `)}
@@ -97,11 +100,12 @@
                             <th class="cat">Totals</th>
 
                             ${_s.months.map((m,i) => Lit_Html`
-                            <th class="sum ${i === _s.months.length-1 ? 'current' : ''}">${Math.round(_m.totals.sums[i])}</th>
+                            <th class="sum ${i === _s.months.length-1 ? 'current' : ''}">${Math.round(_m.catcalcstotals.sums[i])}</th>
                             `)}
 
-                            <th class="budget">${Math.round(_m.totals.budget)}</th>
-                            <th class="avgmed">${Math.round(_m.totals.avg)}</th>
+                            <th class="avgmed">${Math.round(_m.catcalcstotals.avg)}</th>
+                            <th class="budget">${Math.round(_m.catcalcstotals.budget)}</th>
+                            <th class="bucket">1000</th>
                         </tr>
                     </tfoot>
                 </table>
@@ -109,12 +113,13 @@
         </div>
 
 
-        <div id="transactions">
+
+        <div id="transactions" class="${_s.calcs_view_size === 'large' ? 'collapsed' : ''}">
             <div id="tablewrap">
                 <table>
                     <thead>
                         <tr>
-                            <th class="date" @click="${()=>this.sort_transactions_by('ts', 'asc')}">date</th>
+                            <th class="date" @click="${()=>this.sort_transactions_by('date', 'asc')}">date</th>
                             <th class="merchant" @click="${()=>this.sort_transactions_by('merchant', 'asc')}">merchant</i></th>
                             <th class="category" @click="${()=>this.sort_transactions_by('cat', 'asc')}">category</th>
                             <th class="amount" @click="${()=>this.sort_transactions_by('amount', 'asc')}">amount</th>
@@ -126,8 +131,8 @@
 
                     <tbody>
                     ${_m.current_month_transactions.map((t,i) => Lit_Html`
-                        <tr @click="${(e)=>this.transactionrow_clicked(e)}" data-id="${t.id}">
-                            <td class="date">${(new Date(t.ts*1000)).toLocaleDateString().slice(0,-5)}</td>
+                        <tr>
+                            <td data-id="${t.id}" @click="${(e)=>this.transactionrow_clicked(e)}" class="date">${(new Date(t.date*1000)).toLocaleDateString("en-US", {month: '2-digit', day: '2-digit'}).slice(0,5).replace("/","-")}</td>
                             <td class="merchant">${t.merchant.toLowerCase().slice(0,18)}</td>
                             <td class="category">${t.cat.name.slice(0,9)}</td>
                             <td class="amount">${Math.round(t.amount)}</td>
@@ -143,6 +148,10 @@
 
     </div>
 
+
+	<vp-finance-snapshot></vp-finance-snapshot>
+
+
     <footer class="touch_switch_calcs_transactions">
 		<div id="footactions">
 			<a @click="${()=>{this.reset()}}">&nbsp;R&nbsp;</a>
@@ -152,51 +161,26 @@
 			<a @click="${()=>{this.s.paymentsview.show_ui = this.s.paymentsview.show_ui === 1 ? 2 : 1; this.sc()}}">&nbsp;B&nbsp;</a>
 			&nbsp;
 			<a @click="${()=>{this.s.catsview.show_ui=1;this.sc();}}">&nbsp;C&nbsp;</a>
+			&nbsp;
+			<a @click="${()=>{this.show_snapshot()}}">&nbsp;N&nbsp;</a>
+			&nbsp;
+
+			<a @click="${()=>{this.set_calcs_view_size_from_ui('small')}}">&nbsp;MS&nbsp;</a>
+			&nbsp;
+			<a @click="${()=>{this.set_calcs_view_size_from_ui('medium')}}">&nbsp;MM&nbsp;</a>
+			&nbsp;
+			<a @click="${()=>{this.set_calcs_view_size_from_ui('large')}}">&nbsp;ML&nbsp;</a>
+			&nbsp;
+			<a @click="${()=>{this.download_csv();}}">&nbsp;D&nbsp;</a>
+			&nbsp;
+			<a @click="${()=>{this.s.bucketview.show_ui=1; this.sc();}}">&nbsp;TEMP&nbsp;</a>
 		</div>
+
+		<div id="totalies">
+		</div>
+
         <div id="snapshot">
-
-
             <div class="snapshotrow">
-
-                <p class="total">
-                    <strong style="color: #097287;">T</strong>
-                    ${Math.round(_s.current_monthsnapshot.total)}
-                </p>
-                <p class="quad4total">
-                    <strong style="color: #097287;">T4</strong>
-                    ${Math.round(_s.current_monthsnapshot.quad4total)}
-                </p>
-                <p class="quad123total">
-                    <strong style="color: #097287;">T123</strong>
-                    ${Math.round(_s.current_monthsnapshot.quad123total)}
-                </p>
-                <p class="bucket">
-                    <i class="icon-bucket" style="color: #097287; font-size: 13.5px;position: relative;top: 0.5px;left: 1px; padding-right: 0px;"></i> 
-                    ${Math.round(_s.current_monthsnapshot.bucket)}
-                </p>
-                <p class="budget">
-                    <strong style="color: #097287;">B</strong>
-                    ${Math.round(_s.current_monthsnapshot.budget)}
-                </p>
-                <p class="savings">
-                    <i class="icon-piggy" style="color: #097287; font-size: 13.5px;position: relative;top: 0.5px;left: 1px; padding-right: 0px;"></i> 
-                    ${Math.round(_s.current_monthsnapshot.savings)}
-                </p>
-
-                <p class="budget_t123_diff diffs">
-                    <strong style="color: #097287;">B</strong> - <strong style="color: #097287;">T123</strong>
-                    ${Math.round(_s.current_monthsnapshot.budget - _s.current_monthsnapshot.quad123total)}
-                </p>
-
-                <p class="bucket_total_diff">
-                    <i class="icon-bucket" style="color: #097287; font-size: 13.5px;position: relative;top: 0.5px;left: 1px; padding-right: 0px;"></i> - <strong style="color: #097287;">T</strong>
-                    ${Math.round(_s.current_monthsnapshot.bucket - _s.current_monthsnapshot.total)}
-                </p>
-
-                <p class="bucket_budget_diff diffs">
-                    <i class="icon-bucket" style="color: #097287; font-size: 13.5px;position: relative;top: 0.5px;left: 1px; padding-right: 0px;"></i> - <strong style="color: #097287;">B</strong>
-                    ${Math.round(_s.current_monthsnapshot.bucket - _s.current_monthsnapshot.budget)}
-                </p>
 			</div>
         </div>
 
@@ -207,7 +191,21 @@
 
 ${ _s.editview.show_ui !== 0 ? Lit_Html`
     <c-ol shape="1" title="Transaction Details" @close="${()=> { this.s.editview.show_ui = 0; this.sc(); } }">
-        <vp-transaction-edit transaction="${_s.editview.transaction_id}"></vp-transaction-edit>
+        <vp-finance-edittransaction transaction="${_s.editview.transaction_id}"></vp-finance-edittransaction>
+    </c-ol>
+` : '' }
+
+
+${ _s.bucketview.show_ui !== 0 ? Lit_Html`
+    <c-ol shape="1" title="Bucket" @close="${()=> { this.s.bucketview.show_ui = 0; this.sc(); } }">
+        <vp-finance-bucket 
+			cat_from_id="${_s.bucketview.cat_from_id}"
+			cat_from_name="${_s.bucketview.cat_from_name}"
+			cat_from_bucket_available="${_s.bucketview.cat_from_bucket_available}"
+			cat_to_id="${_s.bucketview.cat_to_id}"
+			cat_to_name="${_s.bucketview.cat_to_name}"
+			cat_to_bucket_available="${_s.bucketview.cat_to_bucket_available}">
+		</vp-finance-bucket>
     </c-ol>
 ` : '' }
 
