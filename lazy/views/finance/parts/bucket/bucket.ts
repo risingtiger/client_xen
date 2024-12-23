@@ -1,7 +1,6 @@
 
 
 import { $NT } from "../../../../../defs_client_symlink.js"
-//import { str } from "../../../../../defs_server_symlink.js"
 import { TransactionT, AreaT, CatT, SnapShotsT, MonthSnapShotT } from '../../../../../defs.js'
 import { bucket_amount_remainder_single } from '../../../../libs/financefuncs/bucket.js'
 
@@ -16,16 +15,20 @@ type Model = {
 }
 
 type State = {
-    amount_transfer: number,
-	cat_from: CatT|null,
-	cat_to: CatT|null,
-    cat_from_bucket_available: number,
-    cat_to_bucket_available: number
-    cat_from_remaining: number,
-    cat_to_new_total: number,
-	cat_from_name: string,
-	cat_to_name: string,
-	is_active: boolean
+    amtXfer: number,
+    fromCat: CatT|null,
+    toCat: CatT|null,
+    from: {
+        bucketAvail: number,
+        remain: number,
+        name: string,
+    },
+    to: {
+        bucketAvail: number,
+        newTotal: number,
+        name: string,
+    },
+    active: boolean
 }
 
 
@@ -47,16 +50,12 @@ class VPFinanceBucket extends HTMLElement {
         };
         
         this.s = {
-            amount_transfer: 0,
-			cat_from:null, 
-			cat_to:null, 
-            cat_from_bucket_available: 0,
-            cat_to_bucket_available: 0,
-            cat_from_remaining: 0,
-            cat_to_new_total: 0,
-			cat_from_name: "",
-			cat_to_name: "",
-			is_active: false
+            amtXfer: 0,
+            fromCat: null,
+            toCat: null,
+            from: { bucketAvail: 0, remain: 0, name: "" },
+            to: { bucketAvail: 0, newTotal: 0, name: "" },
+            active: false
         };
         
         this.shadow = this.attachShadow({mode: 'open'});
@@ -73,22 +72,18 @@ class VPFinanceBucket extends HTMLElement {
 
 
 
-    show_selector(cat_from:CatT, cat_to:CatT, area:AreaT, transactions:TransactionT[]) {
+    show_selector(fromCat:CatT, toCat:CatT, area:AreaT, transactions:TransactionT[]) {
+        this.s.fromCat = fromCat;
+        this.s.toCat = toCat;
 
-		this.s.cat_from = cat_from;
-		this.s.cat_to = cat_to;
+        this.s.from.bucketAvail = bucket_amount_remainder_single(area, fromCat, transactions);
+        this.s.to.bucketAvail = bucket_amount_remainder_single(area, toCat, transactions);
+        
+        this.s.amtXfer = this.s.from.bucketAvail * 0.25;
+        this.s.from.remain = this.s.from.bucketAvail - this.s.amtXfer;
+        this.s.to.newTotal = this.s.to.bucketAvail + this.s.amtXfer;
 
-		console.time("bucket_amount_remainder_single")
-		this.s.cat_from_bucket_available = bucket_amount_remainder_single(area, cat_from, transactions);
-		this.s.cat_to_bucket_available   = bucket_amount_remainder_single(area, cat_to, transactions);
-		console.timeEnd("bucket_amount_remainder_single")
-
-        this.s.amount_transfer = this.s.cat_from_bucket_available * 0.25;
-        this.s.cat_from_remaining = this.s.cat_from_bucket_available - this.s.amount_transfer;
-        this.s.cat_to_new_total = this.s.cat_to_bucket_available + this.s.amount_transfer;
-
-		this.s.is_active = true;
-
+        this.s.active = true;
         this.sc();
     }
 
@@ -106,28 +101,27 @@ class VPFinanceBucket extends HTMLElement {
     onTransferChange(event: Event) {
         const newTransfer = parseFloat((event.target as HTMLInputElement).value);
         this.sc({
-            amount_transfer: newTransfer,
-            cat_from_remaining: this.s.cat_from_bucket_available - newTransfer,
-            cat_to_new_total: this.s.cat_to_bucket_available + newTransfer
+            amtXfer: newTransfer,
+            from: { ...this.s.from, remain: this.s.from.bucketAvail - newTransfer },
+            to: { ...this.s.to, newTotal: this.s.to.bucketAvail + newTransfer }
         });
     }
 
     async onSubmit() {
-
-		const from_bucket_new_balance = (this.s.cat_from as any).bucket - this.s.amount_transfer;
-		const to_bucket_new_balance = (this.s.cat_to as any).bucket + this.s.amount_transfer;
-
-		const from = { id: this.s.cat_from!.id, bucket: Math.round(from_bucket_new_balance) };
-		const to   = { id: this.s.cat_to!.id,   bucket: Math.round(to_bucket_new_balance) };
-
-		await $N.FetchLassie("/api/xen/finance/patch_cat_buckets", { method: "PATCH", body: JSON.stringify({from, to}) })
-
-		this.s.cat_to    = null;
-		this.s.cat_from  = null;
-		this.s.is_active = false;
-
-
-		console.log("check it")
+        const fromBucketNew = (this.s.fromCat as any).bucket - this.s.amtXfer;
+        const toBucketNew = (this.s.toCat as any).bucket + this.s.amtXfer;
+        
+        const fromUpdate = { id: this.s.fromCat!.id, bucket: Math.round(fromBucketNew) };
+        const toUpdate = { id: this.s.toCat!.id, bucket: Math.round(toBucketNew) };
+        
+        await $N.FetchLassie("/api/xen/finance/patch_cat_buckets", {
+            method: "PATCH",
+            body: JSON.stringify({ from: fromUpdate, to: toUpdate })
+        });
+        
+        this.s.toCat = null;
+        this.s.fromCat = null;
+        this.s.active = false;
     }
 
 	template = (_s:State, _m:Model) => { return Lit_Html`{--css--}{--html--}`; } 
