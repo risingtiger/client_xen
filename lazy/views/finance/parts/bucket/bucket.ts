@@ -1,8 +1,8 @@
 
 
 import { $NT } from "../../../../../defs_client_symlink.js"
-import { TransactionT, AreaT, CatT, SnapShotsT, MonthSnapShotT } from '../../../../../defs.js'
-import { bucket_amount_remainder_single } from '../../../../libs/financefuncs/bucket.js'
+import { TransactionT, AreaT, CatT } from '../../../../../defs.js'
+import { cat_bucket_remainders, cat_bucket_remainder_single } from '../../../../libs/financefuncs/bucket.js'
 
 declare var Lit_Render: any;
 declare var Lit_Html: any;
@@ -15,19 +15,28 @@ type Model = {
 }
 
 type State = {
+    twostepclicks: {
+		from_is: 'cat' | 'hldrbucket' | 'none',
+		to_is:   'cat' | 'hldrbucket' | 'none',
+		from_cat_id: string | null,
+		to_cat_id:   string | null,
+	},
     amtXfer: number,
     fromCat: CatT|null,
     toCat: CatT|null,
     from: {
         bucketAvail: number,
-        remain: number,
+        newamount: number,
+		catid: string|null,
         name: string,
     },
     to: {
         bucketAvail: number,
-        newTotal: number,
+        newamount: number,
+		catid: string|null,
         name: string,
     },
+	mode: 'movebetween' | 'manage'
     active: boolean
 }
 
@@ -50,12 +59,19 @@ class VPFinanceBucket extends HTMLElement {
         };
         
         this.s = {
+			twostepclicks: {
+				from_is: 'none', 
+				to_is: 'none',
+				from_cat_id: null,
+				to_cat_id: null
+			},
             amtXfer: 0,
             fromCat: null,
             toCat: null,
-            from: { bucketAvail: 0, remain: 0, name: "" },
-            to: { bucketAvail: 0, newTotal: 0, name: "" },
-            active: false
+            from: { bucketAvail: 0, newamount: 0, catid:null, name: "" },
+            to: { bucketAvail: 0, newamount: 0, catid:null, name: "" },
+            active: false,
+			mode: 'movebetween'
         };
         
         this.shadow = this.attachShadow({mode: 'open'});
@@ -71,21 +87,95 @@ class VPFinanceBucket extends HTMLElement {
 
 
 
+	twoStepClicks(e: MouseEvent, area:AreaT, cats:CatT[], transactions:TransactionT[], cattags:number[], cat_bucket_hldr_amount:number) {
 
-    show_selector(fromCat:CatT, toCat:CatT, area:AreaT, transactions:TransactionT[]) {
+		if (this.s.twostepclicks.to_is !== 'none') {
+			this.s.twostepclicks.from_is = 'none'
+			this.s.twostepclicks.from_cat_id = null
+			this.s.twostepclicks.to_is = 'none'
+			this.s.twostepclicks.to_cat_id = null
+		}
+
+		const flatcats         = cats.flatMap(c => c.subs ? c.subs : [])
+		const el               = e.currentTarget as HTMLElement;
+		const cat_id           = el.dataset.cat_id as string;
+		const cat              = cat_id ? flatcats.find(c => c.id === cat_id) : null
+		const is_el_hldrbucket = el.id === "hldrbucket" ? true : false
+
+		if (!cat && !is_el_hldrbucket) return;
+		if (cattags[0] < 3 || cattags[0] > 4) return;
+		if (!cat_bucket_hldr_amount) return;
+		if (this.s.twostepclicks.from_cat_id === cat_id) return;
+		if (this.s.twostepclicks.from_is === 'hldrbucket' && is_el_hldrbucket) return;
+
+
+		if (this.s.twostepclicks.from_is === 'none') {
+			this.s.twostepclicks.from_is = is_el_hldrbucket ? 'hldrbucket' : 'cat'
+			this.s.twostepclicks.from_cat_id = cat ? cat.id : null
+
+		} else if (this.s.twostepclicks.to_is === 'none') {
+			this.s.twostepclicks.to_is = is_el_hldrbucket ? 'hldrbucket' : 'cat'
+			this.s.twostepclicks.to_cat_id = cat ? cat.id : null
+
+			if (this.s.twostepclicks.from_is === 'cat' && this.s.twostepclicks.from_cat_id) {
+				this.s.from.bucketAvail = cat_bucket_remainder_single(area, flatcats.find(c=>c.id === this.s.twostepclicks.from_cat_id)!, transactions)
+				this.s.from.name = flatcats.find(c=>c.id === this.s.twostepclicks.from_cat_id)!.name
+				this.s.from.catid = this.s.twostepclicks.from_cat_id
+
+			} else if (this.s.twostepclicks.from_is === 'hldrbucket') {
+				this.s.from.bucketAvail = cat_bucket_hldr_amount
+				this.s.from.name = "Hldr Bucket"
+				this.s.from.catid = null
+			}
+
+
+			if (this.s.twostepclicks.to_is === 'cat' && this.s.twostepclicks.to_cat_id) {
+				this.s.to.bucketAvail = cat_bucket_remainder_single(area, flatcats.find(c=>c.id === this.s.twostepclicks.to_cat_id)!, transactions)
+				this.s.to.name = flatcats.find(c=>c.id === this.s.twostepclicks.to_cat_id)!.name
+				this.s.to.catid = this.s.twostepclicks.to_cat_id
+
+			} else if (this.s.twostepclicks.to_is === 'hldrbucket') {
+				this.s.to.bucketAvail = cat_bucket_hldr_amount
+				this.s.to.name = "Hldr Bucket"
+				this.s.to.catid = null
+			}
+
+			this.s.amtXfer = 0
+			this.s.from.newamount = this.s.from.bucketAvail
+			this.s.to.newamount = this.s.to.bucketAvail
+
+			this.s.active = true
+		}
+
+		this.sc();
+	}  
+
+
+
+	/*
+    add_more(area:AreaT, quad:number, transactions:TransactionT[]) {
+
+		if (fromCat.tags[0] !== toCat.tags[0]) {
+			alert ("categories gotta be in same quadrant")
+			return false
+		}
+
+
+
         this.s.fromCat = fromCat;
-        this.s.toCat = toCat;
+        this.s.toCat   = toCat;
 
-        this.s.from.bucketAvail = bucket_amount_remainder_single(area, fromCat, transactions);
-        this.s.to.bucketAvail = bucket_amount_remainder_single(area, toCat, transactions);
+        this.s.from.bucketAvail = cat_bucket_remainder_single(area, fromCat, transactions);
+        this.s.to.bucketAvail   = cat_bucket_remainder_single(area, toCat, transactions);
         
-        this.s.amtXfer = this.s.from.bucketAvail * 0.25;
-        this.s.from.remain = this.s.from.bucketAvail - this.s.amtXfer;
-        this.s.to.newTotal = this.s.to.bucketAvail + this.s.amtXfer;
+        this.s.amtXfer        = 0;
+        this.s.from.newamount = this.s.from.bucketAvail;
+        this.s.to.newamount   = this.s.to.bucketAvail;
 
         this.s.active = true;
         this.sc();
     }
+	*/
 
 
 
@@ -102,27 +192,39 @@ class VPFinanceBucket extends HTMLElement {
         const newTransfer = parseFloat((event.target as HTMLInputElement).value);
         this.sc({
             amtXfer: newTransfer,
-            from: { ...this.s.from, remain: this.s.from.bucketAvail - newTransfer },
-            to: { ...this.s.to, newTotal: this.s.to.bucketAvail + newTransfer }
+            from: { ...this.s.from, newamount: this.s.from.bucketAvail - newTransfer },
+            to:   { ...this.s.to, newamount: this.s.to.bucketAvail + newTransfer }
         });
     }
 
-    async onSubmit() {
+    async onMoveBetweenCatsOrHldrBucketSubmit() {
+
         const fromBucketNew = (this.s.fromCat as any).bucket - this.s.amtXfer;
-        const toBucketNew = (this.s.toCat as any).bucket + this.s.amtXfer;
+        const toBucketNew   = (this.s.toCat as any).bucket + this.s.amtXfer;
         
-        const fromUpdate = { id: this.s.fromCat!.id, bucket: Math.round(fromBucketNew) };
-        const toUpdate = { id: this.s.toCat!.id, bucket: Math.round(toBucketNew) };
+		if (this.s.mode === 'movebetweencats') {
+			const fromUpdate = { id: this.s.fromCat!.id, bucket: Math.round(fromBucketNew) };
+			const toUpdate   = { id: this.s.toCat!.id, bucket: Math.round(toBucketNew) };
+			
+			await $N.FetchLassie("/api/xen/finance/patch_cat_buckets", {
+				method: "PATCH",
+				body: JSON.stringify({ from: fromUpdate, to: toUpdate })
+			});
+		}
         
-        await $N.FetchLassie("/api/xen/finance/patch_cat_buckets", {
-            method: "PATCH",
-            body: JSON.stringify({ from: fromUpdate, to: toUpdate })
-        });
-        
-        this.s.toCat = null;
+		this.s.amtXfer = 0;
+        this.s.toCat   = null;
         this.s.fromCat = null;
-        this.s.active = false;
+		this.s.from    = { bucketAvail: 0, newamount: 0, name: "" };
+		this.s.to      = { bucketAvail: 0, newamount: 0, name: "" };
+        this.s.active  = false;
+
+		this.sc();
+
     }
+
+
+
 
 	template = (_s:State, _m:Model) => { return Lit_Html`{--css--}{--html--}`; } 
 
