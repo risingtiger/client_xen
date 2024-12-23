@@ -15,28 +15,28 @@ type Model = {
 }
 
 type State = {
-    twostepclicks: {
-		from_is: 'cat' | 'hldrbucket' | 'none',
-		to_is:   'cat' | 'hldrbucket' | 'none',
-		from_cat_id: string | null,
-		to_cat_id:   string | null,
-	},
-    amtXfer: number,
+    clicks: {
+        fromType: 'cat' | 'hldrbucket' | 'none',
+        toType: 'cat' | 'hldrbucket' | 'none',
+        fromCatId: string | null,
+        toCatId: string | null,
+    },
+    amount: number,
     fromCat: CatT|null,
     toCat: CatT|null,
     from: {
-        bucketAvail: number,
-        newamount: number,
-		catid: string|null,
+        available: number,
+        newAmt: number,
+        catId: string|null,
         name: string,
     },
     to: {
-        bucketAvail: number,
-        newamount: number,
-		catid: string|null,
+        available: number,
+        newAmt: number,
+        catId: string|null,
         name: string,
     },
-	mode: 'movebetween' | 'manage'
+    mode: 'movebetween' | 'manage'
     active: boolean
 }
 
@@ -59,19 +59,19 @@ class VPFinanceBucket extends HTMLElement {
         };
         
         this.s = {
-			twostepclicks: {
-				from_is: 'none', 
-				to_is: 'none',
-				from_cat_id: null,
-				to_cat_id: null
-			},
-            amtXfer: 0,
+            clicks: {
+                fromType: 'none',
+                toType: 'none',
+                fromCatId: null,
+                toCatId: null
+            },
+            amount: 0,
             fromCat: null,
             toCat: null,
-            from: { bucketAvail: 0, newamount: 0, catid:null, name: "" },
-            to: { bucketAvail: 0, newamount: 0, catid:null, name: "" },
+            from: { available: 0, newAmt: 0, catId: null, name: "" },
+            to: { available: 0, newAmt: 0, catId: null, name: "" },
             active: false,
-			mode: 'movebetween'
+            mode: 'movebetween'
         };
         
         this.shadow = this.attachShadow({mode: 'open'});
@@ -87,65 +87,73 @@ class VPFinanceBucket extends HTMLElement {
 
 
 
-	twoStepClicks(e: MouseEvent, area:AreaT, cats:CatT[], transactions:TransactionT[], cattags:number[], cat_bucket_hldr_amount:number) {
+    private getCatById(catId: string, cats: CatT[]): CatT | undefined {
+        const flatCats = cats.flatMap(c => c.subs || []);
+        return flatCats.find(c => c.id === catId);
+    }
 
-		if (this.s.twostepclicks.to_is !== 'none') {
-			this.s.twostepclicks.from_is = 'none'
-			this.s.twostepclicks.from_cat_id = null
-			this.s.twostepclicks.to_is = 'none'
-			this.s.twostepclicks.to_cat_id = null
-		}
+    private initializeTransferData(
+        type: 'from' | 'to',
+        catType: string,
+        catId: string | null,
+        flatCats: CatT[],
+        area: AreaT,
+        transactions: TransactionT[],
+        holderAmount: number
+    ) {
+        if (catType === 'cat' && catId) {
+            const cat = this.getCatById(catId, flatCats)!;
+            this.s[type].available = cat_bucket_remainder_single(area, cat, transactions);
+            this.s[type].name = cat.name;
+            this.s[type].catId = catId;
+        } else if (catType === 'hldrbucket') {
+            this.s[type].available = holderAmount;
+            this.s[type].name = "Holder Bucket";
+            this.s[type].catId = null;
+        }
+    }
 
-		const flatcats         = cats.flatMap(c => c.subs ? c.subs : [])
-		const el               = e.currentTarget as HTMLElement;
-		const cat_id           = el.dataset.cat_id as string;
-		const cat              = cat_id ? flatcats.find(c => c.id === cat_id) : null
-		const is_el_hldrbucket = el.id === "hldrbucket" ? true : false
+    twoStepClicks(e: MouseEvent, area: AreaT, cats: CatT[], transactions: TransactionT[], catTags: number[], holderAmount: number) {
 
-		if (!cat && !is_el_hldrbucket) return;
-		if (cattags[0] < 3 || cattags[0] > 4) return;
-		if (!cat_bucket_hldr_amount) return;
-		if (this.s.twostepclicks.from_cat_id === cat_id) return;
-		if (this.s.twostepclicks.from_is === 'hldrbucket' && is_el_hldrbucket) return;
+        if (this.s.clicks.toType !== 'none') {
+            this.s.clicks.fromType = 'none';
+            this.s.clicks.fromCatId = null;
+            this.s.clicks.toType = 'none';
+            this.s.clicks.toCatId = null;
+        }
 
+        const flatCats = cats.flatMap(c => c.subs || []);
+        const el = e.currentTarget as HTMLElement;
+        const catId = el.dataset.cat_id as string;
+        const cat = catId ? flatCats.find(c => c.id === catId) : null;
+        const isHolderBucket = el.id === "hldrbucket";
 
-		if (this.s.twostepclicks.from_is === 'none') {
-			this.s.twostepclicks.from_is = is_el_hldrbucket ? 'hldrbucket' : 'cat'
-			this.s.twostepclicks.from_cat_id = cat ? cat.id : null
-
-		} else if (this.s.twostepclicks.to_is === 'none') {
-			this.s.twostepclicks.to_is = is_el_hldrbucket ? 'hldrbucket' : 'cat'
-			this.s.twostepclicks.to_cat_id = cat ? cat.id : null
-
-			if (this.s.twostepclicks.from_is === 'cat' && this.s.twostepclicks.from_cat_id) {
-				this.s.from.bucketAvail = cat_bucket_remainder_single(area, flatcats.find(c=>c.id === this.s.twostepclicks.from_cat_id)!, transactions)
-				this.s.from.name = flatcats.find(c=>c.id === this.s.twostepclicks.from_cat_id)!.name
-				this.s.from.catid = this.s.twostepclicks.from_cat_id
-
-			} else if (this.s.twostepclicks.from_is === 'hldrbucket') {
-				this.s.from.bucketAvail = cat_bucket_hldr_amount
-				this.s.from.name = "Hldr Bucket"
-				this.s.from.catid = null
-			}
+        // Early returns for invalid conditions
+        if (!cat && !isHolderBucket) return;
+        if (catTags[0] < 3 || catTags[0] > 4) return;
+        if (!holderAmount) return;
+        if (this.s.clicks.fromCatId === catId) return;
+        if (this.s.clicks.fromType === 'hldrbucket' && isHolderBucket) return;
 
 
-			if (this.s.twostepclicks.to_is === 'cat' && this.s.twostepclicks.to_cat_id) {
-				this.s.to.bucketAvail = cat_bucket_remainder_single(area, flatcats.find(c=>c.id === this.s.twostepclicks.to_cat_id)!, transactions)
-				this.s.to.name = flatcats.find(c=>c.id === this.s.twostepclicks.to_cat_id)!.name
-				this.s.to.catid = this.s.twostepclicks.to_cat_id
+        if (this.s.clicks.fromType === 'none') {
+            this.s.clicks.fromType = isHolderBucket ? 'hldrbucket' : 'cat';
+            this.s.clicks.fromCatId = cat ? cat.id : null;
+        } else if (this.s.clicks.toType === 'none') {
+            this.s.clicks.toType = isHolderBucket ? 'hldrbucket' : 'cat';
+            this.s.clicks.toCatId = cat ? cat.id : null;
 
-			} else if (this.s.twostepclicks.to_is === 'hldrbucket') {
-				this.s.to.bucketAvail = cat_bucket_hldr_amount
-				this.s.to.name = "Hldr Bucket"
-				this.s.to.catid = null
-			}
+            // Initialize transfer data
+            this.initializeTransferData('from', this.s.clicks.fromType, this.s.clicks.fromCatId, flatCats, area, transactions, holderAmount);
+            this.initializeTransferData('to', this.s.clicks.toType, this.s.clicks.toCatId, flatCats, area, transactions, holderAmount);
 
-			this.s.amtXfer = 0
-			this.s.from.newamount = this.s.from.bucketAvail
-			this.s.to.newamount = this.s.to.bucketAvail
+            // Reset amounts
+            this.s.amount = 0;
+            this.s.from.newAmt = this.s.from.available;
+            this.s.to.newAmt = this.s.to.available;
 
-			this.s.active = true
-		}
+            this.s.active = true;
+        }
 
 		this.sc();
 	}  
@@ -189,11 +197,11 @@ class VPFinanceBucket extends HTMLElement {
 
 
     onTransferChange(event: Event) {
-        const newTransfer = parseFloat((event.target as HTMLInputElement).value);
+        const newAmount = parseFloat((event.target as HTMLInputElement).value);
         this.sc({
-            amtXfer: newTransfer,
-            from: { ...this.s.from, newamount: this.s.from.bucketAvail - newTransfer },
-            to:   { ...this.s.to, newamount: this.s.to.bucketAvail + newTransfer }
+            amount: newAmount,
+            from: { ...this.s.from, newAmt: this.s.from.available - newAmount },
+            to: { ...this.s.to, newAmt: this.s.to.available + newAmount }
         });
     }
 
