@@ -157,9 +157,30 @@ class VPFinanceSnapShot extends HTMLElement {
 
 
 
-	save_monthsnapshot(e:Event) {
+	async save_monthsnapshot(e:Event) {
+		const el = e.currentTarget as HTMLElement;
+		const month = el.dataset.month;
+		const areaName = el.dataset.area;
 
-		const el = e.currentTarget as HTMLElement
+		const monthSnapshot = this.s.snapshots.months.find(
+			ms => ms.month === month && ms.area.name === areaName
+		);
+
+		if (monthSnapshot) {
+			const payload = { monthSnapshot };
+
+			await $N.FetchLassie("/api/xen/finance/monthsnapshots", {
+				method: "POST", 
+				body: JSON.stringify(payload),
+				headers: { 'Content-Type': 'application/json' }
+			});
+
+			// Update local state to show it's saved
+			monthSnapshot.issaved = true;
+			this.sc();
+		} else {
+			console.error(`Month snapshot not found for month: ${month}, area: ${areaName}`);
+		}
 	}
 
 
