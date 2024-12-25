@@ -1,0 +1,9 @@
+<div>
+    <h3>Account Balances</h3>
+    <p>Checking Total: $${(_s.checkingTotal/1000).toFixed(2)}</p>
+    <p>Savings Total: $${(_s.savingsTotal/1000).toFixed(2)}</p>
+    <p>Credit Card Total: $${(_s.creditCardTotal/1000).toFixed(2)}</p>
+    <p class="${_s.netDifference >= 0 ? 'positive' : 'negative'}">
+        Net Difference: $${(_s.netDifference/1000).toFixed(2)}
+    </p>
+</div>
