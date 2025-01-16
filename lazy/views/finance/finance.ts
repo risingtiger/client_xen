@@ -17,8 +17,8 @@ import './parts/snapshot/snapshot.js'
 import './parts/bucket/bucket.js'
 import './parts/balances/balances.js'
 
-declare var Lit_Render: any;
-declare var Lit_Html: any;
+declare var render: any;
+declare var html: any;
 declare var $N: $NT;
 
 
@@ -870,7 +870,7 @@ async handle_keydown(e:KeyboardEvent) {
 
 		this.s = Object.assign(this.s, state_changes);
 
-		Lit_Render(this.template(this.s, this.m), this.shadow);
+		render(this.template(this.s, this.m), this.shadow);
 	}
 
 	payments_r(p:PaymentT) {
@@ -880,19 +880,19 @@ async handle_keydown(e:KeyboardEvent) {
 			return {name:s[0], date:s[1], amount:s[2]}
 		})
 
-		return Lit_Html`
+		return html`
 			<div class="payment ${p.breakdown.length ? 'hasbreakdown' : ''}" @click="${(e:any)=>{let el = e.currentTarget.querySelector('.notes'); el.style.display = el.style.display === 'block' ? 'none' : 'block';}}">
 				<h4>${p.payee} ${p.notes ? '..' : ''}</h4>
 				<p>
-					${ p.is_auto ? Lit_Html`<strong>A</strong>&nbsp;` : '' }
-					${ p.is_auto && p.source && p.source.name === 'checkpers' ? Lit_Html`<strong class="extra">B</strong>&nbsp;` : '' }
+					${ p.is_auto ? html`<strong>A</strong>&nbsp;` : '' }
+					${ p.is_auto && p.source && p.source.name === 'checkpers' ? html`<strong class="extra">B</strong>&nbsp;` : '' }
 					${p.day}&nbsp;
 					${p.amount ? "$"+p.amount : ''}
 				</p>
 				<p class="notes">${p.notes}</p>
-				${breakdown ? Lit_Html`
+				${breakdown ? html`
 					<div class="breakdown">
-					   ${breakdown.map(b=> Lit_Html`
+					   ${breakdown.map(b=> html`
 							<div class="item">
 								<h6>${b.name}</h6>
 								<p>${b.date} &nbsp; $${b.amount}</p>	
@@ -906,7 +906,7 @@ async handle_keydown(e:KeyboardEvent) {
 
 
 
-	template = (_s:State, _m:any) => { return Lit_Html`{--css--}{--html--}`; };
+	template = (_s:State, _m:any) => { return html`{--css--}{--html--}`; };
 
 
 }
