@@ -5,8 +5,8 @@ import { str } from "../../../../../defs_server_symlink.js"
 import { TransactionT, AreaT, CatT, TagT } from '../../../../../defs.js'
 import { knit_cats, knit_tags  } from '../../../../libs/financefuncs_knit.js'
 
-declare var Lit_Render: any;
-declare var Lit_Html: any;
+declare var render: any;
+declare var html: any;
 declare var $N: $NT;
 
 
@@ -163,13 +163,13 @@ class VPFinanceEditTransaction extends HTMLElement {
 
 	sc(state_changes = {}) {   
 		this.s = Object.assign(this.s, state_changes)
-		Lit_Render(this.template(this.s, this.m), this.shadow);   
+		render(this.template(this.s, this.m), this.shadow);   
 	}
 
 
 
 
-	template = (_s:State, _m:Model) => { return Lit_Html`{--css--}{--html--}`; } 
+	template = (_s:State, _m:Model) => { return html`{--css--}{--html--}`; } 
 
 }
 
