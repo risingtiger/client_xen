@@ -2,8 +2,8 @@
 type int = number;   
 
 declare var Firestore:any
-declare var Lit_Render: any;
-declare var Lit_Html: any;
+declare var render: any;
+declare var html: any;
 
 
 
@@ -63,13 +63,13 @@ async mousemoved(e:any) {
 
 
 sc() {
-    Lit_Render(this.template(this.s), this);
+    render(this.template(this.s), this);
 }
 
 
 
 
-template = (_s:any) => { return Lit_Html`{--htmlcss--}`; };
+template = (_s:any) => { return html`{--htmlcss--}`; };
 
 }
 
