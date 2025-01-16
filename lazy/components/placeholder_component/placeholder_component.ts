@@ -1,5 +1,5 @@
 
-type str = string; type bool = boolean; type int = number;   
+type int = number;   
 
 declare var Firestore:any
 declare var Lit_Render: any;
