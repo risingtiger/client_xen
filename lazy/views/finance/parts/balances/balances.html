@@ -1,9 +1,35 @@
+
+
 <div>
     <h3>Account Balances</h3>
-    <p>Checking Total: $${(_s.checkingTotal/1000).toFixed(2)}</p>
-    <p>Savings Total: $${(_s.savingsTotal/1000).toFixed(2)}</p>
-    <p>Credit Card Total: $${(_s.creditCardTotal/1000).toFixed(2)}</p>
-    <p class="${_s.netDifference >= 0 ? 'positive' : 'negative'}">
-        Net Difference: $${(_s.netDifference/1000).toFixed(2)}
-    </p>
+    
+    <h4>Checking Accounts Total: ${_s.checkingTotal}</h4>
+	${_s.checkingAccounts.map(account => Lit_Html`
+	<p>${account.name}: ${account.balance}</p>
+	`)}
+	
+	<h4>Savings Accounts Total: ${_s.savingsTotal}</h4>
+	${_s.savingsAccounts.map(account => Lit_Html`
+	<p>${account.name}: ${account.balance}</p>
+	`)}
+	
+	<h4>Credit Card Accounts Total: ${_s.creditCardTotal}</h4>
+	${_s.creditCardAccounts.map(account => Lit_Html`
+	<p>${account.name}: ${account.balance}</p>
+	`)}
+
+	<p>&nbsp;</p>
+
+	<h3>Total All Spent Against Buckets: ${_s.allAreasBucketInfo.spentAgainstBucketsTotal}</h3>
+	<h3>Net Total: ${_s.netTotal}</h3>
+
+	${_s.allAreasBucketInfo.buckets.map(bucket => Lit_Html`
+		<p>${bucket.name}: ${bucket.amount}</p>
+	`)}
+	<h3>Source Bucket Account: ${_s.sourceBucketAccount.balance}</h3>
+
+	<p>&nbsp;</p>
+	<button @click="${() => this.dispatchEvent(new Event('close'))}">Close</button>
 </div>
+
+
