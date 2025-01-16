@@ -1,28 +1,28 @@
 
 
 
-
 import { str, num } from "../../../defs_server_symlink.js"
 import { $NT } from "../../../defs_client_symlink.js"
-import { AreaT, CatT, SourceT, TagT, PaymentT, TransactionT, CatCalcsT, CatCalcsTotalsT, MonthSnapShotT, FilterT } from '../../../defs.js'
+import { AreaT, CatT, SourceT, TagT, PaymentT, TransactionT, CatCalcsT, CatCalcsTotalsT, MonthSnapShotT, FilterT, CatBucketsInfoT, AreaQuadBucketTotalsT } from '../../../defs.js'
 
-import { get_months  } from '../../libs/financefuncs/gen.js'
-import { knit_all } from '../../libs/financefuncs/knit.js'
-import { filter_transactions, sort_transactions, current_month_of_filtered_transactions  } from '../../libs/financefuncs/sortfilter.js'
-import { catcalcs, catcalc_totals  } from '../../libs/financefuncs/catcalcs.js'
-import { bucket_amount_remainder  } from '../../libs/financefuncs/bucket.js'
+import { get_months  } from '../../libs/financefuncs_gen.js'
+import { knit_all } from '../../libs/financefuncs_knit.js'
+import { filter_transactions, sort_transactions, current_month_of_filtered_transactions  } from '../../libs/financefuncs_sortfilter.js'
+import { catcalcs, catcalc_totals  } from '../../libs/financefuncs_catcalcs.js'
+import { cat_buckets_info, area_quad_bucket_totals  } from '../../libs/financefuncs_bucket.js'
 
 //import { knit_all, get_months, filter_transactions, sort_transactions, current_month_of_filtered_transactions, catcalcs, catcalc_totals, snapshots, snapshots_for_ui  } from '../../libs/finance_funcs.js'
 import './parts/edit_transaction/edit_transaction.js'
 import './parts/snapshot/snapshot.js'
 import './parts/bucket/bucket.js'
+import './parts/balances/balances.js'
 
 declare var Lit_Render: any;
 declare var Lit_Html: any;
 declare var $N: $NT;
 
 
-const dummyArea:AreaT = { id: "1", bucket:0, bucketquad3:0, bucketquad4:0, bucketquad3_ref_ts:0, bucketquad4_ref_ts:0, name: "", longname: "", ynab_savings: 0, ts: 0 }
+//const dummyArea:AreaT = { id: "1", bucketquad3:0, bucketquad4:0, bucketquad3_ref_ts:0, bucketquad4_ref_ts:0, name: "", longname: "", ts: 0 }
 //const dummyCat:CatT = { id: "1", area: dummyArea, budget: 0, name: "", parent: null, subs: null, tags: [], ts: 0, transfer_state: 0 }
 
 
@@ -49,19 +49,15 @@ type State = {
     filter: FilterT,
     months: Date[],
     transactiondetails: { show_ui: 0|1|2, t: TransactionT|null },
+	cat_buckets: CatBucketsInfoT[],
+	area_quad_bucket_totals: AreaQuadBucketTotalsT,
     catsview: { show_ui: 0|1|2, cats_with_deleteflag: {id:str, name:string}[] },
     paymentsview: { show_ui: 0|1|2 },
     tagsview: { show_ui: 0|1|2, tagtotals: {id:str, name:str, sort:num, total:number}[] },
 	editview: { show_ui: 0|1|2, transaction_id: str },
-    bucketview: {                                                                                             
-		show_ui: 0 | 1 | 2,                                                                                     
-		propa: str,                                                                                             
-		cat_from_id: string | null,                                                                             
-		cat_from_name: string | null,                                                                           
-		cat_to_id: string | null,                                                                               
-		cat_to_name: string | null,                                                                             
-	},
-    current_monthsnapshot: MonthSnapShotT,
+	snapshotview_showui: 0|1|2,
+	bucketview_showui: 0|1|2,
+	balancesview_showui: 0|1|2,
     months_display_str: string[],
     touch: { isactive:boolean, beginx: number, beginy: number, origin_action:'month'|'catquad'|'area'|'switch_calcs_transactions_view'},
     key: { listen_for: KeyE  },
@@ -91,12 +87,15 @@ class VFinance extends HTMLElement {
 			filter: { area: null, parentcat: null, cat: null, source: null, tags: null, daterange: null, merchant: null, note: null, amountrange: null, cattags: [] },
 			months: [],
 			transactiondetails: { show_ui: 0, t: null },
+			cat_buckets: [],
+			area_quad_bucket_totals: { remainder: 0, spent: 0, assigned: 0, unassigned: 0 },
 			catsview: { show_ui: 0, cats_with_deleteflag: [] },
 			paymentsview: { show_ui: 0 },
 			tagsview: { show_ui: 0, tagtotals: []},
 			editview: { show_ui: 0, transaction_id: '' },
-			bucketview: { show_ui: 0, propa: '', cat_from_id: null, cat_from_name: null, cat_to_id: null, cat_to_name: null },
-			current_monthsnapshot: { area: dummyArea, month: "", bucket: 0, savings: 0, quad1_budget: 0, quad2_budget: 0, quad3_budget: 0, quad4_budget: 0, quad1_spent: 0, quad2_spent: 0, quad3_spent: 0, quad4_spent: 0 },
+			bucketview_showui: 0,
+			balancesview_showui: 0,
+			snapshotview_showui: 0,
 			months_display_str: [],
 			touch: { isactive: false, beginx: 0, beginy: 0, origin_action: 'month'},
 			key: { listen_for: KeyE.NONE },
@@ -204,10 +203,8 @@ class VFinance extends HTMLElement {
 
 	runit(data:any) {
 
-		data.get("areas").forEach((m:any)=> { // loop through areas
-			const ynab_account = this.m.ynab_accounts.find((n:any)=> n.id === m.ynab_savings_id)
-			m.ynab_savings = ynab_account.balance / 1000
-		})
+		//data.get("areas").forEach((m:any)=> { // loop through areas
+		//})
 
 		let k = knit_all(data.get("areas"), data.get("cats"), data.get("sources"), data.get("tags"), data.get("payments"), data.get("transactions"), data.get("monthsnapshots"))
 
@@ -219,7 +216,7 @@ class VFinance extends HTMLElement {
 		this.m.transactions = k.transactions
 		this.m.previous_static_monthsnapshots = k.previous_static_monthsnapshots
 		
-		this.s.filter.area = this.m.areas.find(area => area.name === 'fam') as AreaT
+		this.s.filter.area = this.s.filter.area ? this.m.areas.find(area => area.name === this.s.filter.area?.name) as AreaT : this.m.areas.find(area => area.name === 'fam') as AreaT
 
 		this.parse_new_state()
 		this.sc()
@@ -236,16 +233,14 @@ class VFinance extends HTMLElement {
 
 
 	parse_new_state() {
-		this.s.filter.daterange = [this.s.months[0], this.s.months[this.s.months.length-1]]
-		this.m.filtered_transactions = filter_transactions(this.m.transactions, this.s.filter)
-		this.m.current_month_transactions = current_month_of_filtered_transactions(this.m.filtered_transactions, this.s.months[this.s.months.length-1])
-		this.m.catcalcs = catcalcs(this.m.filtered_transactions, this.s.filter.area as AreaT, this.s.filter.cattags, this.m.cats, this.s.months)
-		this.m.catcalcstotals = catcalc_totals(this.m.catcalcs, this.s.filter)
-
-		this.m.current_month_transactions = sort_transactions(this.m.current_month_transactions, "date", "asc")
-
-		const x = bucket_amount_remainder(this.m.areas.find(a=>a.name === this.s.filter.area?.name)!, this.m.cats, 3, this.m.transactions)
-		console.log(x)
+		this.s.filter.daterange             = [this.s.months[0], this.s.months[this.s.months.length-1]];
+		this.m.filtered_transactions        = filter_transactions(this.m.transactions, this.s.filter);
+		this.m.current_month_transactions   = current_month_of_filtered_transactions(this.m.filtered_transactions, this.s.months[this.s.months.length-1]);
+		this.m.catcalcs                     = catcalcs(this.m.filtered_transactions, this.s.filter.area as AreaT, this.s.filter.cattags, this.m.cats, this.s.months);
+		this.m.catcalcstotals               = catcalc_totals(this.m.catcalcs, this.s.filter);
+		this.s.cat_buckets                  = cat_buckets_info((this.m.areas.find(a=>a === this.s.filter.area) as AreaT), this.m.cats, this.m.transactions); // wlll only contain cats of quad3 or 4
+		this.s.area_quad_bucket_totals      = area_quad_bucket_totals((this.m.areas.find(a=>a === this.s.filter.area) as AreaT), this.s.cat_buckets, this.s.filter.cattags[0]) // will all be 0 unless we are specifically viewing quad 3 or 4
+		this.m.current_month_transactions   = sort_transactions(this.m.current_month_transactions, "date", "asc")
 	}
 
 
@@ -435,61 +430,61 @@ class VFinance extends HTMLElement {
 
 
 
+	show_balances() { 
+		this.s.balancesview_showui = 1
+		this.sc()
+		setTimeout(()=> {
+			const el = (this.shadow.querySelector('vp-finance-balances') as any)
+			el.Show(this.m.areas, this.m.cats, this.m.transactions, this.m.sources, this.m.ynab_accounts)
+			el.addEventListener('close', ()=> this.sc({ balancesview_showui: 0 }))
+		}, 30)
+	}
+
+
+
+	bucket_manage(_e: MouseEvent) { 
+		this.s.bucketview_showui = 1
+		this.sc()
+		setTimeout(()=> {
+			const el = (this.shadow.querySelector('vp-finance-bucket') as any)
+			el.showManageUI(this.m.areas.find(a=>a === this.s.filter.area)!, this.s.filter.cattags, this.s.cat_buckets, this.s.area_quad_bucket_totals)
+			el.addEventListener('close', ()=> this.sc({ bucketview_showui: 0 }))
+		}, 30)
+	}
+
+
+
+
 	bucket_select(e: MouseEvent) {
-
-		if (this.s.bucketview.cat_to_id !== null) {
-			this.s.bucketview.cat_from_id = null;                                                                      
-			this.s.bucketview.cat_from_name = null;                                                                    
-			this.s.bucketview.cat_to_id = null;                                                                        
-			this.s.bucketview.cat_to_name = null;                                                                      
-		}
-
-		const el = e.currentTarget as HTMLElement;                                                                   
-		const cat_id = el.dataset.id as string;                                                                      
-		const cat = this.m.cats.flatMap(c => c.subs ? c.subs : []).find(c => c.id === cat_id);
-
-		if (!cat) return;
-
-		if (!this.s.bucketview.cat_from_id) {                                                                        
-			this.s.bucketview.cat_from_id = cat.id;                                                                    
-			this.s.bucketview.cat_from_name = cat.name;                                                                
-
-			el.classList.add('selected');                                                                              
-
-		} else if (!this.s.bucketview.cat_to_id && cat.id !== this.s.bucketview.cat_from_id) {                       
-
-			this.s.bucketview.cat_to_id = cat.id;                                                                      
-			this.s.bucketview.cat_to_name = cat.name;                                                                  
-
-            const cat_from_bucket_available = this.compute_bucket_available(this.s.bucketview.cat_from_id);
-            const cat_to_bucket_available = this.compute_bucket_available(this.s.bucketview.cat_to_id);
-
-            const vpFinanceBucketEl = this.shadow.querySelector('vp-finance-bucket') as any;
-            if (vpFinanceBucketEl && typeof vpFinanceBucketEl.show_selector === 'function') {
-                vpFinanceBucketEl.show_selector(
-                    this.s.bucketview.cat_from_id,
-                    this.s.bucketview.cat_from_name,
-                    cat_from_bucket_available,
-                    this.s.bucketview.cat_to_id,
-                    this.s.bucketview.cat_to_name,
-                    cat_to_bucket_available
-                );
-            }
-
-            const prevSelected = this.shadow.querySelector('#calcs td.bucket.transferable.selected');                         
-            if (prevSelected) {                                                                                        
-                prevSelected.classList.remove('selected');                                                               
-            }
-		}
-
-		this.sc();                                                                                                   
+		this.s.bucketview_showui = 1
+		const el = e.currentTarget as HTMLElement; const catId = el.dataset.cat_id as string; const elId = el.id as string
+		this.sc()
+		setTimeout(()=> {
+			const el = (this.shadow.querySelector('vp-finance-bucket') as any)
+			el.twoStepClicks(
+				catId, 
+				elId,
+				this.m.areas.find(a=>a === this.s.filter.area)!, 
+				this.m.cats, 
+				this.m.transactions,
+				this.s.filter.cattags,
+				this.s.area_quad_bucket_totals
+			);
+			el.addEventListener('close', ()=> this.sc({ bucketview_showui: 0 }))
+		}, 30)
 	}  
 
 
 
 
 	show_snapshot() {
-		(this.shadow.querySelector('vp-finance-snapshot') as any).FleshItOut(this.m.areas, this.m.cats, this.m.transactions, this.m.previous_static_monthsnapshots, this.s.months)
+		this.s.snapshotview_showui = 1;
+		this.sc();
+		setTimeout(()=> {
+			const el = (this.shadow.querySelector('vp-finance-snapshot') as any)
+			el.FleshItOut(this.m.areas, this.m.cats, this.m.transactions, this.m.previous_static_monthsnapshots, this.s.months)
+			el.addEventListener('close', ()=> this.sc({ snapshotview_showui: 0 }))
+		}, 30)
 	}
 
 
@@ -566,15 +561,6 @@ class VFinance extends HTMLElement {
 
 
 
-
-   compute_bucket_available(cat_id: string): number {
-       const cat = this.m.cats.flatMap(c => c.subs || []).find(c => c.id === cat_id);
-       if (!cat) return 0;
-        
-       // Placeholder value for bucket available
-       const bucketAvailable = 1000; // Replace this with actual computation logic
-       return bucketAvailable;
-   }
 
 async handle_touch_start(e:TouchEvent) {
 
@@ -744,7 +730,7 @@ async handle_keydown(e:KeyboardEvent) {
             this.toggle_show_tags()
         }
 
-        else if (e.key === 'b') {
+        else if (e.key === 'p') {
             this.s.paymentsview.show_ui = this.s.paymentsview.show_ui === 1 ? 2 : 1
             this.sc()
         }
@@ -752,6 +738,24 @@ async handle_keydown(e:KeyboardEvent) {
         else if (e.key === 'c') {
             this.s.catsview.show_ui = this.s.catsview.show_ui === 1 ? 2 : 1
             this.sc()
+        }
+
+        else if (e.key === 'b') {
+			if (this.s.balancesview_showui === 0) {
+				this.show_balances()
+			} else {
+				this.s.balancesview_showui = 0
+				this.sc()
+			}
+        }
+
+        else if (e.key === 's') {
+			if (this.s.snapshotview_showui === 0) {
+				this.show_snapshot()
+			} else {
+				this.s.snapshotview_showui = 0
+				this.sc()
+			}
         }
 
         else if (e.key === 'd') {
