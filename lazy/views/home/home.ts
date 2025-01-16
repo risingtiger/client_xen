@@ -1,12 +1,13 @@
 
 
-import { $NT, LoggerTypeE } from "../../../defs_client.js";
+import { SSETriggersE } from "../../../defs_server_symlink.js";
+import { $NT } from "../../../defs_client_symlink.js";
 
 
 type str = string;   //type int = number;   //type bool = boolean;
 
-declare var Lit_Render: any;
-declare var Lit_Html: any;
+declare var render: any;
+declare var html: any;
 declare var $N: $NT;
 
 
@@ -42,28 +43,61 @@ class VHome extends HTMLElement {
 
 
 	connectedCallback() {
-		const x:LoggerTypeE = LoggerTypeE.debug
-
-		console.log(x)
 
 		this.sc()
 		setTimeout(()=> {   this.dispatchEvent(new Event('hydrated'))   }, 100)
 
-		$N.DataSync.Subscribe(["transactions"], this)
-	}
+		/*
+		$N.DataSync.Subscribe(this, ["transactions"], ()=>{
+			console.log("Home transactions DataSync Callback Called: ")
+		})
+
+		setTimeout(() => {
+			let x = document.createElement("div")
+			x.id = "tempy"
+			x.innerHTML = "Hello. I am tempy"
+			this.shadow.querySelector("#admin")!.appendChild(x)
+			$N.DataSync.Subscribe(x, ["cats"], ()=>{
+				console.log("HOME cats DataSync Callback Called")
+			})
+
+			$N.SSEvents.Add_Listener(x, "hometest - tempy", [SSETriggersE.FIRESTORE], (data:any)=> {
+				console.log("Home SSE Event Tempy Received: ", data.paths)
+			})
+		}, 1000)
+
+		setTimeout(() => {
+			let x = this.shadow.querySelector("#tempy")
+			x?.parentNode?.removeChild(x)
+		}, 2000)
+
+		setTimeout(() => {
+			let x = document.createElement("div")
+			x.id = "yapa"
+			x.innerHTML = "Yo. I am yapa"
+			this.shadow.querySelector("#admin")!.appendChild(x)
+			const transaction_id = "2JU8wDmssP2Jfg19J9bO"
+			$N.DataSync.Subscribe(x, ["transactions/"+transaction_id], ()=>{
+				console.log(`HOME transactions/${transaction_id} DataSync Callback Called`)
+			})
+
+			$N.SSEvents.Add_Listener(x, "hometest", [SSETriggersE.FIRESTORE], (data:any)=> {
+				console.log("Home SSE Event Received: ", data.paths)
+			})
+		}, 3000)
 
 
-
-
-	async DataSync_Updated() {
-		console.log("DataSync_Updated")
+		$N.SSEvents.Add_Listener(this, "hometest", [SSETriggersE.FIRESTORE], (data:any)=> {
+			console.log("Home SSE Event Received: ", data.paths)
+		})
+		*/
 	}
 
 
 
 
 	sc() {
-		Lit_Render(this.template(this.s), this.shadow);
+		render(this.template(this.s), this.shadow);
 	}
 
 
@@ -162,7 +196,7 @@ class VHome extends HTMLElement {
 
 
 
-	template = (_s:any) => { return Lit_Html`{--css--}{--html--}`; };
+	template = (_s:any) => { return html`{--css--}{--html--}`; };
 }
 
 

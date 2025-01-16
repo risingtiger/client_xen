@@ -1,4 +1,5 @@
 
+
 <!-- FEATURES
 
 - Category Tags. Quadrant 1, 2, 3 are Fixed Bills, Fluxuating Neccessities, and Comforts. Fourth Quadrant is for wants that make a desirable life. What we get to spend after      1,2,3 are covered.
@@ -55,7 +56,7 @@
 
                             </th>
 
-                            ${_s.months_display_str.map((m,i) => Lit_Html`
+                            ${_s.months_display_str.map((m,i) => html`
                                 <th class="monthname ${i === _s.months.length-1 ? 'current' : ''}" @click="${(e)=>this.calcmonth_clicked(e)}" data-month_i="${i}">${m}</th>
                             `)}
 
@@ -66,30 +67,30 @@
                     </thead>
 
                     <tbody>
-                        ${_m.catcalcs.map((c,i) => Lit_Html`
+                        ${_m.catcalcs.map((c,i) => html`
                             <tr class="topcatrow">
                                 <td class="touch_catquad cat" @click="${(e)=>this.calccat_clicked(e)}" data-i="${i}">${c.cat.name}</td>
 
-                                ${_s.months.map((m,i) => Lit_Html`
+                                ${_s.months.map((m,i) => html`
                                 <td class="touch_month sum ${i === _s.months.length-1 ? 'current' : ''}">${Math.round(c.sums[i])}</td>
                                 `)}
 
                                 <td class="touch_area avgmed">${Math.round(c.avg)}</td>
 								<td class="touch_area budget">${c.budget}</td>
-                                <td class="bucket">null</td>
+                                <td class="bucket">&nbsp;</td>
                             </tr>
 
-                            ${c.subs.map((cs,ii) => Lit_Html`
+                            ${c.subs.map((cs,ii) => html`
                                 <tr class="subcatrow ${ii === c.subs.length-1 ? 'lastsubcat' : ''}" data-catcalc_index="${i}" data-catcalc_sub_index="${ii}">
                                     <td class="touch_catquad cat sub" @click="${(e)=>this.calccat_clicked(e)}" data-i="${i}" data-ii="${ii}">${cs.cat.name}</td>
 
-                                    ${_s.months.map((m,iii) => Lit_Html`
+                                    ${_s.months.map((m,iii) => html`
                                         <td class="touch_month sum sub ${iii === _s.months.length-1 ? 'current' : ''}">${Math.round(cs.sums[iii])}</td>
                                     `)}
 
                                     <td class="touch_area avgmed">${Math.floor(   (_s.prefs.avgormed === 1 ? cs.avg : cs.med)   )}</td>
                                     <td class="touch_area budget">${cs.cat.budget}</td>
-                                    <td class="bucket transferable" data-id="${cs.cat.id}" @click="${(e)=> this.bucket_select(e)}">1000</td>
+									<td class="bucket transferable" data-cat_id="${cs.cat.id}" @click="${(e)=> this.bucket_select(e)}">${_s.cat_buckets.find(cbr=>cbr.cat === cs.cat)?.remainder??''}</td>
                                 </tr>
                             `)}
                         `)}
@@ -99,13 +100,23 @@
                         <tr class="totals">
                             <th class="cat">Totals</th>
 
-                            ${_s.months.map((m,i) => Lit_Html`
+                            ${_s.months.map((m,i) => html`
                             <th class="sum ${i === _s.months.length-1 ? 'current' : ''}">${Math.round(_m.catcalcstotals.sums[i])}</th>
                             `)}
 
                             <th class="avgmed">${Math.round(_m.catcalcstotals.avg)}</th>
                             <th class="budget">${Math.round(_m.catcalcstotals.budget)}</th>
-                            <th class="bucket">1000</th>
+							<th class="bucket">
+								<div id="remainder_total">
+									${(_s.filter.cattags[0] === 3 || _s.filter.cattags[0] === 4) ? _s.area_quad_bucket_totals.remainder : ''}
+								</div>
+								<div id="unassigned" @click="${(e)=> this.bucket_select(e)}">
+									${(_s.filter.cattags[0] === 3 || _s.filter.cattags[0] === 4) ? _s.area_quad_bucket_totals.unassigned : ''}
+								</div>
+								<div id="bucket_amount" @click="${()=>this.bucket_manage()}">
+									${ (_s.filter.cattags[0] === 3 || _s.filter.cattags[0] === 4) ? _m.areas.find(m=>_s.filter.area===m)['bucketquad'+_s.filter.cattags[0]] : ''}
+								</div>
+							</th>
                         </tr>
                     </tfoot>
                 </table>
@@ -130,14 +141,14 @@
                     </thead>
 
                     <tbody>
-                    ${_m.current_month_transactions.map((t,i) => Lit_Html`
+                    ${_m.current_month_transactions.map((t,i) => html`
                         <tr>
                             <td data-id="${t.id}" @click="${(e)=>this.transactionrow_clicked(e)}" class="date">${(new Date(t.date*1000)).toLocaleDateString("en-US", {month: '2-digit', day: '2-digit'}).slice(0,5).replace("/","-")}</td>
                             <td class="merchant">${t.merchant.toLowerCase().slice(0,18)}</td>
                             <td class="category">${t.cat.name.slice(0,9)}</td>
                             <td class="amount">${Math.round(t.amount)}</td>
                             <td class="source">${t.source.name}</td>
-                            <td class="notes">${t.tags.map(tg=>Lit_Html`<span class='tag' @click="${(e)=>this.transaction_tag_clicked(e)}" data-id="${tg.id}">#${tg.name} </span>`)} ${t.notes}</td>
+                            <td class="notes">${t.tags.map(tg=>html`<span class='tag' @click="${(e)=>this.transaction_tag_clicked(e)}" data-id="${tg.id}">#${tg.name} </span>`)} ${t.notes}</td>
                         </tr>
                     `)}
                     </tbody>
@@ -149,7 +160,6 @@
     </div>
 
 
-	<vp-finance-snapshot></vp-finance-snapshot>
 
 
     <footer class="touch_switch_calcs_transactions">
@@ -158,11 +168,13 @@
 			&nbsp;
 			<a @click="${()=>{this.toggle_show_tags()}}">&nbsp;T&nbsp;</a>
 			&nbsp;
-			<a @click="${()=>{this.s.paymentsview.show_ui = this.s.paymentsview.show_ui === 1 ? 2 : 1; this.sc()}}">&nbsp;B&nbsp;</a>
+			<a @click="${()=>{this.s.paymentsview.show_ui = this.s.paymentsview.show_ui === 1 ? 2 : 1; this.sc()}}">&nbsp;P&nbsp;</a>
 			&nbsp;
 			<a @click="${()=>{this.s.catsview.show_ui=1;this.sc();}}">&nbsp;C&nbsp;</a>
 			&nbsp;
-			<a @click="${()=>{this.show_snapshot()}}">&nbsp;N&nbsp;</a>
+			<a @click="${()=>{this.show_balances()}}">&nbsp;B&nbsp;</a>
+			&nbsp;
+			<a @click="${()=>{this.show_snapshot()}}">&nbsp;S&nbsp;</a>
 			&nbsp;
 
 			<a @click="${()=>{this.set_calcs_view_size_from_ui('small')}}">&nbsp;MS&nbsp;</a>
@@ -172,8 +184,6 @@
 			<a @click="${()=>{this.set_calcs_view_size_from_ui('large')}}">&nbsp;ML&nbsp;</a>
 			&nbsp;
 			<a @click="${()=>{this.download_csv();}}">&nbsp;D&nbsp;</a>
-			&nbsp;
-			<a @click="${()=>{this.s.bucketview.show_ui=1; this.sc();}}">&nbsp;TEMP&nbsp;</a>
 		</div>
 
 		<div id="totalies">
@@ -186,12 +196,22 @@
 
     </footer>
 
+	${ _s.balancesview_showui !== 0 ? html`
+	<vp-finance-balances></vp-finance-balances>
+	` : '' }
+
+	${ _s.snapshotview_showui !== 0 ? html`
+	<vp-finance-snapshot></vp-finance-snapshot>
+	` : '' }
+
+	${ _s.bucketview_showui !== 0 ? html`
     <vp-finance-bucket></vp-finance-bucket>
+	` : '' }
 
 </div>
 
 
-${ _s.editview.show_ui !== 0 ? Lit_Html`
+${ _s.editview.show_ui !== 0 ? html`
     <c-ol shape="1" title="Transaction Details" @close="${()=> { this.s.editview.show_ui = 0; this.sc(); } }">
         <vp-finance-edittransaction transaction="${_s.editview.transaction_id}"></vp-finance-edittransaction>
     </c-ol>
@@ -202,7 +222,7 @@ ${ _s.editview.show_ui !== 0 ? Lit_Html`
 
 
 <!--
-${ _s.transactiondetails.show_ui !== 0 ? Lit_Html`
+${ _s.transactiondetails.show_ui !== 0 ? html`
     <c-ol shape="1" title="Details" @close="${()=> this.transactiondetails_close() }">
         <div id="transactiondetails">
             <h4>Transaction Details</h4>
@@ -212,7 +232,7 @@ ${ _s.transactiondetails.show_ui !== 0 ? Lit_Html`
                 <li><h5>Amount</h5><p>${_s.transactiondetails.t.amount}</p></li>
                 <li><h5>Category</h5><p>${_s.transactiondetails.t.cat.parent.area.name} :: ${_s.transactiondetails.t.cat.parent.name} :: ${_s.transactiondetails.t.cat.name}</p></li>
                 <li><h5>Source</h5><p>${_s.transactiondetails.t.source.name}</p></li>
-                <li><h5>Tags</h5><p>${_s.transactiondetails.t.tags.map(tag=>Lit_Html`<span>${tag}</span>`)}</p></li>
+                <li><h5>Tags</h5><p>${_s.transactiondetails.t.tags.map(tag=>html`<span>${tag}</span>`)}</p></li>
                 <li><h5>Note</h5><p>${_s.transactiondetails.t.notes}</p></li>
                 <li><h5>ID</h5><p>${_s.transactiondetails.t.id}</p></li>
             </ul>
@@ -224,18 +244,18 @@ ${ _s.transactiondetails.show_ui !== 0 ? Lit_Html`
 
 
 
-${ _s.catsview.show_ui !== 0 ? Lit_Html`
+${ _s.catsview.show_ui !== 0 ? html`
     <c-ol shape="1" title="Categories" ?close="${this.s.catsview.show_ui === 2}" @close="${()=> { this.s.catsview.show_ui = 0; this.sc(); } }">
 
         <div id="catsview">
 
             <h3>${_s.filter.area.longname} Categories</h3>
 
-            ${_m.cats.filter(c=> c.area === _s.filter.area).map((cat,i) => Lit_Html`
+            ${_m.cats.filter(c=> c.area === _s.filter.area).map((cat,i) => html`
                 <div class="parent" data-i="${i}">
                     <h4>${cat.name}</h4>
                     <div class="sub">
-                        ${cat.subs.map(subcat=>Lit_Html`
+                        ${cat.subs.map(subcat=>html`
                             <h6>${subcat.name}</h6>
                         `)}
                     </div>
@@ -245,7 +265,7 @@ ${ _s.catsview.show_ui !== 0 ? Lit_Html`
 
         <button @click="${()=>this.ynab_sync_categories()}">Sync YNAB Cats</button>
 
-        ${_s.catsview.cats_with_deleteflag.map((cat,i) => Lit_Html`
+        ${_s.catsview.cats_with_deleteflag.map((cat,i) => html`
             <p>${cat.id} :: ${cat.name}</p>
         `)}
 
@@ -253,13 +273,13 @@ ${ _s.catsview.show_ui !== 0 ? Lit_Html`
 ` : ''}
 
 
-${ _s.paymentsview.show_ui !== 0 ? Lit_Html`
-    <c-ol shape="1" title="Bills" ?close="${this.s.paymentsview.show_ui === 2}" @close="${()=> { this.s.paymentsview.show_ui = 0; this.sc(); } }">
+${ _s.paymentsview.show_ui !== 0 ? html`
+    <c-ol shape="1" title="Payments" ?close="${this.s.paymentsview.show_ui === 2}" @close="${()=> { this.s.paymentsview.show_ui = 0; this.sc(); } }">
 
     <div id="paymentsview">
 
         <section class="payments">
-            ${_m.payments.filter(p=>p.type === 'creditcard').sort((a,b)=> a.payee.localeCompare(b.payee)).map(p=>this.payments_r(p))}
+            ${_m.payments.filter(p=>p.type === 'cyclecredit').sort((a,b)=> a.payee.localeCompare(b.payee)).map(p=>this.payments_r(p))}
         </section>
         <hr>
         <section class="payments">
@@ -267,8 +287,15 @@ ${ _s.paymentsview.show_ui !== 0 ? Lit_Html`
         </section>
         <hr>
         <section class="payments">
-
-            ${_m.payments.filter(p=>p.type === 'bill').sort((a,b)=> a.payee.localeCompare(b.payee)).map(p=>this.payments_r(p))}
+            ${_m.payments.filter(p=>p.type === 'debtpay').sort((a,b)=> a.payee.localeCompare(b.payee)).map(p=>this.payments_r(p))}
+        </section>
+        <hr>
+        <section class="payments">
+            ${_m.payments.filter(p=>p.type === 'rent' || p.type === 'utilities').sort((a,b)=> a.payee.localeCompare(b.payee)).map(p=>this.payments_r(p))}
+        </section>
+        <hr>
+        <section class="payments">
+            ${_m.payments.filter(p=>p.type === 'subscription').sort((a,b)=> a.payee.localeCompare(b.payee)).map(p=>this.payments_r(p))}
         </section>
 
         <!--
@@ -284,7 +311,7 @@ ${ _s.paymentsview.show_ui !== 0 ? Lit_Html`
                 <th>notes</th>
             </tr>
 
-            ${_m.payments.map((p,i) => Lit_Html`
+            ${_m.payments.map((p,i) => html`
                 <tr>
                     <td>${p.payee}</td>
                     <td>${p.type}</td>
@@ -296,7 +323,7 @@ ${ _s.paymentsview.show_ui !== 0 ? Lit_Html`
                     <td><span>${p.notes}</span></td>
                 </tr>
 
-                ${p.breakdown.map(b=> Lit_Html`
+                ${p.breakdown.map(b=> html`
                 <tr>
                     <td>${b.split(':')[0]}</td>
                     <td>aggregate</td>
@@ -319,7 +346,7 @@ ${ _s.paymentsview.show_ui !== 0 ? Lit_Html`
 
 
 
-${ _s.tagsview.show_ui !== 0 ? Lit_Html`
+${ _s.tagsview.show_ui !== 0 ? html`
     <c-ol top="34" width="sm" height="full" ?close="${this.s.tagsview.show_ui === 2}" @close="${()=> { this.s.tagsview.show_ui = 0; this.sc(); } }">
 
         <div id="tagsview">
@@ -327,7 +354,7 @@ ${ _s.tagsview.show_ui !== 0 ? Lit_Html`
             <h3>Tags</h3>
 
             <ul class="items">
-                ${_s.tagsview.tagtotals.map(t=>Lit_Html`
+                ${_s.tagsview.tagtotals.map(t=>html`
                 <li @click="${(e)=>{this.tagsview_tag_clicked(e)}}" data-id="${t.id}">
                         <h5>${t.name}</h5>
                         <p>

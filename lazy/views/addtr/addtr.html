@@ -13,41 +13,56 @@
 
 <div class="content">
 
-    <div id="keycatcher_w">
+    <div id="topspace">
         <input id="keycatcher" type="email" spellcheck="false" inputmode="email"></input>
         <div id="keycatcher_instructions">
-            <span>${_s.instructions}</span>
+			<span>
+				${_s.instructions === "category" ? html`
+					<i class="icon-list" style="font-size: 15px;position: relative;top: 4px;"></i>
+				` : ''}
+				${_s.instructions === "note" ? html`
+					<i class="icon-edit2" style="font-size: 16px;position: relative;top: 3px;"></i>
+				` : ''}
+				${_s.instructions === "amount" ? html`
+					<span style="position: relative;font-weight: bold;top: 4px;">$</span>
+				` : ''}
+				${_s.instructions === "tags" ? html`
+					<span style="position: relative;font-weight: bold;top: 4px;">#</span>
+				` : ''}
+			</span>
         </div>
+		<div id="topspace_side_info" class="${_s.instructions !== 'note' ? 'active' : ''}">
+			<div id="transaction_date">${(new Date(_s.rawtransactions[0].ts*1000)).toLocaleDateString("en-US", {month: '2-digit', day: '2-digit'}).slice(0,5).replace("/","-")}</div>
+			<div id="transaction_amount">${_s.rawtransactions[0].amount.toFixed(2)}</div>
+			<div id="transaction_source">${(_sources.find(s=> s.id === _s.rawtransactions[0].source_id)).name}</div>
+		</div>
     </div>
 
     <div id="rawtransaction">
-        ${_s.rawtransactions.map((rawtransaction,i)=>Lit_Html`
-            <div class="a_transaction ${i === _s.focusedindex ? 'active' : ''}">
-                <div class="primary">
-                    <div class="anitem ofnumber">${_s.transactionindex+1} of ${_s.newcount}</div>
-                    <div class="anitem date">${(new Date(rawtransaction.ts*1000)).toLocaleDateString().slice(0,4)}</div>
-                    <div class="anitem longdesc">${rawtransaction.merchant}</div>
-                    <div class="anitem amount">${rawtransaction.amount.toFixed(2)}</div>
-                </div>
+		<div class="a_transaction active">
+			<div class="primary">
+				<div class="anitem oftotal">${_s.transactionindex+1} of ${_s.newcount}</div>
+				<div class="anitem longdesc">&nbsp;- ${_s.rawtransactions[0].merchant}</div>
+				<div class="anitem cat">
+					${ (!_s.rawtransactions[0].cat_name && _s.rawtransactions[0].preset_area_id) ? (_areas.find(a=>a.id === _s.rawtransactions[0].preset_area_id).name + '::' + _s.rawtransactions[0].preset_cat_name) : ''}
+					${ _s.rawtransactions[0].cat_name } 
+				</div>
+			</div>
 
-                <div class="secondary">
-                <div class="anitem cat">${ rawtransaction.cat_name || '...'} &nbsp; </div>
-                    <div class="anitem source">${(_sources.find(s=> s.id === rawtransaction.source_id)).name}</div>
-                </div>
-
-                <div class="tertiary"> 
-                    <div class="anitem note">${rawtransaction.tag_names.map(tn=> '#' + tn + ' ')} ${rawtransaction.notes} ${ rawtransaction.preset_area_id ? _areas.find(a=>a.id === rawtransaction.preset_area_id).name : ''}::${ rawtransaction.preset_cat_name || ''}</div>
-                </div>
-            </div>
-        `)}
+			<div class="secondary">
+				<div class="anitem note">
+					${_s.rawtransactions[0].tag_names.map(tn=> '#' + tn + ' ')} 
+					${_s.rawtransactions[0].notes || '...'} 
+			</div>
+		</div>
     </div>
 
     <div id="cats">
-        ${_cats.map(cat=>Lit_Html`
+        ${_cats.map(cat=>html`
             <div class="catparent">
                 <h4>${cat.name}</h4>
                 <div class="subcats">
-                    ${cat.subs.map(subcat=>Lit_Html`
+                    ${cat.subs.map(subcat=>html`
                         <h6 @click="${(e)=>this.setcat_from_click(e)}" data-id="${subcat.id}">${subcat.name}</h6>
                     `)}
                 </div>
@@ -56,20 +71,20 @@
     </div>
 
 	<div id="tags" class="${_s.keyinput_mode === 1 ? 'active' : ''}">
-        ${_tags.map(tag=>Lit_Html`
+        ${_tags.map(tag=>html`
             <h6 @click="${(e)=>this.settag_from_click(e)}" data-id="${tag.id}">${tag.name}</h6>
         `)}
     </div>
 
     <!--
     <div class="keyinput_indicator active">
-        ${_s.keyinput_mode == 0 ? Lit_Html`
+        ${_s.keyinput_mode == 0 ? html`
             <span>type a category</span>
         ` : ''}
-        ${_s.keyinput_mode == 1 ? Lit_Html`
+        ${_s.keyinput_mode == 1 ? html`
             <span>type a note</span>
         ` : ''}
-        ${_s.keyinput_mode == 2 ? Lit_Html`
+        ${_s.keyinput_mode == 2 ? html`
             <span>split amount up to ${_s.splittotal.toFixed(2)}</span>
         ` : ''}
     </div>

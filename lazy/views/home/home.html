@@ -12,44 +12,41 @@
 
 		<div id="hldr">Placeholder</div>
 
-        ${localStorage.getItem("auth_group") === 'admin' ? Lit_Html`
+        ${localStorage.getItem("auth_group") === 'admin' ? html`
             <h5 @click="${()=>this.adminetc('firestore_misc_update')}">firestore_misc_update</h5>
             <h5 @click="${()=>this.adminetc('firestore_misc_get')}">firestore_misc_get</h5>
         ` : ''}
         
         <div style="height: 200px; overflow-y:scroll;">
-            ${Array.isArray(_s.admin_return_str) ? _s.admin_return_str.map((item, index) => Lit_Html`
+            ${Array.isArray(_s.admin_return_str) ? _s.admin_return_str.map((item, index) => html`
                 <p>${item}</p>
-            `) : Lit_Html`
+            `) : html`
                 <p>${_s.admin_return_str}</p>
             `}
         </div>
 
         <h5 @click="${()=>window.location.hash='finance'}">Finance</h5>
 
-        ${localStorage.getItem("auth_group") === 'admin' ? Lit_Html`
+        ${localStorage.getItem("auth_group") === 'admin' ? html`
             <br><br>
             <h5 @click="${()=>window.location.hash='addtr'}">AddTr</h5>
         ` : ''}
 
         <br><br>
 
-        <h5 @click="${()=>window.location.hash='auth'}">Auth</h5>
 
 		<br><br>
 
+		<!--
         <h5 @click="${()=>this.trigger_firestore_sse()}">Trigger Firestore SSE</h5>
 		<br><br>
+		-->
 
         <h5 @click="${()=>this.reset_datasync()}">Reset DataSync</h5>
         <h5 @click="${()=>this.reset_all()}">Reset It All</h5>
 		<br>
         <h5 @click="${()=>this.save_logs()}">Save Logs</h5>
         <h5 @click="${()=>this.get_logs()}">Get Logs</h5>
-
-		<a @click="${()=>this.ya1()}">ya1</a> &nbsp; &nbsp;
-		<a @click="${()=>this.ya2()}">ya2</a> &nbsp; &nbsp;
-		<a @click="${()=>this.ya3()}">ya3</a>
     </div>
 
 </div>

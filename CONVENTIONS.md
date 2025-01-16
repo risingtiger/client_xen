@@ -1,0 +1,1 @@
+- User interface should be more dense and tight paddings

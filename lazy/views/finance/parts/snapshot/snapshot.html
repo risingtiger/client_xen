@@ -1,78 +1,53 @@
 
+<div style="height: 600px;overflow-y:scroll;">
+
+<table>                                                                                                       
+	 <thead>                                                                                                   
+		 <tr>                                                                                                  
+			 <th>Name</th>                                                                                     
+			 <th>Quad1</th>                                                                                    
+			 <th>Quad2</th>                                                                                    
+			 <th>Quad3</th>                                                                                    
+			 <th>Quad4</th>                                                                                    
+			 <th>Quad1+2</th>                                                                                  
+			 <th>Quad1+2+3</th>                                                                                
+		 </tr>                                                                                                 
+	 </thead>                                                                                                  
+	 <tbody>                                                                                                   
+		 ${_s.current_month_snapshot_rows.map(snapshot => html`                                          
+			 <tr>                                                                                              
+				 <td>${snapshot.areaName}</td>                                                                 
+				 <td>${snapshot.quad1_avg} | ${snapshot.quad1_budget}</td>                                   
+				 <td>${snapshot.quad2_avg} | ${snapshot.quad2_budget}</td>                                   
+				 <td>${snapshot.quad3_avg} | ${snapshot.quad3_budget}</td>                                   
+				 <td>${snapshot.quad4_avg} | ${snapshot.quad4_budget}</td>                                   
+				 <td>${snapshot.sum_quad1_2_avg} | ${snapshot.sum_quad1_2_budget}</td>                       
+				 <td>${snapshot.sum_quad1_2_3_avg} | ${snapshot.sum_quad1_2_3_budget}</td>                   
+			 </tr>                                                                                             
+		 `)}                                                                                                   
+	 </tbody>                                                                                                  
+
+	 <tbody>                                                                                                   
+		<tr><td colspan="7">&nbsp;</td></tr>
+	 </tbody>                                                                                                  
+
+	 <tbody>                                                                                                   
+		 ${_s.month_snapshots.map(ms => html`
+			 <tr>
+				 <td @click="${(e)=>this.save_monthsnapshot(e)}" data-month="${ms.month}" data-areaid="${ms.area.id}" class="${ms.issaved && !ms.isTotal ? 'issaved' : ''}">${ms.area.name}::${ms.month}</td>                                                                 
+				 <td>${ms.quad1_spent} | ${ms.quad1_budget}</td>                                   
+				 <td>${ms.quad2_spent} | ${ms.quad2_budget}</td>                                   
+				 <td>${ms.quad3_spent} | ${ms.quad3_budget}</td>                                   
+				 <td>${ms.quad4_spent} | ${ms.quad4_budget}</td>                                   
+				 <td>${ms.quad1_spent+ms.quad2_spent} | ${ms.quad1_budget+ms.quad2_budget}</td>                       
+				 <td>${ms.quad1_spent+ms.quad2_spent+ms.quad3_spent} | ${ms.quad1_budget+ms.quad2_budget+ms.quad3_budget}</td>                       
+			 </tr>                                                                                             
+		 `)}                                                                                                   
+	 </tbody>                                                                                                  
+ </table>
 
 
-<div id="snapshots_synopsis">
-    ${_s.snapshots_for_ui.map((sa) => Lit_Html`
-        <div class="area">
-            <div class="name_area">${sa.areaName.slice(0,1)}</div>
-            <div class="quads">
-                <div class="quad quad1">
-                    <span>${sa.quad1_spent}</span>
-                    <span>${sa.quad1_budget}</span>
-                </div>
-                <div class="quad quad2">
-                    <span>${sa.quad2_spent}</span>
-                    <span>${sa.quad2_budget}</span>
-                </div>
-                <div class="quad quad3">
-                    <span>${sa.quad3_spent}</span>
-                    <span>${sa.quad3_budget}</span>
-                </div>
-                <div class="quad quad4">
-                    <span>${sa.quad4_spent}</span>
-                    <span>${sa.quad4_budget}</span>
-                </div>
-                <div class="quad quad5">
-                    <span>${sa.sum_quad1_2_spent}</span>
-                    <span>${sa.sum_quad1_2_budget}</span>
-                </div>
-                <div class="quad quad6">
-                    <span>${sa.sum_quad1_2_3_spent}</span>
-                    <span>${sa.sum_quad1_2_3_budget}</span>
-                </div>
-            </div>
-        </div>
-    `)}
-	<div class="area">
-		<div class="name_area">s</div>
-		<div class="quads">
-			${ _s.snapshots_for_ui.synopsis_by_area_sums.quads.map((q,i) => Lit_Html`
-				<div class="quad quad${i+1}">
-					<span>${q[0]}</span>
-					<span>${q[1]}</span>
-				</div>
-			`)}
-		</div>
-	</div>
+<p>&nbsp;</p>
+<button style="position:absolute;top:-5px;right:0;" @click="${() => this.dispatchEvent(new Event('close'))}">Close</button>
+
 </div>
-
-<div id="snapshots_by_month">
-	${_s.snapshots_for_ui.months.map((s,i) => Lit_Html`
-		<div class="snapshot_month">
-			${s.map((sa,i) => Lit_Html`
-				<div class="snapshot_month_area">
-					<div class="name_area">${sa.name_area}</div>
-					<div class="name_month">${sa.name_month}</div>
-					<div class="bucket">
-						<i class="icon-bucket" style="font-size: 12px;position: relative;top: 1px;"></i>
-						${sa.bucket}
-					</div>
-					<div class="savings">
-						<i class="icon-piggy" style="font-size: 13px;position: relative;top: 0px;"></i>
-						${sa.savings}
-					</div>
-
-					<div class="quads">
-						${ sa.quads.map((q,i) => Lit_Html`
-							<div class="quad quad${i+1}">
-								<span>${q[0]}</span>
-								<span>${q[1]}</span>
-							</div>
-						`)}
-					</div>
-				</div>
-			`)}
-		</div>
-	`)}
-</div>
-

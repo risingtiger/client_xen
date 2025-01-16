@@ -2,6 +2,8 @@
 
 
 **/.DS_Store
-defs_xen_server.ts
-defs_nifty_server.ts
-defs_nifty_client.ts
+defs_client_symlink.ts
+defs_server_symlink.ts
+defs_instance_server_symlink.ts
+.aider*
+.env

@@ -1,11 +1,13 @@
 
-import { INSTANCE_T } from "../defs_client.js";
+import { bool, num, str } from "./defs_server_symlink.js"
+import { INSTANCE_T } from "./defs_client_symlink.js"
+
 
 
 const INSTANCE_NAME = "xen";
 
 
-const INSTANCE: INSTANCE_T = {
+const INSTANCE:INSTANCE_T = {
 
 	INFO: {
 
