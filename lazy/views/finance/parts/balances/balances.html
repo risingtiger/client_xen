@@ -4,17 +4,17 @@
     <h3>Account Balances</h3>
     
     <h4>Checking Accounts Total: ${_s.checkingTotal}</h4>
-	${_s.checkingAccounts.map(account => Lit_Html`
+	${_s.checkingAccounts.map(account => html`
 	<p>${account.name}: ${account.balance}</p>
 	`)}
 	
 	<h4>Savings Accounts Total: ${_s.savingsTotal}</h4>
-	${_s.savingsAccounts.map(account => Lit_Html`
+	${_s.savingsAccounts.map(account => html`
 	<p>${account.name}: ${account.balance}</p>
 	`)}
 	
 	<h4>Credit Card Accounts Total: ${_s.creditCardTotal}</h4>
-	${_s.creditCardAccounts.map(account => Lit_Html`
+	${_s.creditCardAccounts.map(account => html`
 	<p>${account.name}: ${account.balance}</p>
 	`)}
 
@@ -23,7 +23,7 @@
 	<h3>Total All Spent Against Buckets: ${_s.allAreasBucketInfo.spentAgainstBucketsTotal}</h3>
 	<h3>Net Total: ${_s.netTotal}</h3>
 
-	${_s.allAreasBucketInfo.buckets.map(bucket => Lit_Html`
+	${_s.allAreasBucketInfo.buckets.map(bucket => html`
 		<p>${bucket.name}: ${bucket.amount}</p>
 	`)}
 	<h3>Source Bucket Account: ${_s.sourceBucketAccount.balance}</h3>
