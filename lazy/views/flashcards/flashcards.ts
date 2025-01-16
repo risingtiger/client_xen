@@ -5,8 +5,8 @@
 
 
 declare var Firestore:any
-declare var Lit_Render: any;
-declare var Lit_Html: any;
+declare var render: any;
+declare var html: any;
 
 
 type FlashCardT = {
@@ -63,13 +63,13 @@ async connectedCallback() {
 
 sc(state_changes = {}) {   
     this.s = Object.assign(this.s, state_changes)
-    Lit_Render(this.template(this.s, this.flashcards), this.shadow);
+    render(this.template(this.s, this.flashcards), this.shadow);
 }
 
 
 
 
-template = (_s:any, _flashcards:FlashCardT[]) => { return Lit_Html`{--css--}{--html--}`; };
+template = (_s:any, _flashcards:FlashCardT[]) => { return html`{--css--}{--html--}`; };
 
 }
 
