@@ -312,19 +312,26 @@ class VAddTr extends HTMLElement {
 
 
 	setcat_from_click(e:MouseEvent) {
-
-		/*
 		const catid = (e.target as HTMLElement).dataset.id as str
-
-		for(const c of this.m.cats) {
-			const f = c.subs?.find(sub => sub.id === catid)
-			if (f) {
-				this.setcat(f)
-				this.save_transaction_and_move_to_next()
-				break
+		
+		// First check if it's a direct match in top-level categories
+		let foundCat = this.m.cats.find(cat => cat.id === catid)
+		
+		// If not found in top level, look in subcategories
+		if (!foundCat) {
+			for(const c of this.m.cats) {
+				const f = c.subs?.find(sub => sub.id === catid)
+				if (f) {
+					foundCat = f
+					break
+				}
 			}
 		}
-		*/
+		
+		if (foundCat) {
+			this.s.highlightcat = foundCat
+			this.sc() // Trigger re-render
+		}
 	}
 
 
