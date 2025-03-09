@@ -35,18 +35,29 @@ export const HandleKeyup = (m:ModelT, s:StateT, inputval:string) => {
 
 
 
-const filterdcats(m:ModelT, s:StateT, inputval:string) {
+const filterdcats = (m:ModelT, s:StateT, inputval:string): CatT[] => {
 	
 	const filteredcats:CatT[] = []
 
 	for (const cat of m.cats) {
-		let isparentcatincluded = false
+		// Create a copy of the parent cat with empty subs array
+		const parentCatCopy: CatT = {...cat, subs: []};
+		let isparentcatincluded = false;
 
+		// Only include subcats that match the inputval
 		for (const subcat of cat.subs!) {
-			if (subcat.name.includes(inputval)) {
-				isparentcatincluded = true
-				filteredcats.push(subcat)
+			if (subcat.name.toLowerCase().includes(inputval.toLowerCase())) {
+				isparentcatincluded = true;
+				// Add matching subcat to the parent's subs array
+				parentCatCopy.subs!.push(subcat);
 			}
 		}
+
+		// Only include parent cat if at least one of its subcats matched
+		if (isparentcatincluded) {
+			filteredcats.push(parentCatCopy);
+		}
 	}
+
+	return filteredcats;
 }
