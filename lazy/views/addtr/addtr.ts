@@ -1,68 +1,51 @@
 
-type int = number;   
 
-import { str, bool } from "../../../defs_server_symlink.js"
+import { str, bool, num } from "../../../defs_server_symlink.js"
 import { $NT } from "../../../defs_client_symlink.js"
-import { AreaT, CatT, SourceT, TagT, RawTransactionT } from '../../../defs.js'
+import { CatT, SourceT } from '../../../defs.js'
 import { knit_areas, knit_cats, knit_sources } from '../../libs/financefuncs_knit.js'
+import { NewTransactionT, InputModeE, AttributesT, ModelT, StateT, RawNewTransactionT } from "../../libs/addtr_defs.js"
+import { To_Next_Mode } from "../../libs/addtr_input.js"
+import { HandleKeyup, HandleReset } from "../../libs/addtr_item.js"
+
 
 declare var render: any;
 declare var html: any;
 declare var $N: $NT;
 
 
-const enum InputModeE { Cat, Tag, Note, Amount }
 
-type State = {
-    newcount: int,
-    rawtransactions: RawTransactionT[],
-    focusedindex: number,
-    transactionindex: int,
-    splittotal: int,
-    allow_split: bool,
-    keyinput_mode: InputModeE,
-    instructions: str
-}
+const ATTRIBUTES:AttributesT = { propa: "" }
 
-type QuickNoteT = {   amount: number, note: string, ts: number   }
 
 
 
 class VAddTr extends HTMLElement {
-
-	s:State
-	areas: AreaT[]
-	cats: CatT[]
-	sources: SourceT[]
-	tags: TagT[]
-	quick_notes: QuickNoteT[]
-	latest_raw_transactions: RawTransactionT[]
+	a:AttributesT
+	m:ModelT
+	s:StateT
+	keycatcherel:HTMLInputElement
 	shadow:ShadowRoot
 
 
+	static get observedAttributes() { return Object.keys(ATTRIBUTES); }
 
 
 	constructor() {   
 
 		super(); 
 
+		this.a = { ...ATTRIBUTES }
+		this.m = { raw_areas: [], raw_cats: [], raw_sources: [],  raw_newtransactions: [], areas: [], cats: [], sources: [], quick_notes: [], newtransactions:[], tags: [] }
 		this.s = {
 			newcount: 0,
-			rawtransactions: [],
-			focusedindex: 0,
-			transactionindex: 0,
-			splittotal: 0,
-			allow_split: true,
-			keyinput_mode: InputModeE.Cat,
-			instructions: "category",
+			activetransaction: {} as NewTransactionT,
+			inputmode: InputModeE.cat,
+			highlightcat: null,
+			highlighttag: null,
+			filteredcats: [],
+			filteredtags: []
 		}
-
-		this.areas = []
-		this.cats = []
-		this.sources = []
-		this.tags = []
-		this.quick_notes = []
-		this.latest_raw_transactions = []
 
 		this.shadow = this.attachShadow({mode: 'open'});
 	}
@@ -71,26 +54,66 @@ class VAddTr extends HTMLElement {
 
 
 	async connectedCallback() {
+		await $N.CMech.ViewConnectedCallback(this)
+		this.dispatchEvent(new Event('hydrated'));
 
-		this.setAttribute("backhash", "home")
+		this.keycatcherel = this.shadow.getElementById("keycatcher") as HTMLInputElement
+	}
 
-		const promises:any = []
 
-		promises.push($N.Firestore.Retrieve(["areas", "cats", "sources", "quick_notes"]))
-		promises.push($N.FetchLassie('/api/xen/finance/get_ynab_raw_transactions', {}))
 
-		const v = await Promise.all(promises)
 
-		this.areas = knit_areas(v[0][0])
-		this.cats = knit_cats(this.areas, v[0][1])
-		this.sources = knit_sources(v[0][2])
-		this.quick_notes = v[0][3]
+	async attributeChangedCallback(name:string, oldval:string|boolean|number, newval:string|boolean|number) {
+		$N.CMech.AttributeChangedCallback(this, name, oldval, newval);
+	}
 
-		const trs:any[] = (localStorage.getItem("user_email") === 'accounts@risingtiger.com') ? v[1].raw_transactions : v[1].raw_transactions.filter((tr:any) => tr.source === "17c0d30d-4e6f-496e-a8e4-91dae1de8b4a")
 
-		this.latest_raw_transactions = trs.map((tr) => {
 
-			const quick_note = this.quick_notes.find(qn=> {
+
+	disconnectedCallback() {   $N.CMech.ViewDisconnectedCallback(this);   }
+
+
+
+
+	loadother = () => new Promise<number|null>(async (res) => { 
+		const r = await $N.FetchLassie('/api/xen/finance/get_ynab_raw_transactions', {}) as any
+		const trs:RawNewTransactionT[] = (localStorage.getItem("user_email") === 'accounts@risingtiger.com') ? r.raw_transactions : r.raw_transactions.filter((tr:any) => tr.source === "17c0d30d-4e6f-496e-a8e4-91dae1de8b4a")
+		this.m.raw_newtransactions = trs
+		res(1)
+	})
+
+
+
+
+	visibled = () => new Promise<void>(async (res) => { 
+		setTimeout(()=> {
+			const keycatcher_el = this.shadow.querySelector("#keycatcher") as HTMLInputElement
+			keycatcher_el.focus()
+			keycatcher_el.addEventListener("keyup", this.keyup.bind(this))
+			res()
+		},500)
+	})
+
+
+
+
+	kd() {
+		this.m.areas = knit_areas(this.m.raw_areas)
+		this.m.cats = knit_cats(this.m.areas, this.m.raw_cats)
+		this.m.sources = knit_sources(this.m.raw_sources)
+		this.m.tags.sort((a, b) => b.ts - a.ts)
+		this.m.quick_notes = this.m.quick_notes
+
+		this.s.filteredcats = this.m.cats
+		this.s.filteredtags = this.m.tags
+
+		if (localStorage.getItem("user_email") !== 'accounts@risingtiger.com') {
+			this.m.cats = this.m.cats.filter(cat => cat.area.name === "fam")
+		}
+
+		this.m.newtransactions = this.m.raw_newtransactions.map((tr) => {
+
+			const quick_note = this.m.quick_notes.find(qn=> {
 				let fourdays = 518400 // 6 days in seconds
 				if ((qn.ts > tr.ts - fourdays && qn.ts < tr.ts + fourdays) && (qn.amount === tr.amount)) {
 					return true
@@ -99,75 +122,35 @@ class VAddTr extends HTMLElement {
 			})
 
 			return {
-				skipsave: false,
-				ignore: false,
-				preset_area_id: tr.preset_area_id || null,
-				preset_cat_name: tr.preset_cat_name || null,
 				ynab_id: tr.ynab_id,
-				amount: tr.amount,
-				cat_id: null,
-				cat_name: null,
-				tag_ids: [],
-				tag_names: [],
-				merchant: tr.merchant,
+				cat: this.m.cats.find(cat => cat.name === tr.preset_cat_name) || null,
 				notes: (tr.notes || quick_note?.note || ""),
-				source_id: tr.source_id,
-				tags: tr.tags,
+				amount: tr.amount,
+				merchant: tr.merchant,
+				tags: [],
+				source: this.m.sources.find(s => s.id === tr.source_id) as SourceT,
 				ts: tr.ts
-
-
-			} as RawTransactionT
+			}
 		}).sort((a, b) => a.ts - b.ts)
 
-		if (this.latest_raw_transactions.length === 0) {
-			alert ("no new transactions")
-		}
+		this.s.newcount = this.m.newtransactions.length
 
-		else {
-			this.s.transactionindex = 0
-			this.s.newcount = this.latest_raw_transactions.length
+		this.s.activetransaction = this.m.newtransactions[0]
 
-			this.process_next_transaction()
-
-			if (localStorage.getItem("user_email") !== 'accounts@risingtiger.com') {
-				this.cats = this.cats.filter(cat => cat.area.name === "fam")
-			}
-
-		}
-
-		this.sc()
-
-		this.dispatchEvent(new Event('hydrated'))
-
-		setTimeout(() => {
-			const keycatcher_el = this.shadow.querySelector("#keycatcher") as HTMLInputElement
-			keycatcher_el.focus()
-			keycatcher_el.addEventListener("keyup", this.keyup.bind(this))
-		}, 500)
-	}
-
-
-
-
-	disconnectedCallback() {
-		//
+		//this.process_next_transaction()
 	}
 
 
 
 
 	async process_next_transaction() {
-
+		/*
 		this.s.focusedindex = 0
-		this.s.keyinput_mode = InputModeE.Cat
-		this.s.rawtransactions = [this.latest_raw_transactions[this.s.transactionindex]]
+		this.s.inputmode = InputModeE.cat
+		this.s.rawtransactions = [this.m.latest_raw_transactions[this.s.transactionindex]]
 		this.s.splittotal = 0
 		this.s.allow_split = true
-		this.sc()
-
-		const keycatcher_el = this.shadow.querySelector("#keycatcher") as HTMLInputElement
-		keycatcher_el.value = ""
-		keycatcher_el.focus()
+		*/
 	}
 
 
@@ -175,14 +158,19 @@ class VAddTr extends HTMLElement {
 
 	async save_focused_transaction_and_load_next() {
 
+		/*
 		const nextit = ()=> {
 
-			if (this.s.transactionindex == this.latest_raw_transactions.length - 1) {
+			if (this.s.transactionindex == this.m.latest_raw_transactions.length - 1) {
 				alert("all transactions processed. DONE")
 			}
 			else {
 				this.s.transactionindex++
 				this.process_next_transaction()
+				this.sc()
+				const keycatcher_el = this.shadow.querySelector("#keycatcher") as HTMLInputElement
+				keycatcher_el.value = ""
+				keycatcher_el.focus()
 			}
 		}
 
@@ -202,6 +190,7 @@ class VAddTr extends HTMLElement {
 			})
 			nextit()
 		}
+		*/
 	}
     
 
@@ -212,12 +201,34 @@ class VAddTr extends HTMLElement {
 		const keycatcher_el = this.shadow.querySelector("#keycatcher") as HTMLInputElement
 		const val = keycatcher_el.value.toLowerCase()
 
+
+		if (e.key === "Enter") {
+			if (val.length < 2) return
+			To_Next_Mode(this.s, val, this.keycatcherel);
+			this.sc()
+		}
+		else if (e.key === "Backspace") {
+			console.log("backspace")
+			HandleReset(this.m, this.s, val)
+			keycatcher_el.value = ""
+			this.sc()
+		}
+		else {
+			if (val.length < 2) return
+			HandleKeyup(this.m, this.s, val)
+			this.sc()
+		}
+
+		/*
+		const keycatcher_el = this.shadow.querySelector("#keycatcher") as HTMLInputElement
+		const val = keycatcher_el.value.toLowerCase()
+
 		if (e.key === "Enter") {
 
 			if (this.s.keyinput_mode === InputModeE.Tag) {
 
 				const tag_strings = val.split("#").filter((t) => t.length > 0).map((t) => t.trim())
-				const tags = this.tags.filter(tag => tag_strings.includes(tag.name))
+				const tags = this.m.tags.filter(tag => tag_strings.includes(tag.name))
 
 				if (tags.length === 0) {
 					alert("no tags found")
@@ -246,7 +257,7 @@ class VAddTr extends HTMLElement {
 					let foundcat:CatT|null = null
 					let catname = catname_els[0].textContent as str
 
-					for(const c of this.cats) {
+					for(const c of this.m.cats) {
 						const f = c.subs?.find(sub => sub.name === catname)
 						if (f) {
 							foundcat = f
@@ -284,24 +295,6 @@ class VAddTr extends HTMLElement {
 				keycatcher_el.focus()
 				this.sc()
 
-				/*
-				const n = parseFloat(val)
-
-				if (isNaN(n) || n === 0 || n > this.s.splittotal) {
-					alert("split amount exceeded transaction amount or is invalid number")
-					keycatcher_el.value = ""
-					keycatcher_el.focus()
-					return;
-				}
-
-				this.s.keyinput_mode = InputModeE.Note
-				this.s.instructions = "note"
-				keycatcher_el.value = ""
-				keycatcher_el.focus()
-				this.s.rawtransactions[this.s.focusedindex].amount = n
-				this.s.splittotal -= n
-				this.sc()
-				*/
 			}
 
 			else if (this.s.keyinput_mode === InputModeE.Note) {
@@ -347,7 +340,7 @@ class VAddTr extends HTMLElement {
 			else if (keycatcher_el.value === "@") {
 
 				const xstr = JSON.stringify(this.s.rawtransactions[this.s.focusedindex])
-				this.latest_raw_transactions.splice(this.s.transactionindex, 0, JSON.parse(xstr))
+				this.m.latest_raw_transactions.splice(this.s.transactionindex, 0, JSON.parse(xstr))
 				keycatcher_el.value = ""
 				this.sc()
 			}
@@ -372,11 +365,6 @@ class VAddTr extends HTMLElement {
 
 			if (e.key === "#") {
 
-				const results = await $N.Firestore.Retrieve("tags")
-				this.tags = results[0] as Array<TagT>
-
-				this.tags.sort((a, b) => b.ts - a.ts)
-
 				const keycatcher_el = this.shadow.querySelector("#keycatcher") as HTMLInputElement
 
 				this.s.keyinput_mode = InputModeE.Tag
@@ -390,6 +378,7 @@ class VAddTr extends HTMLElement {
 				keycatcher_el.focus()
 			}
 		}
+		*/
 	}
 
 
@@ -397,6 +386,7 @@ class VAddTr extends HTMLElement {
 
 	save_transaction_and_move_to_next() {
 
+		/*
 		const keycatcher_el = this.shadow.querySelector("#keycatcher") as HTMLInputElement
 
 		if (this.s.focusedindex === this.s.rawtransactions.length - 1) {
@@ -416,21 +406,26 @@ class VAddTr extends HTMLElement {
 			keycatcher_el.focus()
 			this.sc()
 		}
+		*/
 	}
 
 
 
 	skip_transaction() {
+		/*
 		this.s.rawtransactions[this.s.focusedindex].skipsave = true
 		this.save_transaction_and_move_to_next()
+		*/
 	}
 
 
 
 
 	ignore_transaction() {
+		/*
 		this.s.rawtransactions[this.s.focusedindex].ignore = true
 		this.save_transaction_and_move_to_next()
+		*/
 	}
 
 
@@ -438,13 +433,14 @@ class VAddTr extends HTMLElement {
 
 	setcat(cat:CatT) {
 
+		/*
 		const keycatcher_el = this.shadow.querySelector("#keycatcher") as HTMLInputElement
 
 		this.s.allow_split = false // only allow split before having chosen category. Must be first action after new raw transaction pops up
 
 		this.s.rawtransactions[this.s.focusedindex].cat_id = cat.id
 
-		for(const cat of this.cats) {
+		for(const cat of this.m.cats) {
 			const f = cat.subs?.find(sub => sub.id === this.s.rawtransactions[this.s.focusedindex].cat_id)
 			if (f) {
 				this.s.rawtransactions[this.s.focusedindex].cat_name = f.name
@@ -452,28 +448,11 @@ class VAddTr extends HTMLElement {
 			}
 		}
 
-		/*
-		if (this.s.rawtransactions.length > 1) {
-
-			this.s.keyinput_mode = InputModeE.Amount
-			this.s.instructions = "amount"
-
-			if (this.s.focusedindex == this.s.rawtransactions.length - 1) {
-				keycatcher_el.value = this.s.splittotal.toFixed(2)
-			} else {
-				keycatcher_el.value = ""
-			}
-		}
-		else {
-			this.s.keyinput_mode = InputModeE.Note
-			this.s.instructions = "note"
-			keycatcher_el.value = this.s.rawtransactions[this.s.focusedindex].notes || ""
-		}
-		*/
 
 		this.highlight_catnames_reset_all();
 		this.sc()
 		keycatcher_el.focus()
+		*/
 	}
 
 
@@ -481,6 +460,7 @@ class VAddTr extends HTMLElement {
 
 	settags(tag_ids:string[], tag_names:string[]) {
 
+		/*
 		const keycatcher_el = this.shadow.querySelector("#keycatcher") as HTMLInputElement
 
 		this.s.rawtransactions[this.s.focusedindex].tag_ids = tag_ids
@@ -494,15 +474,17 @@ class VAddTr extends HTMLElement {
 		this.sc()
 
 		keycatcher_el.focus()
+		*/
 	}
 
 
 
 	setcat_from_click(e:MouseEvent) {
 
+		/*
 		const catid = (e.target as HTMLElement).dataset.id as str
 
-		for(const c of this.cats) {
+		for(const c of this.m.cats) {
 			const f = c.subs?.find(sub => sub.id === catid)
 			if (f) {
 				this.setcat(f)
@@ -510,6 +492,7 @@ class VAddTr extends HTMLElement {
 				break
 			}
 		}
+		*/
 	}
 
 
@@ -517,11 +500,13 @@ class VAddTr extends HTMLElement {
 
 	settag_from_click(e:MouseEvent) {
 
+		/*
 		const tagid = (e.target as HTMLElement).dataset.id as str
 
-		const tag = this.tags.find(tag => tag.id === tagid) 
+		const tag = this.m.tags.find(tag => tag.id === tagid) 
 
 		this.settags([tag!.id], [tag!.name])
+		*/
 	}
 
 
@@ -529,6 +514,7 @@ class VAddTr extends HTMLElement {
 
 	highlight_catnames(searchstr:str) {
 
+		/*
 		const subcatnames = this.shadow.querySelectorAll('.subcats > h6') as NodeListOf<HTMLElement>
 
 		subcatnames.forEach((el) => {
@@ -567,13 +553,16 @@ class VAddTr extends HTMLElement {
 				el.classList.add("hidden")
 			}
 		})
+		*/
 	}
 
 
 
 
 	highlight_catnames_reset_all() {
+		/*
 		const subcatnames = this.shadow.querySelectorAll('.subcats > h6') as NodeListOf<HTMLElement>
+
 
 		subcatnames.forEach((el) => {
 			el.innerHTML = el.textContent as str
@@ -587,26 +576,29 @@ class VAddTr extends HTMLElement {
 		})
 
 		this.s.rawtransactions[this.s.focusedindex].cat_name = ""
+		*/
 	}
 
 
 
 
 	reset_transaction() {
+		/*
 		location.reload()
+		*/
 	}
 
 
 
 
 	sc() {
-		render(this.template(this.s, this.areas, this.cats, this.sources, this.tags), this.shadow);
+		render(this.template(this.s, this.m), this.shadow);
 	}
 
 
 
 
-	template = (_s:any, _areas:any, _cats:any, _sources:any, _tags:any) => { return html`{--css--}{--html--}`; };
+	template = (_s:StateT, _m:ModelT) => { return html`{--css--}{--html--}`; };
 
 }
 

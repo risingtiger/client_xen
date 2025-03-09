@@ -17,62 +17,67 @@
         <input id="keycatcher" type="email" spellcheck="false" inputmode="email"></input>
         <div id="keycatcher_instructions">
 			<span>
-				${_s.instructions === "category" ? html`
-					<i class="icon-list" style="font-size: 15px;position: relative;top: 4px;"></i>
+				${_s.inputmode === "cat" ? html`
+					<i class="icon-list" style="font-size: 15px;position: relative;top: 6px;"></i>
 				` : ''}
-				${_s.instructions === "note" ? html`
-					<i class="icon-edit2" style="font-size: 16px;position: relative;top: 3px;"></i>
+				${_s.inputmode === "note" ? html`
+					<i class="icon-edit2" style="font-size: 16px;position: relative;top: 6px;"></i>
 				` : ''}
-				${_s.instructions === "amount" ? html`
-					<span style="position: relative;font-weight: bold;top: 4px;">$</span>
+				${_s.inputmode === "tags" ? html`
+					<span style="position: relative;font-weight: bold;top: 6px;">#</span>
 				` : ''}
-				${_s.instructions === "tags" ? html`
-					<span style="position: relative;font-weight: bold;top: 4px;">#</span>
+				${_s.inputmode === "amount" ? html`
+					<span style="position: relative;font-weight: bold;top: 6px;">$</span>
+				` : ''}
+				${_s.inputmode === "merchant" ? html`
+					<span style="position: relative;font-weight: bold;top: 6px;">M</span>
 				` : ''}
 			</span>
         </div>
-		<div id="topspace_side_info" class="${_s.instructions !== 'note' ? 'active' : ''}">
-			<div id="transaction_date">${(new Date(_s.rawtransactions[0].ts*1000)).toLocaleDateString("en-US", {month: '2-digit', day: '2-digit'}).slice(0,5).replace("/","-")}</div>
-			<div id="transaction_amount">${_s.rawtransactions[0].amount.toFixed(2)}</div>
-			<div id="transaction_source">${(_sources.find(s=> s.id === _s.rawtransactions[0].source_id)).name}</div>
+		<div id="topspace_side_info" class="${_s.inputmode !== 'note' ? 'active' : ''}">
+			<div id="transaction_date">${(new Date(_s.activetransaction.ts*1000)).toLocaleDateString("en-US", {month: '2-digit', day: '2-digit'}).slice(0,5).replace("/","-")}</div>
+			<div id="transaction_amount">${_s.activetransaction.amount.toFixed(2)}</div>
+			<div id="transaction_source">${_s.activetransaction.source.name}</div>
 		</div>
     </div>
 
     <div id="rawtransaction">
 		<div class="a_transaction active">
 			<div class="primary">
-				<div class="anitem oftotal">${_s.transactionindex+1} of ${_s.newcount}</div>
-				<div class="anitem longdesc">&nbsp;- ${_s.rawtransactions[0].merchant}</div>
+				<div class="anitem oftotal">${_m.newtransactions.findIndex(nt=> nt.ynab_id === _s.activetransaction.ynab_id)+1} of ${_s.newcount}</div>
+				<div class="anitem longdesc">&nbsp;- ${_s.activetransaction.merchant}</div>
 				<div class="anitem cat">
-					${ (!_s.rawtransactions[0].cat_name && _s.rawtransactions[0].preset_area_id) ? (_areas.find(a=>a.id === _s.rawtransactions[0].preset_area_id).name + '::' + _s.rawtransactions[0].preset_cat_name) : ''}
-					${ _s.rawtransactions[0].cat_name } 
+					${ _s.activetransaction.cat?.name ?? '' } 
 				</div>
 			</div>
 
 			<div class="secondary">
 				<div class="anitem note">
-					${_s.rawtransactions[0].tag_names.map(tn=> '#' + tn + ' ')} 
-					${_s.rawtransactions[0].notes || '...'} 
+					${_s.activetransaction.tags.map(tn=> '#' + tn.name + ' ')} 
+					${_s.activetransaction.notes || '...'} 
+				</div>
 			</div>
 		</div>
     </div>
 
-    <div id="cats">
-        ${_cats.map(cat=>html`
+
+	<div id="cats" class="${_s.inputmode === 'cat' ? 'active' : ''}">
+        ${_s.filteredcats.map(cat=>html`
             <div class="catparent">
                 <h4>${cat.name}</h4>
                 <div class="subcats">
                     ${cat.subs.map(subcat=>html`
-                        <h6 @click="${(e)=>this.setcat_from_click(e)}" data-id="${subcat.id}">${subcat.name}</h6>
+					<h6 @click="${(e)=>this.setcat_from_click(e)}" data-id="${subcat.id}" class="${subcat.id === _s.highlightcat?.id ? 'highlight' : ''}">${subcat.name}</h6>
                     `)}
                 </div>
             </div>
         `)}
     </div>
 
-	<div id="tags" class="${_s.keyinput_mode === 1 ? 'active' : ''}">
-        ${_tags.map(tag=>html`
-            <h6 @click="${(e)=>this.settag_from_click(e)}" data-id="${tag.id}">${tag.name}</h6>
+
+	<div id="tags" class="${_s.inputmode === 'tag' ? 'active' : ''}">
+        ${_s.filteredtags.map(tag=>html`
+            <h6 @click="${(e)=>this.settag_from_click(e)}" data-id="${tag.id}" class="${tag.id === _s.highlighttag?.id ? 'highlight' : ''}">${tag.name}</h6>
         `)}
     </div>
 
