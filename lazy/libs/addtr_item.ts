@@ -1,7 +1,19 @@
 
 
 import { CatT, TagT } from "../../defs.js"
-import { NewTransactionT, InputModeE, QuickNoteT, AttributesT, ModelT, StateT } from "./addtr_defs.js"
+import { InputModeE, ModelT, StateT } from "./addtr_defs.js"
+
+
+
+
+export const HandleReset = (m:ModelT, s:StateT) => {
+	if (s.inputmode === InputModeE.cat || s.inputmode === InputModeE.tag) {
+		s.filteredcats = m.cats
+		s.highlightcat = null
+		s.filteredtags = m.tags
+		s.highlighttag = null
+	}
+}
 
 
 
@@ -9,55 +21,88 @@ import { NewTransactionT, InputModeE, QuickNoteT, AttributesT, ModelT, StateT } 
 export const HandleKeyup = (m:ModelT, s:StateT, inputval:string) => {
 
 	if (s.inputmode === InputModeE.cat) {
-		if (!s.highlightcat) return 
-		s.activetransaction.cat = s.highlightcat
-		s.inputmode = InputModeE.note
-		keycatcherel.value = ''
-		keycatcherel.focus()
-	}
-	else if (s.inputmode === InputModeE.note) {
-		s.activetransaction.notes = inputval
-		s.inputmode = InputModeE.tag
+		filter_cats(m, s, inputval)
+		s.highlightcat = s.filteredcats[0].subs![0]
 	}
 	else if (s.inputmode === InputModeE.tag) {
-		s.activetransaction.tags = [s.highlighttag!]
-		s.inputmode = InputModeE.amount
-	}
-	else if (s.inputmode === InputModeE.amount) {
-		s.activetransaction.amount = Number(inputval)
-		s.inputmode = InputModeE.merchant
-	}
-	else if (s.inputmode === InputModeE.merchant) {
-		s.activetransaction.merchant = inputval
+		filter_tags(m, s, inputval)
+		s.highlighttag = s.filteredtags[0]
 	}
 }
 
 
 
 
-const filterdcats = (m:ModelT, s:StateT, inputval:string): CatT[] => {
+export const SetCatHighlightNext = (m:ModelT, s:StateT, inputval:string) => {
+
+}
+
+
+
+
+export const Set_Cat_From_Click = (m:ModelT, s:StateT, e:MouseEvent) => {
+	const catid = (e.target as HTMLElement).dataset.id as string
+	
+	for(const c of m.cats) {
+		const f = c.subs?.find(sub => sub.id === catid)
+		if (f) {
+			s.highlightcat = f
+			break
+		}
+	}
+}
+
+
+
+
+export const Set_Tag_From_Click = (m:ModelT, s:StateT, e:MouseEvent) => {
+	const tagid = (e.target as HTMLElement).dataset.id as string
+	const tag = m.tags.find(tag => tag.id === tagid)! 
+	s.highlighttag = tag
+}
+
+
+
+
+const filter_cats = (m:ModelT, s:StateT, inputval:string) => {
 	
 	const filteredcats:CatT[] = []
 
 	for (const cat of m.cats) {
-		// Create a copy of the parent cat with empty subs array
 		const parentCatCopy: CatT = {...cat, subs: []};
 		let isparentcatincluded = false;
 
-		// Only include subcats that match the inputval
 		for (const subcat of cat.subs!) {
 			if (subcat.name.toLowerCase().includes(inputval.toLowerCase())) {
 				isparentcatincluded = true;
-				// Add matching subcat to the parent's subs array
 				parentCatCopy.subs!.push(subcat);
 			}
 		}
 
-		// Only include parent cat if at least one of its subcats matched
 		if (isparentcatincluded) {
 			filteredcats.push(parentCatCopy);
 		}
 	}
 
-	return filteredcats;
+	s.filteredcats = filteredcats;
 }
+
+
+
+
+const filter_tags = (m:ModelT, s:StateT, inputval:string) => {
+	
+	const filteredtags:TagT[] = []
+
+	for (const tag of m.tags) {
+		if (tag.name.toLowerCase().includes(inputval.toLowerCase())) {
+			filteredtags.push(tag)
+		}
+	}
+
+	s.filteredtags = filteredtags;
+}
+
+
+
+
