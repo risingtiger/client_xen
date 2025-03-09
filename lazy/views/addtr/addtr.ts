@@ -5,7 +5,6 @@ import { $NT } from "../../../defs_client_symlink.js"
 import { CatT, SourceT } from '../../../defs.js'
 import { knit_areas, knit_cats, knit_sources } from '../../libs/financefuncs_knit.js'
 import { NewTransactionT, InputModeE, AttributesT, ModelT, StateT, RawNewTransactionT } from "../../libs/addtr_defs.js"
-import { SaveAtMode as InputSaveAtMode } from "../../libs/addtr_input.js"
 import { HandleKeyup as ItemHandleKeyup, HandleReset as ItemHandleReset } from "../../libs/addtr_item.js"
 
 
@@ -143,14 +142,11 @@ class VAddTr extends HTMLElement {
 		if (this.s.inputmode === InputModeE.saving) return;
 
 		const inputel = e.target as HTMLInputElement;
+		const newval = inputel.value;
 
 		if (e.key === "Tab") {
 			e.preventDefault();
-			if (e.shiftKey) {
-				InputSaveAtMode(this.s, inputel, 'back')
-			} else {
-				InputSaveAtMode(this.s, inputel, 'forward')
-			}
+			this.save_step(newval, e.shiftKey ? 'back' : 'forward')
 			this.sc();
 
 		} 
@@ -161,11 +157,10 @@ class VAddTr extends HTMLElement {
 		else if (e.key === "Enter") {
 			if (inputel.value.length < 2) return;
 
-			InputSaveAtMode(this.s, inputel, 'neutral')
-
+			this.save_step(newval, 'neutral')
 			this.sc()
-
 			await this.save_active_transaction()
+
 			if (!this.set_next_active_transaction()) this.set_to_all_done()
 
 			this.sc();
@@ -180,44 +175,78 @@ class VAddTr extends HTMLElement {
 
 
 
-	save_active_transaction = () => new Promise<void>(async (res) => {
+	save_step = (newval:string, direction:'neutral'|'back'|'forward' = 'neutral') => {
+
+		const s = this.s
+		
+		if (s.inputmode === InputModeE.cat) {
+			s.activetransaction.cat = s.highlightcat
+
+			if      (direction === 'forward') s.inputmode = InputModeE.note
+		}
+		else if (s.inputmode === InputModeE.note) {
+			s.activetransaction.notes = newval
+
+			if      (direction === 'forward') s.inputmode = InputModeE.tag
+			else if (direction === 'back') s.inputmode    = InputModeE.cat
+		}
+		else if (s.inputmode === InputModeE.tag) {
+			s.activetransaction.tags = [s.highlighttag!]
+
+			if      (direction === 'forward') s.inputmode = InputModeE.amount
+			else if (direction === 'back') s.inputmode    = InputModeE.note
+		}
+		else if (s.inputmode === InputModeE.amount) {
+			s.activetransaction.amount = Number(newval)
+
+			if      (direction === 'forward') s.inputmode = InputModeE.merchant
+			else if (direction === 'back') s.inputmode    = InputModeE.tag
+		}
+		else if (s.inputmode === InputModeE.merchant) {
+			s.activetransaction.merchant = newval
+
+			if      (direction === 'back') s.inputmode = InputModeE.amount
+		}
+	}
+
+
+
+
+	save_active_transaction = () => new Promise<null|number>(async (res) => {
 
 		if (this.s.inputmode === InputModeE.saving) return
 
 		this.s.inputmode = InputModeE.saving
 
-		/*
-    amount: number,
-	cat: string,
-	date: number,
-    merchant: string,
-    notes: string
-    source: string,
-	tags: string[],
-    ynab_id: string|null,
-    ts: number,
-	*/
+		if (this.s.activetransaction.cat === null) {
+			alert("No category selected")
+			this.s.inputmode = InputModeE.cat
+			res(null)
+			return
+		}
 
-		// Create a properly formatted transaction object for the server
 		const transaction_to_server = {
 			amount: this.s.activetransaction.amount,
-			cat: this.s.activetransaction.cat?.id || "",
-			date: new Date().getTime(), // Current timestamp as date
+			cat: this.s.activetransaction.cat.id,
+			date: this.s.activetransaction.ts, 
 			merchant: this.s.activetransaction.merchant,
 			notes: this.s.activetransaction.notes,
 			source: this.s.activetransaction.source?.id || "",
-			tags: this.s.activetransaction.tags.map(tag => tag.id || ""),
+			tags: this.s.activetransaction.tags.map(tag => tag.id),
 			ynab_id: this.s.activetransaction.ynab_id,
-			ts: this.s.activetransaction.ts
+			ts: Math.floor(new Date().getTime() / 1000)
 		}
 
+		console.log("problem. Server seems to save it ok. But then it retrieves an object that has firestore linkage to source cat etc. SSE cant send that back like that. Needs to be parsed to ids before SSE sends back from server. So this fix should be fixed on the server0")
+		/*
 		await $N.FetchLassie( `/api/xen/finance/save_transaction`, { 
 			method:"POST", 
 			body:JSON.stringify(transaction_to_server) 
 		})
+		*/
 
 		this.s.inputmode = InputModeE.saved
-		res()
+		res(1)
 	})
 
 
@@ -247,7 +276,7 @@ class VAddTr extends HTMLElement {
 
 
 	set_to_all_done = () => {
-		console.log("is done")
+		alert("All transactions are done")
 		return true
 	}
 
@@ -257,7 +286,6 @@ class VAddTr extends HTMLElement {
 	skip(e:any) {
 		this.s.inputmode = InputModeE.skipped
 		if (!this.set_next_active_transaction()) this.set_to_all_done()
-		console.log("skipperino")
 		this.sc()
 
 		e.detail.resolved()
@@ -266,274 +294,20 @@ class VAddTr extends HTMLElement {
 
 
 
-	delete(e:any) {
+	delete = (e:any) => new Promise<void>(async (_res) => {
 		this.s.inputmode = InputModeE.deleted
+
+		await $N.FetchLassie( `/api/xen/finance/ignore_transaction`, { 
+			method:"POST", 
+			body:JSON.stringify({ ynab_id: this.s.activetransaction.ynab_id }) 
+		})
+
 		if (!this.set_next_active_transaction()) this.set_to_all_done()
-		console.log("need to set server side to delete this")
 		this.sc()
 
 		e.detail.resolved()
-	}
+	})
 
-	//async keyup(e:KeyboardEvent) {
-		// Keeping this method for backward compatibility
-		// but it's no longer used with the new input fields
-
-		/*
-		const keycatcher_el = this.shadow.querySelector("#keycatcher") as HTMLInputElement
-		const val = keycatcher_el.value.toLowerCase()
-
-		if (e.key === "Enter") {
-
-			if (this.s.keyinput_mode === InputModeE.Tag) {
-
-				const tag_strings = val.split("#").filter((t) => t.length > 0).map((t) => t.trim())
-				const tags = this.m.tags.filter(tag => tag_strings.includes(tag.name))
-
-				if (tags.length === 0) {
-					alert("no tags found")
-					keycatcher_el.value = "#"
-					keycatcher_el.focus()
-					return;
-				}
-
-				this.settags(tags.map(tag => tag.id), tags.map(tag => tag.name))
-				
-			} 
-
-			else if (this.s.keyinput_mode === InputModeE.Cat) {
-
-				if (val.length < 2) {
-
-					alert ("no category selected");
-					keycatcher_el.value = ""
-					keycatcher_el.focus()
-					this.highlight_catnames_reset_all();
-				} 
-
-				else {
-
-					const catname_els = this.shadow.querySelectorAll('.subcats > h6:not(.hidden)') as NodeListOf<HTMLElement>
-					let foundcat:CatT|null = null
-					let catname = catname_els[0].textContent as str
-
-					for(const c of this.m.cats) {
-						const f = c.subs?.find(sub => sub.name === catname)
-						if (f) {
-							foundcat = f
-							break
-						}
-					}
-
-					if (foundcat) {
-						this.setcat(foundcat)
-						this.save_transaction_and_move_to_next()
-					} 
-
-					else {
-						alert ("no category found or too many categories found. need to match only one.");
-						keycatcher_el.value = ""
-						keycatcher_el.focus()
-						this.highlight_catnames_reset_all();
-					}
-				}
-			}
-
-			else if (this.s.keyinput_mode === InputModeE.Amount) {
-
-				const numval = Number(val)
-				if (isNaN(numval) || numval === 0) {
-					alert("invalid number")
-					keycatcher_el.value = ""
-					keycatcher_el.focus()
-					return;
-				}
-				this.s.rawtransactions[this.s.focusedindex].amount = numval
-				this.s.keyinput_mode = InputModeE.Cat
-				this.s.instructions = "category"
-				keycatcher_el.value = ""
-				keycatcher_el.focus()
-				this.sc()
-
-			}
-
-			else if (this.s.keyinput_mode === InputModeE.Note) {
-
-				this.s.rawtransactions[this.s.focusedindex].notes = val
-				this.s.keyinput_mode = InputModeE.Cat
-				this.s.instructions = "category"
-				keycatcher_el.value = ""
-				keycatcher_el.focus()
-				this.sc()
-			}
-		}
-
-		else if (this.s.keyinput_mode === InputModeE.Cat) {
-
-			if (e.key === "Backspace") {
-				this.highlight_catnames_reset_all();
-				keycatcher_el.value = ""
-				keycatcher_el.focus()
-				this.sc()
-			}
-
-			else if (keycatcher_el.value === "dd") { // just delete this transaction (sets to ignore and moves to next)
-				this.ignore_transaction()
-			}
-
-			else if (e.key === " " && keycatcher_el.value === "") { // first character is space
-
-				this.s.keyinput_mode = InputModeE.Note
-				this.s.instructions = "note"
-				keycatcher_el.value = this.s.rawtransactions[this.s.focusedindex].notes || ""
-
-				this.sc()
-			}
-
-			else if (!isNaN(Number(e.key)) && Number(e.key) > 0) {
-				this.s.keyinput_mode = InputModeE.Amount
-				this.s.instructions = "amount"
-				keycatcher_el.value = e.key
-				this.sc()
-			}
-
-			else if (keycatcher_el.value === "@") {
-
-				const xstr = JSON.stringify(this.s.rawtransactions[this.s.focusedindex])
-				this.m.latest_raw_transactions.splice(this.s.transactionindex, 0, JSON.parse(xstr))
-				keycatcher_el.value = ""
-				this.sc()
-			}
-
-			else if (e.key === "." && keycatcher_el.value === ".") {
-				this.skip_transaction()
-			}
-
-			else { 
-				if (val.length > 1) {
-					this.highlight_catnames(val)
-					this.sc()
-				}
-			}
-		}
-
-		else if (this.s.keyinput_mode === InputModeE.Amount) {
-			// nothing
-		}
-
-		else if (this.s.keyinput_mode === InputModeE.Note) {
-
-			if (e.key === "#") {
-
-				const keycatcher_el = this.shadow.querySelector("#keycatcher") as HTMLInputElement
-
-				this.s.keyinput_mode = InputModeE.Tag
-
-				this.s.instructions = "tags"
-
-				keycatcher_el.value = "#"
-
-				this.sc()
-
-				keycatcher_el.focus()
-			}
-		}
-		*/
-	//}
-
-
-
-
-	save_transaction_and_move_to_next() {
-
-		/*
-		const keycatcher_el = this.shadow.querySelector("#keycatcher") as HTMLInputElement
-
-		if (this.s.focusedindex === this.s.rawtransactions.length - 1) {
-			keycatcher_el.value = ""
-			this.s.instructions = "category"
-			keycatcher_el.focus()
-			this.sc()
-
-			this.save_focused_transaction_and_load_next()
-		}
-
-		else {
-			this.s.focusedindex++
-			this.s.keyinput_mode = InputModeE.Cat
-			this.s.instructions = "category"
-			keycatcher_el.value = ""
-			keycatcher_el.focus()
-			this.sc()
-		}
-		*/
-	}
-
-
-
-	skip_transaction() {
-		/*
-		this.s.rawtransactions[this.s.focusedindex].skipsave = true
-		this.save_transaction_and_move_to_next()
-		*/
-	}
-
-
-
-
-	ignore_transaction() {
-		/*
-		*/
-	}
-
-
-
-
-	setcat(cat:CatT) {
-
-		/*
-		const keycatcher_el = this.shadow.querySelector("#keycatcher") as HTMLInputElement
-
-		this.s.allow_split = false // only allow split before having chosen category. Must be first action after new raw transaction pops up
-
-		this.s.rawtransactions[this.s.focusedindex].cat_id = cat.id
-
-		for(const cat of this.m.cats) {
-			const f = cat.subs?.find(sub => sub.id === this.s.rawtransactions[this.s.focusedindex].cat_id)
-			if (f) {
-				this.s.rawtransactions[this.s.focusedindex].cat_name = f.name
-				break
-			}
-		}
-
-
-		this.highlight_catnames_reset_all();
-		this.sc()
-		keycatcher_el.focus()
-		*/
-	}
-
-
-
-
-	settags(tag_ids:string[], tag_names:string[]) {
-
-		/*
-		const keycatcher_el = this.shadow.querySelector("#keycatcher") as HTMLInputElement
-
-		this.s.rawtransactions[this.s.focusedindex].tag_ids = tag_ids
-		this.s.rawtransactions[this.s.focusedindex].tag_names = tag_names
-
-		this.s.keyinput_mode = InputModeE.Note
-		keycatcher_el.value = ""
-
-		this.s.instructions = "note"
-
-		this.sc()
-
-		keycatcher_el.focus()
-		*/
-	}
 
 
 
@@ -566,86 +340,6 @@ class VAddTr extends HTMLElement {
 		this.settags([tag!.id], [tag!.name])
 		*/
 	}
-
-
-
-
-	highlight_catnames(searchstr:str) {
-
-		/*
-		const subcatnames = this.shadow.querySelectorAll('.subcats > h6') as NodeListOf<HTMLElement>
-
-		subcatnames.forEach((el) => {
-			const t = el.textContent?.toLowerCase() as str
-			const startat = t.indexOf(searchstr)
-
-			if (startat === -1) {
-				el.innerHTML = t
-				el.classList.add("hidden")
-			}
-
-			else {
-				const endat = startat + searchstr.length
-
-				const before = t.slice(0, startat)
-				const after = t.slice(endat)
-
-				const newhtml = `${before}<span class="cathighlight">${searchstr}</span>${after}`
-
-				el.innerHTML = newhtml
-			}
-		})
-
-		const shown_cats = Array.from(subcatnames).filter((el) => !el.classList.contains("hidden"))
-		this.s.rawtransactions[this.s.focusedindex].cat_name = shown_cats[0]?.textContent ?? ""
-
-		const catparentels = this.shadow.querySelectorAll('.catparent') as NodeListOf<HTMLElement>
-
-		catparentels.forEach((el) => {
-			const subcatnames = el.querySelectorAll('h6') as NodeListOf<HTMLElement>
-			
-			// test if every subcatname is hidden
-			const allhidden = Array.from(subcatnames).every((el) => el.classList.contains("hidden"))
-
-			if (allhidden) {
-				el.classList.add("hidden")
-			}
-		})
-		*/
-	}
-
-
-
-
-	highlight_catnames_reset_all() {
-		/*
-		const subcatnames = this.shadow.querySelectorAll('.subcats > h6') as NodeListOf<HTMLElement>
-
-
-		subcatnames.forEach((el) => {
-			el.innerHTML = el.textContent as str
-			el.classList.remove("hidden")
-		})
-
-		const catparentels = this.shadow.querySelectorAll('.catparent') as NodeListOf<HTMLElement>
-
-		catparentels.forEach((el) => {
-			el.classList.remove("hidden")
-		})
-
-		this.s.rawtransactions[this.s.focusedindex].cat_name = ""
-		*/
-	}
-
-
-
-
-	reset_transaction() {
-		/*
-		location.reload()
-		*/
-	}
-
 
 
 
