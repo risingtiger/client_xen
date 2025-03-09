@@ -199,7 +199,13 @@ class VAddTr extends HTMLElement {
 
 		if (e.key === "Tab") {
 			e.preventDefault();
-			InputSaveAtMode(this.s, inputel, true);
+			if (e.shiftKey) {
+				// Handle Shift+Tab (backward navigation)
+				InputSaveAtMode(this.s, inputel, false);
+			} else {
+				// Regular Tab (forward navigation)
+				InputSaveAtMode(this.s, inputel, true);
+			}
 			this.sc();
 
 		} 
