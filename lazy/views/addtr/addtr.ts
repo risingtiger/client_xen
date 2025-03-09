@@ -5,7 +5,7 @@ import { $NT } from "../../../defs_client_symlink.js"
 import { CatT, SourceT } from '../../../defs.js'
 import { knit_areas, knit_cats, knit_sources } from '../../libs/financefuncs_knit.js'
 import { NewTransactionT, InputModeE, AttributesT, ModelT, StateT, RawNewTransactionT } from "../../libs/addtr_defs.js"
-import { HandleKeyup as ItemHandleKeyup, HandleReset as ItemHandleReset } from "../../libs/addtr_item.js"
+import { HandleKeyup as ItemHandleKeyup, HandleReset as ItemHandleReset, Set_Cat_From_Click, Set_Tag_From_Click } from "../../libs/addtr_item.js"
 
 
 declare var render: any;
@@ -26,6 +26,7 @@ class VAddTr extends HTMLElement {
 	keycatcherel:HTMLInputElement
 	shadow:ShadowRoot
 
+	isinitialload: boolean = false
 
 	static get observedAttributes() { return Object.keys(ATTRIBUTES); }
 
@@ -84,16 +85,20 @@ class VAddTr extends HTMLElement {
 
 	visibled = () => new Promise<void>(async (res) => { 
 		setTimeout(()=> {
-			const cat_input = this.shadow.querySelector("#input-cat") as HTMLInputElement
-			cat_input.focus()
+			this.s.inputmode = InputModeE.cat
+			this.focus_inputmode()
 			res()
 		},500)
 	})
 
 
 
-
 	kd() {
+
+		if (this.isinitialload) return
+
+		this.isinitialload = true
+
 		this.m.areas = knit_areas(this.m.raw_areas)
 		this.m.cats = knit_cats(this.m.areas, this.m.raw_cats)
 		this.m.sources = knit_sources(this.m.raw_sources)
@@ -151,7 +156,7 @@ class VAddTr extends HTMLElement {
 
 		} 
 		else if (e.key === "Backspace") {
-			ItemHandleReset(this.m, this.s, inputel);
+			ItemHandleReset(this.m, this.s);
 			this.sc();
 		}
 		else if (e.key === "Enter") {
@@ -167,7 +172,7 @@ class VAddTr extends HTMLElement {
 		}
 		else {
 			if (inputel.value.length < 2) return;
-			ItemHandleKeyup(this.m, this.s, inputel);
+			ItemHandleKeyup(this.m, this.s, newval)
 			this.sc();
 		} 
 	}
@@ -205,7 +210,7 @@ class VAddTr extends HTMLElement {
 		else if (s.inputmode === InputModeE.merchant) {
 			s.activetransaction.merchant = newval
 
-			if      (direction === 'back') s.inputmode = InputModeE.amount
+			if      (direction === 'back') s.inputmode    = InputModeE.amount
 		}
 	}
 
@@ -262,12 +267,13 @@ class VAddTr extends HTMLElement {
 
 		this.s.activetransaction = this.m.newtransactions[index+1]
 
-		const cat_input = this.shadow.querySelector("#input-cat") as HTMLInputElement
-		cat_input.focus()
-
 		this.s.inputmode = InputModeE.cat
 
-		ItemHandleReset(this.m, this.s, cat_input)
+		this.focus_inputmode()
+
+		ItemHandleReset(this.m, this.s)
+
+		this.reset_all_inputs()
 
 		return true
 	}
@@ -311,42 +317,41 @@ class VAddTr extends HTMLElement {
 
 
 
-	setcat_from_click(e:MouseEvent) {
-		const catid = (e.target as HTMLElement).dataset.id as str
-		
-		// First check if it's a direct match in top-level categories
-		let foundCat = this.m.cats.find(cat => cat.id === catid)
-		
-		// If not found in top level, look in subcategories
-		if (!foundCat) {
-			for(const c of this.m.cats) {
-				const f = c.subs?.find(sub => sub.id === catid)
-				if (f) {
-					foundCat = f
-					break
-				}
-			}
-		}
-		
-		if (foundCat) {
-			this.s.highlightcat = foundCat
-			this.sc() // Trigger re-render
+	reset_all_inputs = () => {
+		const names = ['cat', 'note', 'tag', 'amount', 'merchant']
+
+		for (const name of names) {
+			const inputel = this.shadow.querySelector("#input-" + name) as HTMLInputElement
+			inputel.value = ""
 		}
 	}
 
 
 
 
-	settag_from_click(e:MouseEvent) {
-
-		/*
-		const tagid = (e.target as HTMLElement).dataset.id as str
-
-		const tag = this.m.tags.find(tag => tag.id === tagid) 
-
-		this.settags([tag!.id], [tag!.name])
-		*/
+	focus_inputmode = () => {
+		const inputel = this.shadow.querySelector("#input-" + this.s.inputmode) as HTMLInputElement
+		inputel.focus()
 	}
+
+
+
+
+	setcat_from_click = (e:MouseEvent) => { 
+		Set_Cat_From_Click(this.m, this.s, e); 
+		this.save_step('', 'forward'); 
+		this.sc(); 
+		this.focus_inputmode(); 
+	}
+	settag_from_click = (e:MouseEvent) => { 
+		Set_Tag_From_Click(this.m, this.s, e); 
+		this.save_step('', 'forward'); 
+		this.sc(); 
+		this.focus_inputmode(); 
+	}
+
+
+
 
 
 
