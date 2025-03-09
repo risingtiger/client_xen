@@ -5,27 +5,32 @@
         <input id="input-cat" type="text" placeholder="category"
                class="${_s.inputmode === 'cat' ? 'highlight' : ''}"
                @keydown="${(e)=>this.handleInputKeydown(e, 'cat')}"
-               .value="${_s.activetransaction.cat?.name || ''}">
+               .value="${_s.activetransaction.cat?.name || ''}"
+               tabindex="1">
 
         <input id="input-note" type="text" placeholder="Note"
                class="${_s.inputmode === 'note' ? 'highlight' : ''}"
                @keydown="${(e)=>this.handleInputKeydown(e, 'note')}"
-               .value="${_s.activetransaction.notes || ''}">
+               .value="${_s.activetransaction.notes || ''}"
+               tabindex="2">
 
         <input id="input-tag" type="text" placeholder="Tag"
                class="${_s.inputmode === 'tag' ? 'highlight' : ''}"
                @keydown="${(e)=>this.handleInputKeydown(e, 'tag')}"
-               .value="${_s.activetransaction.tags.length ? _s.activetransaction.tags[0].name : ''}">
+               .value="${_s.activetransaction.tags.length ? _s.activetransaction.tags[0].name : ''}"
+               tabindex="3">
 
         <input id="input-amount" type="number" placeholder="Amount"
                class="${_s.inputmode === 'amount' ? 'highlight' : ''}"
                @keydown="${(e)=>this.handleInputKeydown(e, 'amount')}"
-               .value="${_s.activetransaction.amount || ''}">
+               .value="${_s.activetransaction.amount || ''}"
+               tabindex="4">
 
         <input id="input-merchant" type="text" placeholder="Merchant"
                class="${_s.inputmode === 'merchant' ? 'highlight' : ''}"
                @keydown="${(e)=>this.handleInputKeydown(e, 'merchant')}"
-               .value="${_s.activetransaction.merchant || ''}">
+               .value="${_s.activetransaction.merchant || ''}"
+               tabindex="5">
                
         <div id="keycatcher_instructions">
 			<span>
