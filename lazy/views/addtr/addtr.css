@@ -21,6 +21,11 @@
 		background: rgba(0,0,0,0);
 	}
 	
+	& input.editprop::placeholder {
+		color: rgba(255, 255, 255, 0.7);
+		font-style: italic;
+	}
+	
 	& input:focus {
 		outline: none;
 		border-color: #05accf;
