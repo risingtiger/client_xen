@@ -198,11 +198,22 @@ class VAddTr extends HTMLElement {
     ts: number,
 	*/
 
-		const body = this.s.activetransaction
+		// Create a properly formatted transaction object for the server
+		const transaction_to_server = {
+			amount: this.s.activetransaction.amount,
+			cat: this.s.activetransaction.cat?.id || "",
+			date: new Date().getTime(), // Current timestamp as date
+			merchant: this.s.activetransaction.merchant,
+			notes: this.s.activetransaction.notes,
+			source: this.s.activetransaction.source?.id || "",
+			tags: this.s.activetransaction.tags.map(tag => tag.id || ""),
+			ynab_id: this.s.activetransaction.ynab_id,
+			ts: this.s.activetransaction.ts
+		}
 
 		await $N.FetchLassie( `/api/xen/finance/save_transaction`, { 
 			method:"POST", 
-			body:JSON.stringify(body) 
+			body:JSON.stringify(transaction_to_server) 
 		})
 
 		this.s.inputmode = InputModeE.saved
