@@ -170,6 +170,11 @@ class VAddTr extends HTMLElement {
 
 			this.sc();
 		}
+		else if (e.key === "j" && (e.metaKey || e.ctrlKey)) {
+			// Handle command+j key press
+			console.log("Command+J pressed");
+			// Add your command+j functionality here
+		}
 		else {
 			if (inputel.value.length < 2) return;
 			ItemHandleKeyup(this.m, this.s, newval)
