@@ -1,20 +1,8 @@
 
-<!--
-<header class="viewheader">
-    <a class="left" @click="${()=>window.location.hash='finance'}"><span>‸</span><span>finance</span></a>
-    <div class="middle">
-        <h1>Categorize New ${_s.transactionindex+1} of ${_s.newcount}</h1>
-    </div>
-    <div class="right">
-        <a @click="${()=>{ this.reset_transaction(); }}" style="font-size: 17px;">reset</a>
-    </div>
-</header>
--->
-
 <div class="content">
 
     <div id="topspace">
-        <input id="input-cat" type="text" placeholder="Category"
+        <input id="input-cat" type="text" placeholder="category"
                class="${_s.inputmode === 'cat' ? 'highlight' : ''}"
                @keydown="${(e)=>this.handleInputKeydown(e, 'cat')}"
                .value="${_s.activetransaction.cat?.name || ''}">
