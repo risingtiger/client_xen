@@ -133,78 +133,23 @@ class VAddTr extends HTMLElement {
 		this.s.newcount = this.m.newtransactions.length
 
 		this.s.activetransaction = this.m.newtransactions[0]
-
-		//this.process_next_transaction()
 	}
 
 
 
 
-	async process_next_transaction() {
-		/*
-		this.s.focusedindex = 0
-		this.s.inputmode = InputModeE.cat
-		this.s.rawtransactions = [this.m.latest_raw_transactions[this.s.transactionindex]]
-		this.s.splittotal = 0
-		this.s.allow_split = true
-		*/
-	}
+	async handle_input_keyup(e: KeyboardEvent) {
 
-
-
-
-	async save_focused_transaction_and_load_next() {
-
-		/*
-		const nextit = ()=> {
-
-			if (this.s.transactionindex == this.m.latest_raw_transactions.length - 1) {
-				alert("all transactions processed. DONE")
-			}
-			else {
-				this.s.transactionindex++
-				this.process_next_transaction()
-				this.sc()
-				const keycatcher_el = this.shadow.querySelector("#keycatcher") as HTMLInputElement
-				keycatcher_el.value = ""
-				keycatcher_el.focus()
-			}
-		}
-
-
-		const unskipped_transactions = this.s.rawtransactions.filter(tr => !tr.skipsave)
-			
-		if (unskipped_transactions.length === 0) {
-			nextit()    
-			return;
-
-		} else {
-			const body = this.s.rawtransactions
-
-			await $N.FetchLassie( `/api/xen/finance/save_transactions`, { 
-				method:"POST", 
-				body:JSON.stringify(body) 
-			})
-			nextit()
-		}
-		*/
-	}
-
-
-
-
-	handle_input_keyup(e: KeyboardEvent) {
+		if (this.s.inputmode === InputModeE.saving) return;
 
 		const inputel = e.target as HTMLInputElement;
 
 		if (e.key === "Tab") {
 			e.preventDefault();
 			if (e.shiftKey) {
-				// Handle Shift+Tab (backward navigation)
-				InputSaveAtMode(this.s, inputel, false);
+				InputSaveAtMode(this.s, inputel, 'back')
 			} else {
-				// Regular Tab (forward navigation)
-				InputSaveAtMode(this.s, inputel, true);
+				InputSaveAtMode(this.s, inputel, 'forward')
 			}
 			this.sc();
 
@@ -216,13 +161,17 @@ class VAddTr extends HTMLElement {
 		else if (e.key === "Enter") {
 			if (inputel.value.length < 2) return;
 
-			InputSaveAtMode(this.s, inputel, false)
+			InputSaveAtMode(this.s, inputel, 'neutral')
 
-			this.completeActiveTransaction(this.s)
+			this.sc()
+
+			await this.save_active_transaction()
+			if (!this.set_next_active_transaction()) this.set_to_all_done()
 
 			this.sc();
 		}
 		else {
+			if (inputel.value.length < 2) return;
 			ItemHandleKeyup(this.m, this.s, inputel);
 			this.sc();
 		} 
@@ -231,7 +180,88 @@ class VAddTr extends HTMLElement {
 
 
 
-	completeActiveTransaction(s:StateT) {
+	save_active_transaction = () => new Promise<void>(async (res) => {
+
+		if (this.s.inputmode === InputModeE.saving) return
+
+		this.s.inputmode = InputModeE.saving
+
+		/*
+    amount: number,
+	cat: string,
+	date: number,
+    merchant: string,
+    notes: string
+    source: string,
+	tags: string[],
+    ynab_id: string|null,
+    ts: number,
+	*/
+
+		const body = this.s.activetransaction
+
+		await $N.FetchLassie( `/api/xen/finance/save_transaction`, { 
+			method:"POST", 
+			body:JSON.stringify(body) 
+		})
+
+		this.s.inputmode = InputModeE.saved
+		res()
+	})
+
+
+
+
+	set_next_active_transaction = () => {
+
+		if (this.s.inputmode !== InputModeE.saved && this.s.inputmode !== InputModeE.skipped && this.s.inputmode !== InputModeE.deleted) return false
+
+		const index = this.m.newtransactions.findIndex(tr => tr === this.s.activetransaction)
+
+		if (!this.m.newtransactions[index+1]) return false
+
+		this.s.activetransaction = this.m.newtransactions[index+1]
+
+		const cat_input = this.shadow.querySelector("#input-cat") as HTMLInputElement
+		cat_input.focus()
+
+		this.s.inputmode = InputModeE.cat
+
+		ItemHandleReset(this.m, this.s, cat_input)
+
+		return true
+	}
+
+
+
+
+	set_to_all_done = () => {
+		console.log("is done")
+		return true
+	}
+
+
+
+
+	skip(e:any) {
+		this.s.inputmode = InputModeE.skipped
+		if (!this.set_next_active_transaction()) this.set_to_all_done()
+		console.log("skipperino")
+		this.sc()
+
+		e.detail.resolved()
+	}
+
+
+
+
+	delete(e:any) {
+		this.s.inputmode = InputModeE.deleted
+		if (!this.set_next_active_transaction()) this.set_to_all_done()
+		console.log("need to set server side to delete this")
+		this.sc()
+
+		e.detail.resolved()
 	}
 
 	//async keyup(e:KeyboardEvent) {
@@ -442,8 +472,6 @@ class VAddTr extends HTMLElement {
 
 	ignore_transaction() {
 		/*
-		this.s.rawtransactions[this.s.focusedindex].ignore = true
-		this.save_transaction_and_move_to_next()
 		*/
 	}
 
