@@ -1,12 +1,12 @@
 
 
-import { str, bool, num } from "../../../defs_server_symlink.js"
+import { str } from "../../../defs_server_symlink.js"
 import { $NT } from "../../../defs_client_symlink.js"
 import { CatT, SourceT } from '../../../defs.js'
 import { knit_areas, knit_cats, knit_sources } from '../../libs/financefuncs_knit.js'
 import { NewTransactionT, InputModeE, AttributesT, ModelT, StateT, RawNewTransactionT } from "../../libs/addtr_defs.js"
-import { To_Next_Mode } from "../../libs/addtr_input.js"
-import { HandleKeyup, HandleReset } from "../../libs/addtr_item.js"
+import { SaveAtMode as InputSaveAtMode } from "../../libs/addtr_input.js"
+import { HandleKeyup as ItemHandleKeyup, HandleReset as ItemHandleReset } from "../../libs/addtr_item.js"
 
 
 declare var render: any;
@@ -189,42 +189,46 @@ class VAddTr extends HTMLElement {
 		}
 		*/
 	}
-    
 
 
 
-	handleInputKeydown(e: KeyboardEvent, field: string) {
+
+	handle_input_keyup(e: KeyboardEvent) {
+
+		const inputel = e.target as HTMLInputElement;
+
 		if (e.key === "Tab") {
 			e.preventDefault();
-			const inputEl = e.target as HTMLInputElement;
-			// Call the mode-switching function with the current value and input element
-			To_Next_Mode(this.s, inputEl.value, inputEl);
-			// Determine which field should be focused next:
-			let nextField: string;
-			switch (field) {
-				case 'cat': nextField = 'note'; break;
-				case 'note': nextField = 'tag'; break;
-				case 'tag': nextField = 'amount'; break;
-				case 'amount': nextField = 'merchant'; break;
-				default: nextField = 'cat';
-			}
-			// Shift focus to the next input field, if it exists
-			const nextInput = this.shadow.getElementById(`input-${nextField}`) as HTMLInputElement;
-			if (nextInput) nextInput.focus();
-			// Rerender the component so that the correct field gets highlighted
+			InputSaveAtMode(this.s, inputel, true);
 			this.sc();
-		} else if (e.key === "Backspace" && (e.target as HTMLInputElement).value === "") {
-			HandleReset(this.m, this.s, "");
-			this.sc();
-		} else if (e.key === "Enter") {
-			const inputEl = e.target as HTMLInputElement;
-			if (inputEl.value.length < 2) return;
-			To_Next_Mode(this.s, inputEl.value, inputEl);
+
+		} 
+		else if (e.key === "Backspace") {
+			ItemHandleReset(this.m, this.s, inputel);
 			this.sc();
 		}
+		else if (e.key === "Enter") {
+			if (inputel.value.length < 2) return;
+
+			InputSaveAtMode(this.s, inputel, false)
+
+			this.completeActiveTransaction(this.s)
+
+			this.sc();
+		}
+		else {
+			ItemHandleKeyup(this.m, this.s, inputel);
+			this.sc();
+		} 
 	}
 
-	async keyup(e:KeyboardEvent) {
+
+
+
+	completeActiveTransaction(s:StateT) {
+	}
+
+	//async keyup(e:KeyboardEvent) {
 		// Keeping this method for backward compatibility
 		// but it's no longer used with the new input fields
 
@@ -388,7 +392,7 @@ class VAddTr extends HTMLElement {
 			}
 		}
 		*/
-	}
+	//}
 
 
 
