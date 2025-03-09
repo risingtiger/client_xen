@@ -6,7 +6,7 @@
         <input id="input-date" type="text" placeholder="Date"
                class="editprop ${_s.inputmode === 'date' ? 'highlight' : ''}"
                @keyup="${(e)=>this.handleInputKeyup(e, 'date')}"
-               .value="${_s.activetransaction.ts || ''}"
+               .value="${_s.activetransaction.ts ? new Date(_s.activetransaction.ts * 1000).toLocaleDateString('en-US', {month: '2-digit', day: '2-digit', year: 'numeric'}) : ''}"
                tabindex="5">
 
         <input id="input-merchant" type="text" placeholder="Merchant"
