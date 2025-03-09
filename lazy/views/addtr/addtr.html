@@ -1,37 +1,46 @@
 
 <div class="content">
 
-    <div id="topspace">
+    <div id="editarea">
+
+        <input id="input-date" type="text" placeholder="Date"
+               class="editprop ${_s.inputmode === 'date' ? 'highlight' : ''}"
+               @keyup="${(e)=>this.handleInputKeyup(e, 'date')}"
+               .value="${_s.activetransaction.ts || ''}"
+               tabindex="5">
+
+        <input id="input-merchant" type="text" placeholder="Merchant"
+               class="editprop ${_s.inputmode === 'merchant' ? 'highlight' : ''}"
+               @keyup="${(e)=>this.handleInputKeyup(e, 'merchant')}"
+               .value="${_s.activetransaction.merchant || ''}"
+               tabindex="5">
+
         <input id="input-cat" type="text" placeholder="category"
-               class="${_s.inputmode === 'cat' ? 'highlight' : ''}"
-               @keydown="${(e)=>this.handleInputKeydown(e, 'cat')}"
+               class="editprop ${_s.inputmode === 'cat' ? 'highlight' : ''}"
+               @keyup="${(e)=>this.handleInputKeyup(e, 'cat')}"
                .value="${_s.activetransaction.cat?.name || ''}"
                tabindex="1">
 
         <input id="input-note" type="text" placeholder="Note"
-               class="${_s.inputmode === 'note' ? 'highlight' : ''}"
-               @keydown="${(e)=>this.handleInputKeydown(e, 'note')}"
+               class="editprop ${_s.inputmode === 'note' ? 'highlight' : ''}"
+               @keyup="${(e)=>this.handleInputKeyup(e, 'note')}"
                .value="${_s.activetransaction.notes || ''}"
                tabindex="2">
 
         <input id="input-tag" type="text" placeholder="Tag"
-               class="${_s.inputmode === 'tag' ? 'highlight' : ''}"
-               @keydown="${(e)=>this.handleInputKeydown(e, 'tag')}"
+               class="editprop ${_s.inputmode === 'tag' ? 'highlight' : ''}"
+               @keyup="${(e)=>this.handleInputKeyup(e, 'tag')}"
                .value="${_s.activetransaction.tags.length ? _s.activetransaction.tags[0].name : ''}"
                tabindex="3">
 
         <input id="input-amount" type="number" placeholder="Amount"
-               class="${_s.inputmode === 'amount' ? 'highlight' : ''}"
-               @keydown="${(e)=>this.handleInputKeydown(e, 'amount')}"
+               class="editprop ${_s.inputmode === 'amount' ? 'highlight' : ''}"
+               @keyup="${(e)=>this.handleInputKeyup(e, 'amount')}"
                .value="${_s.activetransaction.amount || ''}"
                tabindex="4">
 
-        <input id="input-merchant" type="text" placeholder="Merchant"
-               class="${_s.inputmode === 'merchant' ? 'highlight' : ''}"
-               @keydown="${(e)=>this.handleInputKeydown(e, 'merchant')}"
-               .value="${_s.activetransaction.merchant || ''}"
-               tabindex="5">
                
+			<!--
         <div id="keycatcher_instructions">
 			<span>
 				${_s.inputmode === "cat" ? html`
@@ -51,13 +60,17 @@
 				` : ''}
 			</span>
         </div>
+			-->
+		<!--
 		<div id="topspace_side_info" class="${_s.inputmode !== 'note' ? 'active' : ''}">
 			<div id="transaction_date">${(new Date(_s.activetransaction.ts*1000)).toLocaleDateString("en-US", {month: '2-digit', day: '2-digit'}).slice(0,5).replace("/","-")}</div>
 			<div id="transaction_amount">${_s.activetransaction.amount.toFixed(2)}</div>
 			<div id="transaction_source">${_s.activetransaction.source.name}</div>
 		</div>
+		-->
     </div>
 
+	<!--
     <div id="rawtransaction">
 		<div class="a_transaction active">
 			<div class="primary">
@@ -76,6 +89,7 @@
 			</div>
 		</div>
     </div>
+	-->
 
 
 	<div id="cats" class="${_s.inputmode === 'cat' ? 'active' : ''}">
