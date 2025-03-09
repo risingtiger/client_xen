@@ -56,8 +56,6 @@ class VAddTr extends HTMLElement {
 	async connectedCallback() {
 		await $N.CMech.ViewConnectedCallback(this)
 		this.dispatchEvent(new Event('hydrated'));
-
-		this.keycatcherel = this.shadow.getElementById("keycatcher") as HTMLInputElement
 	}
 
 
@@ -87,9 +85,8 @@ class VAddTr extends HTMLElement {
 
 	visibled = () => new Promise<void>(async (res) => { 
 		setTimeout(()=> {
-			const keycatcher_el = this.shadow.querySelector("#keycatcher") as HTMLInputElement
-			keycatcher_el.focus()
-			keycatcher_el.addEventListener("keyup", this.keyup.bind(this))
+			const cat_input = this.shadow.querySelector("#input-cat") as HTMLInputElement
+			cat_input.focus()
 			res()
 		},500)
 	})
@@ -196,28 +193,40 @@ class VAddTr extends HTMLElement {
 
 
 
+	handleInputKeydown(e: KeyboardEvent, field: string) {
+		if (e.key === "Tab") {
+			e.preventDefault();
+			const inputEl = e.target as HTMLInputElement;
+			// Call the mode-switching function with the current value and input element
+			To_Next_Mode(this.s, inputEl.value, inputEl);
+			// Determine which field should be focused next:
+			let nextField: string;
+			switch (field) {
+				case 'cat': nextField = 'note'; break;
+				case 'note': nextField = 'tag'; break;
+				case 'tag': nextField = 'amount'; break;
+				case 'amount': nextField = 'merchant'; break;
+				default: nextField = 'cat';
+			}
+			// Shift focus to the next input field, if it exists
+			const nextInput = this.shadow.getElementById(`input-${nextField}`) as HTMLInputElement;
+			if (nextInput) nextInput.focus();
+			// Rerender the component so that the correct field gets highlighted
+			this.sc();
+		} else if (e.key === "Backspace" && (e.target as HTMLInputElement).value === "") {
+			HandleReset(this.m, this.s, "");
+			this.sc();
+		} else if (e.key === "Enter") {
+			const inputEl = e.target as HTMLInputElement;
+			if (inputEl.value.length < 2) return;
+			To_Next_Mode(this.s, inputEl.value, inputEl);
+			this.sc();
+		}
+	}
+
 	async keyup(e:KeyboardEvent) {
-
-		const keycatcher_el = this.shadow.querySelector("#keycatcher") as HTMLInputElement
-		const val = keycatcher_el.value.toLowerCase()
-
-
-		if (e.key === "Enter") {
-			if (val.length < 2) return
-			To_Next_Mode(this.s, val, this.keycatcherel);
-			this.sc()
-		}
-		else if (e.key === "Backspace") {
-			console.log("backspace")
-			HandleReset(this.m, this.s, val)
-			keycatcher_el.value = ""
-			this.sc()
-		}
-		else {
-			if (val.length < 2) return
-			HandleKeyup(this.m, this.s, val)
-			this.sc()
-		}
+		// Keeping this method for backward compatibility
+		// but it's no longer used with the new input fields
 
 		/*
 		const keycatcher_el = this.shadow.querySelector("#keycatcher") as HTMLInputElement

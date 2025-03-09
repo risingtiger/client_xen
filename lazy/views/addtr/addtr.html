@@ -14,7 +14,31 @@
 <div class="content">
 
     <div id="topspace">
-        <input id="keycatcher" type="email" spellcheck="false" inputmode="email"></input>
+        <input id="input-cat" type="text" placeholder="Category"
+               class="${_s.inputmode === 'cat' ? 'highlight' : ''}"
+               @keydown="${(e)=>this.handleInputKeydown(e, 'cat')}"
+               .value="${_s.activetransaction.cat?.name || ''}">
+
+        <input id="input-note" type="text" placeholder="Note"
+               class="${_s.inputmode === 'note' ? 'highlight' : ''}"
+               @keydown="${(e)=>this.handleInputKeydown(e, 'note')}"
+               .value="${_s.activetransaction.notes || ''}">
+
+        <input id="input-tag" type="text" placeholder="Tag"
+               class="${_s.inputmode === 'tag' ? 'highlight' : ''}"
+               @keydown="${(e)=>this.handleInputKeydown(e, 'tag')}"
+               .value="${_s.activetransaction.tags.length ? _s.activetransaction.tags[0].name : ''}">
+
+        <input id="input-amount" type="number" placeholder="Amount"
+               class="${_s.inputmode === 'amount' ? 'highlight' : ''}"
+               @keydown="${(e)=>this.handleInputKeydown(e, 'amount')}"
+               .value="${_s.activetransaction.amount || ''}">
+
+        <input id="input-merchant" type="text" placeholder="Merchant"
+               class="${_s.inputmode === 'merchant' ? 'highlight' : ''}"
+               @keydown="${(e)=>this.handleInputKeydown(e, 'merchant')}"
+               .value="${_s.activetransaction.merchant || ''}">
+               
         <div id="keycatcher_instructions">
 			<span>
 				${_s.inputmode === "cat" ? html`

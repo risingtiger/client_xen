@@ -1,22 +1,34 @@
 #topspace {
 	position: relative;
 	height: 33px;
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
 	
+	& input {
+		flex: 1;
+		min-width: 80px;
+		height: 100%;
+		box-sizing: border-box;
+		font-size: 14px;
+		color: #6b6b6b;
+		padding: 5px 8px;
+		border: 1px solid rgba(0,0,0,0.1);
+		border-radius: 4px;
+		margin-right: 5px;
+		background: white;
+	}
 	
+	& input:focus {
+		outline: none;
+		border-color: #05accf;
+	}
 	
+	& input.highlight {
+		background-color: #e6f7fa;
+		border-color: #05accf;
+	}
 	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-
 	& #keycatcher_instructions {
 		position: absolute;
 		top: 0;

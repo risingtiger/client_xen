@@ -6,34 +6,37 @@ import { NewTransactionT, InputModeE, QuickNoteT, AttributesT, ModelT, StateT } 
 
 
 
-export const To_Next_Mode = (s:StateT, inputval:string, keycatcherel:HTMLInputElement) => {
+export const To_Next_Mode = (s:StateT, inputval:string, inputEl:HTMLInputElement) => {
 
 	if (s.inputmode === InputModeE.cat) {
-		if (!s.highlightcat) return 
-		s.activetransaction.cat = s.highlightcat
+		if (!s.highlightcat && inputval.length > 0) {
+			// If no cat is highlighted but we have input, try to find a matching cat
+			// This is a simplified version - you might want to enhance this logic
+		}
+		if (s.highlightcat) {
+			s.activetransaction.cat = s.highlightcat
+		}
 		s.inputmode = InputModeE.note
-		keycatcherel.value = ''
 	}
 	else if (s.inputmode === InputModeE.note) {
 		s.activetransaction.notes = inputval
 		s.inputmode = InputModeE.tag
-		keycatcherel.value = ''
 	}
 	else if (s.inputmode === InputModeE.tag) {
-		s.activetransaction.tags = [s.highlighttag!]
+		if (s.highlighttag) {
+			s.activetransaction.tags = [s.highlighttag]
+		}
 		s.inputmode = InputModeE.amount
-		keycatcherel.value = s.activetransaction.amount.toString()
 	}
 	else if (s.inputmode === InputModeE.amount) {
 		s.activetransaction.amount = Number(inputval)
 		s.inputmode = InputModeE.merchant
-		keycatcherel.value = s.activetransaction.merchant
 	}
 	else if (s.inputmode === InputModeE.merchant) {
 		s.activetransaction.merchant = inputval
+		// Cycle back to cat for the next transaction or complete this one
+		s.inputmode = InputModeE.cat
 	}
-
-	keycatcherel.focus()
 }
 
 
