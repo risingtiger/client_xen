@@ -67,7 +67,7 @@
 		background: #05accf;
 		text-align: right;
 
-		>div {
+		& div {
 			display: inline-block;
 			height: 100%;
 			padding: 4px 10px 0px 1px;

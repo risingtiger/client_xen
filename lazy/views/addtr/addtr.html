@@ -68,7 +68,7 @@
     <div id="rawtransaction">
 		<div class="a_transaction active">
 			<div class="primary">
-				<div class="anitem oftotal">${_m.newtransactions.findIndex(nt=> nt.ynab_id === _s.activetransaction.ynab_id)+1} of ${_s.newcount}</div>
+				<div class="anitem oftotal">${_m.newtransactions.findIndex(nt=> nt.ynab_id === _s.activetransaction?.ynab_id) + 1 || 1} of ${_s.newcount}</div>
 				<div class="anitem longdesc">&nbsp;- ${_s.activetransaction.merchant}</div>
 				<div class="anitem cat">
 					${ _s.activetransaction.cat?.name ?? '' } 
@@ -77,7 +77,7 @@
 
 			<div class="secondary">
 				<div class="anitem note">
-					${_s.activetransaction.tags.map(tn=> '#' + tn.name + ' ')} 
+					${_s.activetransaction.tags?.map(tn=> '#' + tn.name + ' ') || ''} 
 					${_s.activetransaction.notes || '...'} 
 				</div>
 			</div>
@@ -86,11 +86,11 @@
 
 
 	<div id="cats" class="${_s.inputmode === 'cat' ? 'active' : ''}">
-        ${_s.filteredcats.map(cat=>html`
+        ${_s.filteredcats?.map(cat=>html`
             <div class="catparent">
                 <h4>${cat.name}</h4>
                 <div class="subcats">
-                    ${cat.subs.map(subcat=>html`
+                    ${cat.subs?.map(subcat=>html`
 					<h6 @click="${(e)=>this.setcat_from_click(e)}" data-id="${subcat.id}" class="${subcat.id === _s.highlightcat?.id ? 'highlight' : ''}">${subcat.name}</h6>
                     `)}
                 </div>
@@ -100,7 +100,7 @@
 
 
 	<div id="tags" class="${_s.inputmode === 'tag' ? 'active' : ''}">
-        ${_s.filteredtags.map(tag=>html`
+        ${_s.filteredtags?.map(tag=>html`
             <h6 @click="${(e)=>this.settag_from_click(e)}" data-id="${tag.id}" class="${tag.id === _s.highlighttag?.id ? 'highlight' : ''}">${tag.name}</h6>
         `)}
     </div>
