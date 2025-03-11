@@ -87,8 +87,16 @@ class VAddTr extends HTMLElement {
 
 
 	visibled = () => new Promise<void>(async (res) => { 
-
-		
+		// Wait for secondaryload to complete if it exists and hasn't resolved yet
+		if (this.secondaryload) {
+			try {
+				await this.secondaryload;
+				// After secondaryload completes, process the data
+				await this.loadother();
+			} catch (error) {
+				console.error("Error loading secondary data:", error);
+			}
+		}
 		
 		setTimeout(()=> {
 			this.s.inputmode = InputModeE.cat
