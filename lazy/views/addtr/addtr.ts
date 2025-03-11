@@ -90,8 +90,9 @@ class VAddTr extends HTMLElement {
 		// Wait for secondaryload to complete if it exists and hasn't resolved yet
 		if (this.secondaryload) {
 			try {
-				await this.secondaryload;
-				// After secondaryload completes, process the data
+				const secondaryResult = await this.secondaryload;
+				// After secondaryload completes, process the data with the result
+				console.log("Secondary load completed with result:", secondaryResult);
 				await this.loadother();
 			} catch (error) {
 				console.error("Error loading secondary data:", error);
