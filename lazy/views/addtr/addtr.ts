@@ -1,7 +1,7 @@
 
 
 import { str } from "../../../defs_server_symlink.js"
-import { $NT } from "../../../defs_client_symlink.js"
+import { $NT, FetchResultT } from "../../../defs_client_symlink.js"
 import { CatT, SourceT } from '../../../defs.js'
 import { knit_areas, knit_cats, knit_sources } from '../../libs/financefuncs_knit.js'
 import { NewTransactionT, InputModeE, AttributesT, ModelT, StateT, RawNewTransactionT } from "../../libs/addtr_defs.js"
@@ -26,7 +26,8 @@ class VAddTr extends HTMLElement {
 	keycatcherel:HTMLInputElement
 	shadow:ShadowRoot
 
-	isinitialload: boolean = false
+	secondaryload:Promise<FetchResultT>|null = null
+
 
 	static get observedAttributes() { return Object.keys(ATTRIBUTES); }
 
@@ -56,6 +57,8 @@ class VAddTr extends HTMLElement {
 	async connectedCallback() {
 		await $N.CMech.ViewConnectedCallback(this)
 		this.dispatchEvent(new Event('hydrated'));
+
+		this.secondaryload = $N.FetchLassie('/api/xen/finance/get_ynab_raw_transactions', {})
 	}
 
 
@@ -84,20 +87,25 @@ class VAddTr extends HTMLElement {
 
 
 	visibled = () => new Promise<void>(async (res) => { 
+
+		
+		
 		setTimeout(()=> {
 			this.s.inputmode = InputModeE.cat
 			this.focus_inputmode()
 			res()
-		},500)
+		},100)
 	})
 
 
 
 	kd() {
 
-		if (this.isinitialload) return
+		THERE IS A MAJOR PROBLEM IN CORE NIFTY CLIENT DATASYNC. SOMETING LIKE CATS IS REFERENCING AREA AND THAT OBJECT IS GONNA BE BJORKED OR GONE OR SOMETHING IF IT GETS REPLACED BY A SSE DOC OR COLLECTION UPDATE
+		
+		MAYBE SET UP A NEW LIB THAT HANDLES ALL THIS STUFF? I NEED RELATIONAL DATA LINKS.
 
-		this.isinitialload = true
+		I THINK WHAT I NEED TO DO IS JUST KEEP ALL THE DATA OF ALL FIRESTORE COLLECTIONS BACK IN FIRESTORE.TS. THOSE DOCS GET UPDATED ON SSE. EVERYTHING CMECH TO INDIVIDUAL COMPONENTS IS JUST DOWNSTREAM REFERENCES
 
 		this.m.areas = knit_areas(this.m.raw_areas)
 		this.m.cats = knit_cats(this.m.areas, this.m.raw_cats)
@@ -169,11 +177,6 @@ class VAddTr extends HTMLElement {
 			if (!this.set_next_active_transaction()) this.set_to_all_done()
 
 			this.sc();
-		}
-		else if (e.key === "j" && (e.metaKey || e.ctrlKey)) {
-			// Handle command+j key press
-			console.log("Command+J pressed");
-			// Add your command+j functionality here
 		}
 		else {
 			if (inputel.value.length < 2) return;
@@ -247,13 +250,11 @@ class VAddTr extends HTMLElement {
 			ts: Math.floor(new Date().getTime() / 1000)
 		}
 
-		console.log("problem. Server seems to save it ok. But then it retrieves an object that has firestore linkage to source cat etc. SSE cant send that back like that. Needs to be parsed to ids before SSE sends back from server. So this fix should be fixed on the server0")
-		/*
+		debugger
 		await $N.FetchLassie( `/api/xen/finance/save_transaction`, { 
 			method:"POST", 
 			body:JSON.stringify(transaction_to_server) 
 		})
-		*/
 
 		this.s.inputmode = InputModeE.saved
 		res(1)
