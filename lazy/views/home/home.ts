@@ -184,15 +184,17 @@ const testdb = () => new Promise(async (resolve, _reject) => {
 
 	const t1 = performance.now()
 
-	const store      = transaction.objectStore('transactions');
-	let   getrequest:IDBRequest|IDBRequest<any[]>|null = null
-
-	getrequest = store.getAll()
-
-	getrequest.onerror = (event_s:any) => console.log("IndexedDB Error - " + event_s.target.errorCode)
-
-	getrequest.onsuccess = (_event) => {
-		transactions = getrequest.result
+	const store = transaction.objectStore('transactions');
+	const cursorRequest = store.openCursor();
+	
+	cursorRequest.onerror = (event_s: any) => console.log("IndexedDB Error - " + event_s.target.errorCode);
+	
+	cursorRequest.onsuccess = (event: any) => {
+		const cursor = event.target.result;
+		if (cursor) {
+			transactions.push(cursor.value);
+			cursor.continue();
+		}
 	};
 
 	transaction.oncomplete = () => {
