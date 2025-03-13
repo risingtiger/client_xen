@@ -194,14 +194,14 @@ const testdb = () => new Promise(async (resolve, _reject) => {
 		if (cursor) {
 			transactions.push(cursor.value);
 			cursor.continue();
+		} else {
+			// All transactions have been collected when cursor is null
+			console.log("Time taken: " + (performance.now() - t1) + "ms")
+			console.log(`Retrieved ${transactions.length} transactions`)
+			db.close()
+			resolve(transactions)
 		}
 	};
-
-	transaction.oncomplete = () => {
-		db.close()
-		console.log("Time taken: " + (performance.now() - t1) + "ms")
-		resolve(transactions)	
-	}
 
 	transaction.onerror = (event_s:any) => console.log("IndexedDB Error - " + event_s.target.errorCode)
 })
