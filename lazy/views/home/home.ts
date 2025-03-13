@@ -192,14 +192,47 @@ const testdb = () => new Promise(async (resolve, _reject) => {
 	cursorRequest.onsuccess = (event: any) => {
 		const cursor = event.target.result;
 		if (cursor) {
-			transactions.push(cursor.value);
-			cursor.continue();
+			// Process multiple records in a batch
+			const batchSize = 100;
+			let count = 0;
+			
+			// Function to process records in batches
+			const processRecords = () => {
+				const batch = [];
+				
+				// Collect up to batchSize records or until cursor is null
+				while (cursor && count < batchSize) {
+					batch.push(cursor.value);
+					count++;
+					cursor.continue();
+					return; // Exit and wait for next onsuccess call
+				}
+				
+				// Add batch to transactions array
+				transactions.push(...batch);
+				
+				// If we've processed a full batch, schedule the next batch
+				if (count === batchSize) {
+					count = 0;
+					// Continue processing in the next event loop iteration
+					setTimeout(processRecords, 0);
+				} else {
+					// We're done - no more records
+					console.log("Time taken: " + (performance.now() - t1) + "ms");
+					console.log(`Retrieved ${transactions.length} transactions`);
+					db.close();
+					resolve(transactions);
+				}
+			};
+			
+			// Start processing records
+			processRecords();
 		} else {
-			// All transactions have been collected when cursor is null
-			console.log("Time taken: " + (performance.now() - t1) + "ms")
-			console.log(`Retrieved ${transactions.length} transactions`)
-			db.close()
-			resolve(transactions)
+			// No records found
+			console.log("Time taken: " + (performance.now() - t1) + "ms");
+			console.log(`Retrieved ${transactions.length} transactions`);
+			db.close();
+			resolve(transactions);
 		}
 	};
 
