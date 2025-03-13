@@ -2,6 +2,7 @@
 
 import { SSETriggersE } from "../../../defs_server_symlink.js";
 import { $NT } from "../../../defs_client_symlink.js";
+import { AreaT, CatT } from "../../../defs.js";
 
 
 type str = string;   //type int = number;   //type bool = boolean;
@@ -11,87 +12,71 @@ declare var html: any;
 declare var $N: $NT;
 
 
-type State = {
+type AttributesT = {
+    propa: string,
+}
+
+type ModelT = {
+    raw_areas:AreaT[],
+	raw_cats:CatT[],
+}
+
+type StateT = {
     admin_return_str:str
 }
 
+
+const ATTRIBUTES:AttributesT = { propa:"" }
 
 
 
 class VHome extends HTMLElement {
 
-	$:any
-	s:State
+	a:AttributesT = { ...ATTRIBUTES }
+	m:ModelT =      { raw_areas:[], raw_cats:[] }
+	s:StateT = {
+		admin_return_str: "",
+	}
+
 	shadow:ShadowRoot
 
 
+	static get observedAttributes() { return Object.keys(ATTRIBUTES); }
+
 
 	constructor() {   
-
 		super(); 
-
-		this.$ = this.querySelector
-
-		this.s = {
-			admin_return_str: "",
-		}
-
 		this.shadow = this.attachShadow( { mode: 'open' } );
 	}
 
 
 
 
-	connectedCallback() {
+	async connectedCallback() {
 
-		this.sc()
-		setTimeout(()=> {   this.dispatchEvent(new Event('hydrated'))   }, 100)
-
-		/*
-		$N.DataSync.Subscribe(this, ["transactions"], ()=>{
-			console.log("Home transactions DataSync Callback Called: ")
-		})
-
-		setTimeout(() => {
-			let x = document.createElement("div")
-			x.id = "tempy"
-			x.innerHTML = "Hello. I am tempy"
-			this.shadow.querySelector("#admin")!.appendChild(x)
-			$N.DataSync.Subscribe(x, ["cats"], ()=>{
-				console.log("HOME cats DataSync Callback Called")
-			})
-
-			$N.SSEvents.Add_Listener(x, "hometest - tempy", [SSETriggersE.FIRESTORE], (data:any)=> {
-				console.log("Home SSE Event Tempy Received: ", data.paths)
-			})
-		}, 1000)
-
-		setTimeout(() => {
-			let x = this.shadow.querySelector("#tempy")
-			x?.parentNode?.removeChild(x)
-		}, 2000)
-
-		setTimeout(() => {
-			let x = document.createElement("div")
-			x.id = "yapa"
-			x.innerHTML = "Yo. I am yapa"
-			this.shadow.querySelector("#admin")!.appendChild(x)
-			const transaction_id = "2JU8wDmssP2Jfg19J9bO"
-			$N.DataSync.Subscribe(x, ["transactions/"+transaction_id], ()=>{
-				console.log(`HOME transactions/${transaction_id} DataSync Callback Called`)
-			})
-
-			$N.SSEvents.Add_Listener(x, "hometest", [SSETriggersE.FIRESTORE], (data:any)=> {
-				console.log("Home SSE Event Received: ", data.paths)
-			})
-		}, 3000)
-
-
-		$N.SSEvents.Add_Listener(this, "hometest", [SSETriggersE.FIRESTORE], (data:any)=> {
-			console.log("Home SSE Event Received: ", data.paths)
-		})
-		*/
+		await $N.CMech.ViewConnectedCallback(this)
+		this.dispatchEvent(new Event('hydrated'));
 	}
+
+
+
+
+	async attributeChangedCallback(name:str, oldval:str|boolean|number, newval:str|boolean|number) {
+		$N.CMech.AttributeChangedCallback(this,name,oldval,newval);
+	}
+
+
+
+
+	disconnectedCallback() {   $N.CMech.ViewDisconnectedCallback(this);   }
+
+
+
+	visibled = () => new Promise<void>(async (res) => { 
+		const r = await testdb() as any[]
+		console.log(r.length)
+		res()
+	})
 
 
 
@@ -107,7 +92,7 @@ class VHome extends HTMLElement {
 
 		if (confirm("Are you sure you want to run admin: " + api)) {
 
-			const returndata = await $N.FetchLassie("/api/xen/admin/" + api, { method } )
+			const returndata = await $N.FetchLassie("/api/xen/admin/" + api, { method } ) as any
 			if (returndata.return_str) {
 				this.s.admin_return_str = returndata.return_str.includes("--") ? returndata.return_str.split("--") : returndata.return_str
 			}
@@ -157,25 +142,6 @@ class VHome extends HTMLElement {
 
 
 
-
-	async trigger_firestore_sse() {
-
-		const randomFloat = Number((Math.random() * 9 + 1).toFixed(2));
-
-		const saveobj = { amount: randomFloat }
-
-		const r = await $N.Firestore.Patch(`transactions/2JU8wDmssP2Jfg19J9bO`, saveobj);
-
-		if (r.err) {
-			console.log("Trigger Firestore SSE Error saving")
-		} else {
-			console.log("Trigger Firestore SSE Saved")
-		}
-	}
-
-
-
-
 	reset_remove_database = () => new Promise((resolve, reject) => {
 
 		var req = indexedDB.deleteDatabase("xenition");
@@ -205,6 +171,58 @@ class VHome extends HTMLElement {
 customElements.define('v-home', VHome);
 
 
+
+
+const testdb = () => new Promise(async (resolve, _reject) => {
+
+	let transactions:any[] = []
+
+	const db = await openindexeddb()
+	db.onerror = (event_s:any) => console.log("IndexedDB Error - " + event_s.target.errorCode)
+
+	const transaction = db.transaction('transactions', 'readonly');
+
+	const t1 = performance.now()
+
+	const store      = transaction.objectStore('transactions');
+	let   getrequest:IDBRequest|IDBRequest<any[]>|null = null
+
+	getrequest = store.getAll()
+
+	getrequest.onerror = (event_s:any) => console.log("IndexedDB Error - " + event_s.target.errorCode)
+
+	getrequest.onsuccess = (_event) => {
+		transactions = getrequest.result
+	};
+
+	transaction.oncomplete = () => {
+		db.close()
+		console.log("Time taken: " + (performance.now() - t1) + "ms")
+		resolve(transactions)	
+	}
+
+	transaction.onerror = (event_s:any) => console.log("IndexedDB Error - " + event_s.target.errorCode)
+})
+
+
+
+
+const openindexeddb = () => new Promise<IDBDatabase>(async (res,_rej)=> {
+
+	let dbconnect = indexedDB.open('xenition', 1)
+
+	dbconnect.onerror = (event:any) => { 
+		console.log("IndexedDB Error - " + event.target.errorCode)
+	}
+
+	dbconnect.onsuccess = async (event: any) => {
+		event.target.result.onerror = (event:any) => {
+			console.log("IndexedDB Error - " + event.target.errorCode)
+		}
+		const db = event.target.result
+		res(db)
+	}
+})
 
 
 export {  }
