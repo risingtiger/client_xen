@@ -18,7 +18,15 @@ const INSTANCE:INSTANCE_T = {
 			dbversion: 1
 		},
 
-		datasync_collections: [ "areas", "cats", "sources", "tags", "payments", "transactions", "monthsnapshots" ],
+		datasync_collections: [ 
+			{name: "areas"}, 
+			{name: "cats"}, 
+			{name: "sources"}, 
+			{name: "tags"}, 
+			{name: "payments"}, 
+			{name: "transactions"}, 
+			{name: "monthsnapshots"} 
+		],
 	},
 
 
