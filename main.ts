@@ -18,15 +18,7 @@ const INSTANCE:INSTANCE_T = {
 			dbversion: 1
 		},
 
-		indexeddb_stores: [
-			{ name: "areas", url:"areas"},
-			{ name: "cats", url:"cats"},
-			{ name: "sources", url:"sources"},
-			{ name: "tags", url:"tags"},
-			{ name: "payments", url:"payments"},
-			{ name: "transactions", url:"transactions"},
-			{ name: "monthsnapshots", url:"monthsnapshots"},
-		]
+		datasync_collections: [ "areas", "cats", "sources", "tags", "payments", "transactions", "monthsnapshots" ],
 	},
 
 
@@ -38,11 +30,15 @@ const INSTANCE:INSTANCE_T = {
 
 		{
 			type: "view",
-			urlmatch: "^home$",
+			urlmatch: "home",
 			name: "home",
 			is_instance: true,
 			dependencies:[],
-			auth: []
+			auth: [],
+			loadspecs: [ 
+				//{ name:'raw_areas', path: "areas" },
+				{ name:'raw_cats', path: "transactions" },
+			]
 		},
 
 		{
@@ -58,7 +54,16 @@ const INSTANCE:INSTANCE_T = {
 				{type:"component", name: "btn"},
 				{type:"component", name: "toast"},
 			],
-			auth: []
+			auth: [],
+			loadspecs: [ 
+				{ name:'areas', path: "areas" },
+				{ name:'cats', path: "cats" },
+				{ name:'sources', path: "sources" },
+				{ name:'tags', path: "tags" },
+				{ name:'payments', path: "payments" },
+				{ name:'transactions', path: "transactions" },
+				{ name:'monthsnapshots', path: "monthsnapshots" },
+			]
 		},
 
 		{
@@ -67,27 +72,23 @@ const INSTANCE:INSTANCE_T = {
 			name: "addtr",
 			is_instance: true,
 			dependencies:[
+				{type:"component", name: "btn"},
 			],
-			auth: ["admin"]
+			auth: ["admin"],
+			loadspecs: [ 
+				{ name:'raw_areas', path: "areas" },
+				{ name:'raw_cats', path: "cats" },
+				{ name:'raw_sources', path: "sources" },
+				{ name:'tags', path: "tags" },
+				{ name:'quick_notes', path: "quick_notes" }
+			]
 		},
-
-		{
-			type: "view",
-			urlmatch: "^flashcards$",
-			name: "flashcards",
-			is_instance: true,
-			dependencies:[
-			],
-			auth: []
-		},
-
 
 
 		// COMPONENTS
 
 		{
 			type: "component",
-			urlmatch: null,
 			name: "placeholder_component",
 			is_instance: true,
 			dependencies:[],
