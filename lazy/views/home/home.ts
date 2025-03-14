@@ -249,11 +249,14 @@ const testdb_b = () => new Promise(async (resolve, reject) => {
 
 	let  transactions: any[]      = [];
 	let  cats:any[]               = [];
+	let  sources:any[]            = [];
 	let  cat_ids:Set<string>      = new Set<string>();
+	let  source_ids:Set<string>   = new Set<string>();
         
 	const transaction             = db.transaction(['transactions', 'cats','sources'], 'readonly');
 	const transaction_store       = transaction.objectStore('transactions');
 	const cat_store               = transaction.objectStore('cats');
+	const source_store            = transaction.objectStore('sources');
 
 	const t1 = performance.now()
 
@@ -264,28 +267,40 @@ const testdb_b = () => new Promise(async (resolve, reject) => {
 			const transaction = cursor.value;
 			transactions.push(transaction);
 			
-			if (cat_ids.has(transaction.cat)) {
-				cursor.continue();
-				return;
+			// Process cat if not already processed
+			if (!cat_ids.has(transaction.cat)) {
+				const cat_request = cat_store.get(transaction.cat);
+				
+				cat_request.onsuccess = () => {
+					cats.push(cat_request.result)	
+					cat_ids.add(transaction.cat)
+				};
+				
+				cat_request.onerror = () => {
+					console.error('Error retrieving cat:', cat_request.error);
+				};
 			}
-			const cat_request = cat_store.get(transaction.cat);
 			
-			cat_request.onsuccess = () => {
-				cats.push(cat_request.result)	
-				cat_ids.add(transaction.cat)
-			};
+			// Process source if not already processed
+			if (!source_ids.has(transaction.source)) {
+				const source_request = source_store.get(transaction.source);
+				
+				source_request.onsuccess = () => {
+					sources.push(source_request.result)	
+					source_ids.add(transaction.source)
+				};
+				
+				source_request.onerror = () => {
+					console.error('Error retrieving source:', source_request.error);
+				};
+			}
 
 			cursor.continue();
-			
-			cat_request.onerror = () => {
-				console.error('Error retrieving cat:', cat_request.error);
-				cursor.continue();
-			};
 		} else {
 			const t2 = performance.now()
 			console.log("testdb_b time: " + (t2 - t1));
 
-			resolve({transactions, cats});
+			resolve({transactions, cats, sources});
 		}
 	}
 })
