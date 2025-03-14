@@ -221,9 +221,30 @@ const testdb = () => new Promise(async (resolve, reject) => {
 		const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
 		
 		if (cursor) {
-
-			results.push(cursor.value);
-			cursor.continue();
+			const transactionValue = cursor.value;
+			
+			if (transactionValue.cat) {
+				// Get the cat object from the 'cats' store
+				const catTransaction = db.transaction(['cats'], 'readonly');
+				const catStore = catTransaction.objectStore('cats');
+				const catRequest = catStore.get(transactionValue.cat);
+				
+				catRequest.onsuccess = () => {
+					// Replace the cat property with the full cat object
+					transactionValue.cat = catRequest.result;
+					results.push(transactionValue);
+					cursor.continue();
+				};
+				
+				catRequest.onerror = () => {
+					console.error('Error retrieving cat:', catRequest.error);
+					results.push(transactionValue);
+					cursor.continue();
+				};
+			} else {
+				results.push(transactionValue);
+				cursor.continue();
+			}
 		} else {
 			const t2 = performance.now()
 			console.log("cursor " + (t2 - t1));
