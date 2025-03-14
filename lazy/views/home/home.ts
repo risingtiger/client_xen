@@ -217,12 +217,14 @@ const testdb_a = () => new Promise(async (resolve, reject) => {
 		};
 	});
 
+	let count = 0;
 	transaction_store.openCursor().onsuccess = (event) => {
 		const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
 		
-		if (cursor) {
+		if (cursor && count < 500) {
 			const transaction = cursor.value;
 			transactions.push(transaction);
+			count++;
 			cursor.continue();
 		} else {
 
