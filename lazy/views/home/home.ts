@@ -188,6 +188,13 @@ const testdb_a = () => new Promise(async (resolve, reject) => {
 
 	const t1 = performance.now()
 
+	// Get all cats from the store
+	const cats_request = cat_store.getAll();
+	
+	cats_request.onsuccess = () => {
+		cats = cats_request.result;
+	};
+
 	transaction_store.openCursor().onsuccess = (event) => {
 		const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
 		
