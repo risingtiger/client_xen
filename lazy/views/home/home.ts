@@ -191,9 +191,14 @@ const testdb_a = () => new Promise(async (resolve, reject) => {
 	// Get all cats from the store
 	const cats_request = cat_store.getAll();
 	
-	cats_request.onsuccess = () => {
-		cats = cats_request.result;
-	};
+	const catsPromise = new Promise<any[]>((resolveC, rejectC) => {
+		cats_request.onsuccess = () => {
+			resolveC(cats_request.result);
+		};
+		cats_request.onerror = () => {
+			rejectC('Error fetching cats');
+		};
+	});
 
 	transaction_store.openCursor().onsuccess = (event) => {
 		const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
@@ -206,7 +211,13 @@ const testdb_a = () => new Promise(async (resolve, reject) => {
 			const t2 = performance.now()
 			console.log("cursor " + (t2 - t1));
 
-			resolve({transactions, cats});
+			catsPromise.then((catsResult) => {
+				cats = catsResult;
+				resolve({transactions, cats});
+			}).catch(error => {
+				console.error(error);
+				reject(error);
+			});
 		}
 	}
 })
