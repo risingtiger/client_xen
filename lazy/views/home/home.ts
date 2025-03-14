@@ -173,70 +173,73 @@ customElements.define('v-home', VHome);
 
 
 
-const testdb = () => new Promise(async (resolve, _reject) => {
-
-	let transactions:any[] = []
+const testdb = () => new Promise(async (resolve, reject) => {
 
 	const db = await openindexeddb()
-	db.onerror = (event_s:any) => console.log("IndexedDB Error - " + event_s.target.errorCode)
 
-	const transaction = db.transaction('transactions', 'readonly');
+	let  results: any[] = [];
+        
+	const transaction = db.transaction(['transactions'], 'readonly');
+	const store       = transaction.objectStore('transactions');
 
+
+
+
+
+
+
+
+
+	/*
 	const t1 = performance.now()
+	let   getrequest = store.getAll()
 
-	const store = transaction.objectStore('transactions');
-	const cursorRequest = store.openCursor();
-	
-	cursorRequest.onerror = (event_s: any) => console.log("IndexedDB Error - " + event_s.target.errorCode);
-	
-	cursorRequest.onsuccess = (event: any) => {
-		const cursor = event.target.result;
-		if (cursor) {
-			// Process multiple records in a batch
-			const batchSize = 100;
-			let count = 0;
-			
-			// Function to process records in batches
-			const processRecords = () => {
-				const batch = [];
-				
-				// Collect up to batchSize records or until cursor is null
-				while (cursor && count < batchSize) {
-					batch.push(cursor.value);
-					count++;
-					cursor.continue();
-					return; // Exit and wait for next onsuccess call
-				}
-				
-				// Add batch to transactions array
-				transactions.push(...batch);
-				
-				// If we've processed a full batch, schedule the next batch
-				if (count === batchSize) {
-					count = 0;
-					// Continue processing in the next event loop iteration
-					setTimeout(processRecords, 0);
-				} else {
-					// We're done - no more records
-					console.log("Time taken: " + (performance.now() - t1) + "ms");
-					console.log(`Retrieved ${transactions.length} transactions`);
-					db.close();
-					resolve(transactions);
-				}
-			};
-			
-			// Start processing records
-			processRecords();
-		} else {
-			// No records found
-			console.log("Time taken: " + (performance.now() - t1) + "ms");
-			console.log(`Retrieved ${transactions.length} transactions`);
-			db.close();
-			resolve(transactions);
-		}
+	getrequest.onsuccess = (_event) => {
+		results = getrequest.result
 	};
 
-	transaction.onerror = (event_s:any) => console.log("IndexedDB Error - " + event_s.target.errorCode)
+	transaction.oncomplete = () => {
+		const t2 = performance.now()
+		console.log("cursor " + (t2 - t1));
+		db.close()
+		resolve(results)	
+	}
+	*/
+
+
+
+
+
+
+
+	
+	const t1 = performance.now()
+
+	const request = store.openCursor();
+	
+	request.onsuccess = (event) => {
+		const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
+		
+		if (cursor) {
+
+			results.push(cursor.value);
+			cursor.continue();
+		} else {
+			const t2 = performance.now()
+			console.log("cursor " + (t2 - t1));
+			resolve(results);
+		}
+	};
+	
+	/*
+	request.onerror = (event) => {
+		reject(new Error(`Cursor error: ${(event.target as IDBRequest).error}`));
+	};
+	
+	transaction.onerror = (event) => {
+		reject(new Error(`Transaction error: ${(event.target as IDBTransaction).error}`));
+	};
+	*/
 })
 
 
@@ -244,7 +247,7 @@ const testdb = () => new Promise(async (resolve, _reject) => {
 
 const openindexeddb = () => new Promise<IDBDatabase>(async (res,_rej)=> {
 
-	let dbconnect = indexedDB.open('xenition', 1)
+	let dbconnect = indexedDB.open('xenition', 3)
 
 	dbconnect.onerror = (event:any) => { 
 		console.log("IndexedDB Error - " + event.target.errorCode)
