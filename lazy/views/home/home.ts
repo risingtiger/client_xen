@@ -75,8 +75,14 @@ class VHome extends HTMLElement {
 
 
 	visibled = () => new Promise<void>(async (res) => { 
-		const r = await testdb() as any[]
-		console.log(r)
+		const a = await testdb_a() as any[]
+		console.log(a)
+
+		/*
+		await new Promise<void>(res => setTimeout(() => res(), 1000))
+		const b = await testdb_b() as any[]
+		console.log(b)
+		*/
 		res()
 	})
 
@@ -181,15 +187,17 @@ const testdb_a = () => new Promise(async (resolve, reject) => {
 
 	let  transactions: any[]      = [];
 	let  cats:any[]               = [];
+	let  sources:any[]            = [];
         
-	const transaction             = db.transaction(['transactions', 'cats'], 'readonly');
+	const transaction             = db.transaction(['transactions', 'cats', 'sources'], 'readonly');
 	const transaction_store       = transaction.objectStore('transactions');
 	const cat_store               = transaction.objectStore('cats');
+	const source_store            = transaction.objectStore('sources');
 
 	const t1 = performance.now()
 
-	// Get all cats from the store
-	const cats_request = cat_store.getAll();
+	const cats_request    = cat_store.getAll();
+	const sources_request = source_store.getAll();
 	
 	const catsPromise = new Promise<any[]>((resolveC, rejectC) => {
 		cats_request.onsuccess = () => {
@@ -197,6 +205,15 @@ const testdb_a = () => new Promise(async (resolve, reject) => {
 		};
 		cats_request.onerror = () => {
 			rejectC('Error fetching cats');
+		};
+	});
+
+	const sourcesPromise = new Promise<any[]>((resolveC, rejectC) => {
+		sources_request.onsuccess = () => {
+			resolveC(sources_request.result);
+		};
+		sources_request.onerror = () => {
+			rejectC('Error fetching sources');
 		};
 	});
 
@@ -208,12 +225,13 @@ const testdb_a = () => new Promise(async (resolve, reject) => {
 			transactions.push(transaction);
 			cursor.continue();
 		} else {
-			const t2 = performance.now()
-			console.log("cursor " + (t2 - t1));
 
-			catsPromise.then((catsResult) => {
-				cats = catsResult;
-				resolve({transactions, cats});
+			Promise.all([catsPromise, sourcesPromise]).then((results) => {
+				const t2 = performance.now()
+				console.log("testdb_a time: " + (t2 - t1));
+				cats = results[0];
+				sources = results[1];
+				resolve({transactions, cats, sources});
 			}).catch(error => {
 				console.error(error);
 				reject(error);
@@ -233,7 +251,7 @@ const testdb_b = () => new Promise(async (resolve, reject) => {
 	let  cats:any[]               = [];
 	let  cat_ids:Set<string>      = new Set<string>();
         
-	const transaction             = db.transaction(['transactions', 'cats'], 'readonly');
+	const transaction             = db.transaction(['transactions', 'cats','sources'], 'readonly');
 	const transaction_store       = transaction.objectStore('transactions');
 	const cat_store               = transaction.objectStore('cats');
 
@@ -265,7 +283,7 @@ const testdb_b = () => new Promise(async (resolve, reject) => {
 			};
 		} else {
 			const t2 = performance.now()
-			console.log("cursor " + (t2 - t1));
+			console.log("testdb_b time: " + (t2 - t1));
 
 			resolve({transactions, cats});
 		}
