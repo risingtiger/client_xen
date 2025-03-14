@@ -298,7 +298,7 @@ const testdb_b = () => new Promise(async (resolve, reject) => {
 			cursor.continue();
 		} else {
 			const t2 = performance.now()
-			console.log("testdb_b time: " + (t2 - t1));
+			console.log("-testdb_b time: " + (t2 - t1));
 
 			resolve({transactions, cats, sources});
 		}
