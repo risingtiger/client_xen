@@ -2,7 +2,7 @@
 
 import { SSETriggersE } from "../../../defs_server_symlink.js";
 import { $NT } from "../../../defs_client_symlink.js";
-import { AreaT, CatT } from "../../../defs.js";
+import { AreaT, CatT, TransactionT, SourceT } from "../../../defs.js";
 
 
 type str = string;   //type int = number;   //type bool = boolean;
@@ -17,6 +17,8 @@ type AttributesT = {
 }
 
 type ModelT = {
+	raw_sources:SourceT[],
+	raw_transactions:TransactionT[],
     raw_areas:AreaT[],
 	raw_cats:CatT[],
 }
@@ -33,7 +35,7 @@ const ATTRIBUTES:AttributesT = { propa:"" }
 class VHome extends HTMLElement {
 
 	a:AttributesT = { ...ATTRIBUTES }
-	m:ModelT =      { raw_areas:[], raw_cats:[] }
+	m:ModelT =      { raw_areas:[], raw_cats:[], raw_sources:[], raw_transactions:[] }
 	s:StateT = {
 		admin_return_str: "",
 	}
@@ -74,7 +76,7 @@ class VHome extends HTMLElement {
 
 	visibled = () => new Promise<void>(async (res) => { 
 		const r = await testdb() as any[]
-		console.log(r.length)
+		console.log(r)
 		res()
 	})
 
@@ -173,94 +175,83 @@ customElements.define('v-home', VHome);
 
 
 
-const testdb = () => new Promise(async (resolve, reject) => {
+const testdb_a = () => new Promise(async (resolve, reject) => {
 
 	const db = await openindexeddb()
 
-	let  results: any[] = [];
+	let  transactions: any[]      = [];
+	let  cats:any[]               = [];
         
-	const transaction = db.transaction(['transactions'], 'readonly');
-	const store       = transaction.objectStore('transactions');
+	const transaction             = db.transaction(['transactions', 'cats'], 'readonly');
+	const transaction_store       = transaction.objectStore('transactions');
+	const cat_store               = transaction.objectStore('cats');
 
-
-
-
-
-
-
-
-
-	/*
-	const t1 = performance.now()
-	let   getrequest = store.getAll()
-
-	getrequest.onsuccess = (_event) => {
-		results = getrequest.result
-	};
-
-	transaction.oncomplete = () => {
-		const t2 = performance.now()
-		console.log("cursor " + (t2 - t1));
-		db.close()
-		resolve(results)	
-	}
-	*/
-
-
-
-
-
-
-
-	
 	const t1 = performance.now()
 
-	const request = store.openCursor();
-	
-	request.onsuccess = (event) => {
+	transaction_store.openCursor().onsuccess = (event) => {
 		const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
 		
 		if (cursor) {
-			const transactionValue = cursor.value;
-			
-			if (transactionValue.cat) {
-				// Get the cat object from the 'cats' store
-				const catTransaction = db.transaction(['cats'], 'readonly');
-				const catStore = catTransaction.objectStore('cats');
-				const catRequest = catStore.get(transactionValue.cat);
-				
-				catRequest.onsuccess = () => {
-					// Replace the cat property with the full cat object
-					transactionValue.cat = catRequest.result;
-					results.push(transactionValue);
-					cursor.continue();
-				};
-				
-				catRequest.onerror = () => {
-					console.error('Error retrieving cat:', catRequest.error);
-					results.push(transactionValue);
-					cursor.continue();
-				};
-			} else {
-				results.push(transactionValue);
-				cursor.continue();
-			}
+			const transaction = cursor.value;
+			transactions.push(transaction);
+			cursor.continue();
 		} else {
 			const t2 = performance.now()
 			console.log("cursor " + (t2 - t1));
-			resolve(results);
+
+			resolve({transactions, cats});
 		}
-	};
-	
-	/*
-	request.onerror = (event) => {
-		reject(new Error(`Cursor error: ${(event.target as IDBRequest).error}`));
-	};
-	
-	transaction.onerror = (event) => {
-		reject(new Error(`Transaction error: ${(event.target as IDBTransaction).error}`));
-	};
-	*/
+	}
+})
+
+
+
+
+const testdb_b = () => new Promise(async (resolve, reject) => {
+
+	const db = await openindexeddb()
+
+	let  transactions: any[]      = [];
+	let  cats:any[]               = [];
+	let  cat_ids:Set<string>      = new Set<string>();
+        
+	const transaction             = db.transaction(['transactions', 'cats'], 'readonly');
+	const transaction_store       = transaction.objectStore('transactions');
+	const cat_store               = transaction.objectStore('cats');
+
+	const t1 = performance.now()
+
+	transaction_store.openCursor().onsuccess = (event) => {
+		const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
+		
+		if (cursor) {
+			const transaction = cursor.value;
+			transactions.push(transaction);
+			
+			if (cat_ids.has(transaction.cat)) {
+				cursor.continue();
+				return;
+			}
+			const cat_request = cat_store.get(transaction.cat);
+			
+			cat_request.onsuccess = () => {
+				cats.push(cat_request.result)	
+				cat_ids.add(transaction.cat)
+			};
+
+			cursor.continue();
+			
+			cat_request.onerror = () => {
+				console.error('Error retrieving cat:', cat_request.error);
+				cursor.continue();
+			};
+		} else {
+			const t2 = performance.now()
+			console.log("cursor " + (t2 - t1));
+
+			resolve({transactions, cats});
+		}
+	}
 })
 
 
@@ -268,7 +259,7 @@ const testdb = () => new Promise(async (resolve, reject) => {
 
 const openindexeddb = () => new Promise<IDBDatabase>(async (res,_rej)=> {
 
-	let dbconnect = indexedDB.open('xenition', 3)
+	let dbconnect = indexedDB.open('xenition', 4)
 
 	dbconnect.onerror = (event:any) => { 
 		console.log("IndexedDB Error - " + event.target.errorCode)
