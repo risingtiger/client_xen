@@ -60,16 +60,7 @@ const INSTANCE:INSTANCE_T = {
 				{type:"component", name: "toast"},
 			],
 			auth: [],
-			localdb_preload: [ 
-				{ name:'areas', path: "areas" },
-				{ name:'cats', path: "cats" },
-				{ name:'sources', path: "sources" },
-				{ name:'tags', path: "tags" },
-				{ name:'payments', path: "payments" },
-				{ name:'transactions', path: "transactions/:id/yab/{spropa}", where: "spropa=={spropa}", limit:100, orderby:"spropa,desc" },
-				{ name:'ynab', path: "/api/get_ynab" },
-				{ name:'monthsnapshots', path: "monthsnapshots" },
-			]
+			localdb_preload: ['areas', 'cats', 'sources', 'tags', 'payments', 'transactions', 'ynab', 'monthsnapshots']
 		},
 		/*
 		{
