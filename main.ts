@@ -15,16 +15,16 @@ const INSTANCE:INSTANCE_T = {
 		firebase: {
 			project: 'xenition',
 			identity_platform_key: 'AIzaSyDfXcwqyiRGGO6pMBsG8CvNEtDIhdspKRI',
-			dbversion: 1
+			dbversion: 5
 		},
 
-		datasync_collections: [ 
+		localdb: [ 
 			{name: "areas"}, 
 			{name: "cats"}, 
 			{name: "sources"}, 
 			{name: "tags"}, 
 			{name: "payments"}, 
-			{name: "transactions"}, 
+			{name: "transactions", indexes: ["cat", "source"]}, 
 			{name: "monthsnapshots"} 
 		],
 	},
@@ -43,12 +43,35 @@ const INSTANCE:INSTANCE_T = {
 			is_instance: true,
 			dependencies:[],
 			auth: [],
-			loadspecs: [ 
-				//{ name:'raw_areas', path: "areas" },
-				{ name:'raw_cats', path: "transactions" },
-			]
 		},
 
+		{
+			type: "view",
+			urlmatch: "^finance$",
+			searchparams: {spropa:7},
+			name: "finance",
+			is_instance: true,
+			dependencies:[
+				{type:"component", name: "ol"},
+				{type:"component", name: "reveal"},
+				{type:"component", name: "form"},
+				{type:"component", name: "in"},
+				{type:"component", name: "btn"},
+				{type:"component", name: "toast"},
+			],
+			auth: [],
+			localdb_preload: [ 
+				{ name:'areas', path: "areas" },
+				{ name:'cats', path: "cats" },
+				{ name:'sources', path: "sources" },
+				{ name:'tags', path: "tags" },
+				{ name:'payments', path: "payments" },
+				{ name:'transactions', path: "transactions/:id/yab/{spropa}", where: "spropa=={spropa}", limit:100, orderby:"spropa,desc" },
+				{ name:'ynab', path: "/api/get_ynab" },
+				{ name:'monthsnapshots', path: "monthsnapshots" },
+			]
+		},
+		/*
 		{
 			type: "view",
 			urlmatch: "^finance$",
@@ -64,15 +87,16 @@ const INSTANCE:INSTANCE_T = {
 			],
 			auth: [],
 			loadspecs: [ 
-				{ name:'areas', path: "areas" },
-				{ name:'cats', path: "cats" },
-				{ name:'sources', path: "sources" },
-				{ name:'tags', path: "tags" },
-				{ name:'payments', path: "payments" },
-				{ name:'transactions', path: "transactions" },
-				{ name:'monthsnapshots', path: "monthsnapshots" },
+				{ name:'_areas', path: "areas" },
+				{ name:'_cats', path: "cats" },
+				{ name:'_sources', path: "sources" },
+				{ name:'_tags', path: "tags" },
+				{ name:'_payments', path: "payments" },
+				{ name:'_transactions', path: "transactions" },
+				{ name:'_monthsnapshots', path: "monthsnapshots" },
 			]
 		},
+		*/
 
 		{
 			type: "view",
