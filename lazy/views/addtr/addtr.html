@@ -5,38 +5,48 @@
 
 		<div class="toparea_row_a">
 
-			<input id="input-date" type="text" placeholder="Date"
-				   class="editprop ${_s.inputmode === 'date' ? 'highlight' : ''}"
-				   @keyup="${(e)=>this.handle_input_keyup(e, 'date')}"
-				   .value="${_s.activetransaction ? new Date(_s.activetransaction.ts * 1000).toLocaleDateString('en-US', {month: '2-digit', day: '2-digit'}) : ''}"
-				   tabindex="6">
+			<div class="editwrap">
+				<input id="input-date" type="text" placeholder="Date"
+					   class="editprop ${_s.inputmode === 'date' ? 'highlight' : ''}"
+					   @keyup="${(e)=>this.handle_input_keyup(e, 'date')}"
+					   .value="${_s.activetransaction ? new Date(_s.activetransaction.ts * 1000).toLocaleDateString('en-US', {month: '2-digit', day: '2-digit'}) : ''}"
+					   tabindex="6">
+			</div>
 
-			<input id="input-merchant" type="text" placeholder="Merchant"
-				   class="editprop ${_s.inputmode === 'merchant' ? 'highlight' : ''}"
-				   @keyup="${(e)=>this.handle_input_keyup(e, 'merchant')}"
-				   .value="${_s.activetransaction?.merchant ?? ''}"
-				   tabindex="5">
+			<div class="editwrap">
+				<input id="input-merchant" type="text" placeholder="Merchant"
+					   class="editprop ${_s.inputmode === 'merchant' ? 'highlight' : ''}"
+					   @keyup="${(e)=>this.handle_input_keyup(e, 'merchant')}"
+					   .value="${_s.activetransaction?.merchant ?? ''}"
+					   tabindex="5">
+			</div>
 
-			<input id="input-amount" type="number" placeholder="Amount"
-				   class="editprop ${_s.inputmode === 'amount' ? 'highlight' : ''}"
-				   @keyup="${(e)=>this.handle_input_keyup(e, 'amount')}"
-				   .value="${_s.activetransaction?.amount ?? ''}"
-				   tabindex="4">
+			<div class="editwrap">
+				<input id="input-amount" type="number" placeholder="Amount"
+					   class="editprop ${_s.inputmode === 'amount' ? 'highlight' : ''}"
+					   @keyup="${(e)=>this.handle_input_keyup(e, 'amount')}"
+					   .value="${_s.activetransaction?.amount ?? ''}"
+					   tabindex="4">
+			</div>
 		</div>
 
 		<div class="toparea_row_b">
 
-			<input id="input-tag" type="text" placeholder="Tag"
-				   class="editprop ${_s.inputmode === 'tag' ? 'highlight' : ''}"
-				   @keyup="${(e)=>this.handle_input_keyup(e, 'tag')}"
-				   .value="${_s.activetransaction && _s.activetransaction.tags && _s.activetransaction.tags && _s.activetransaction.tags.length ? _s.activetransaction.tags[0].name : ''}"
-				   tabindex="3">
+			<div class="editwrap">
+				<input id="input-tag" type="text" placeholder="Tag"
+					   class="editprop ${_s.inputmode === 'tag' ? 'highlight' : ''}"
+					   @keyup="${(e)=>this.handle_input_keyup(e, 'tag')}"
+					   .value="${_s.activetransaction && _s.activetransaction.tags && _s.activetransaction.tags && _s.activetransaction.tags.length ? _s.activetransaction.tags[0].name : ''}"
+					   tabindex="3">
+			</div>
 
-			<input id="input-note" type="text" placeholder="Note"
-				   class="editprop ${_s.inputmode === 'note' ? 'highlight' : ''}"
-				   @keyup="${(e)=>this.handle_input_keyup(e, 'note')}"
-				   .value="${_s.activetransaction?.notes ?? ''}"
-				   tabindex="2">
+			<div class="editwrap">
+				<input id="input-note" type="text" placeholder="Note"
+					   class="editprop ${_s.inputmode === 'note' ? 'highlight' : ''}"
+					   @keyup="${(e)=>this.handle_input_keyup(e, 'note')}"
+					   .value="${_s.activetransaction?.notes ?? ''}"
+					   tabindex="2">
+			</div>
 
 
 			<div id="showsource">${_s.activetransaction?.source.name}</div>
@@ -45,11 +55,13 @@
 
 	<div id="topmidarea">
 		<div class="toparea_row_c">
-			<input id="input-cat" type="text" placeholder="category"
-				   class="editprop ${_s.inputmode === 'cat' ? 'highlight' : ''}"
-				   @keyup="${(e)=>this.handle_input_keyup(e, 'cat')}"
-				   .value="${_s.activetransaction?.cat?.name ?? ''}"
-				   tabindex="1">
+			<div class="editwrap">
+				<input id="input-cat" type="text" placeholder="category"
+					   class="editprop ${_s.inputmode === 'cat' ? 'highlight' : ''}"
+					   @keyup="${(e)=>this.handle_input_keyup(e, 'cat')}"
+					   .value="${_s.activetransaction?.cat?.name ?? ''}"
+					   tabindex="1">
+			</div>
 		</div>
 	</div>
 
