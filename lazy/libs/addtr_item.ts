@@ -22,7 +22,7 @@ export const HandleKeyup = (m:ModelT, s:StateT, inputval:string) => {
 
 	if (s.inputmode === InputModeE.cat) {
 		filter_cats(m, s, inputval)
-		s.highlightcat = s.filteredcats[0].subs![0]
+		s.highlightcat = s.filteredcats[0].subsref![0]
 	}
 	else if (s.inputmode === InputModeE.tag) {
 		filter_tags(m, s, inputval)
@@ -33,67 +33,11 @@ export const HandleKeyup = (m:ModelT, s:StateT, inputval:string) => {
 
 
 
-export const SetCatHighlightNext = (m:ModelT, s:StateT, inputval:string) => {
-    if (!s.highlightcat || s.filteredcats.length === 0) {
-        return;
-    }
-
-    const currentCatId = s.highlightcat.id;
-    let foundCurrentCat = false;
-    let nextCatFound = false;
-
-    // Loop through all filtered parent categories
-    for (let i = 0; i < s.filteredcats.length; i++) {
-        const parentCat = s.filteredcats[i];
-        
-        // Skip if no subcategories
-        if (!parentCat.subs || parentCat.subs.length === 0) {
-            continue;
-        }
-
-        // Look for the current highlighted category in this parent
-        for (let j = 0; j < parentCat.subs.length; j++) {
-            const subCat = parentCat.subs[j];
-            
-            if (foundCurrentCat) {
-                // We already found the current cat, so this is the next one
-                s.highlightcat = subCat;
-                nextCatFound = true;
-                return;
-            }
-            
-            if (subCat.id === currentCatId) {
-                foundCurrentCat = true;
-                
-                // If this is the last sub in this parent, we'll need to check the next parent
-                if (j === parentCat.subs.length - 1) {
-                    continue;
-                }
-                
-                // Otherwise, the next sub in this parent is our next cat
-                s.highlightcat = parentCat.subs[j + 1];
-                nextCatFound = true;
-                return;
-            }
-        }
-    }
-    
-    // If we've gone through all categories and haven't found a next one,
-    // we can wrap around to the first subcategory of the first parent
-    if (foundCurrentCat && !nextCatFound && s.filteredcats.length > 0 && 
-        s.filteredcats[0].subs && s.filteredcats[0].subs.length > 0) {
-        s.highlightcat = s.filteredcats[0].subs[0];
-    }
-}
-
-
-
-
 export const Set_Cat_From_Click = (m:ModelT, s:StateT, e:MouseEvent) => {
 	const catid = (e.target as HTMLElement).dataset.id as string
 	
 	for(const c of m.cats) {
-		const f = c.subs?.find(sub => sub.id === catid)
+		const f = c.subsref?.find(sub => sub.id === catid)
 		if (f) {
 			s.highlightcat = f
 			break
@@ -118,13 +62,13 @@ const filter_cats = (m:ModelT, s:StateT, inputval:string) => {
 	const filteredcats:CatT[] = []
 
 	for (const cat of m.cats) {
-		const parentCatCopy: CatT = {...cat, subs: []};
+		const parentCatCopy: CatT = {...cat, subsref: []};
 		let isparentcatincluded = false;
 
-		for (const subcat of cat.subs!) {
+		for (const subcat of cat.subsref!) {
 			if (subcat.name.toLowerCase().includes(inputval.toLowerCase())) {
 				isparentcatincluded = true;
-				parentCatCopy.subs!.push(subcat);
+				parentCatCopy.subsref!.push(subcat);
 			}
 		}
 
