@@ -5,43 +5,44 @@
 
 		<div class="toparea_row_a">
 
-			<div class="editwrap">
-				<input id="input-date" type="text" placeholder="Date"
+			<div id="wrap-date" class="editwrap">
+				<input id="input-date" type="text" placeholder="date"
 					   class="editprop ${_s.inputmode === 'date' ? 'highlight' : ''}"
 					   @keyup="${(e)=>this.handle_input_keyup(e, 'date')}"
 					   .value="${_s.activetransaction ? new Date(_s.activetransaction.ts * 1000).toLocaleDateString('en-US', {month: '2-digit', day: '2-digit'}) : ''}"
-					   tabindex="6">
+					   tabindex="7">
 			</div>
 
-			<div class="editwrap">
-				<input id="input-merchant" type="text" placeholder="Merchant"
+			<div id="wrap-merchant" class="editwrap">
+				<input id="input-merchant" type="text" placeholder="merchant"
 					   class="editprop ${_s.inputmode === 'merchant' ? 'highlight' : ''}"
 					   @keyup="${(e)=>this.handle_input_keyup(e, 'merchant')}"
 					   .value="${_s.activetransaction?.merchant ?? ''}"
-					   tabindex="5">
+					   tabindex="6">
 			</div>
 
-			<div class="editwrap">
-				<input id="input-amount" type="number" placeholder="Amount"
+			<div id="wrap-amount" class="editwrap">
+				<input id="input-amount" type="number" placeholder="amount"
 					   class="editprop ${_s.inputmode === 'amount' ? 'highlight' : ''}"
 					   @keyup="${(e)=>this.handle_input_keyup(e, 'amount')}"
-					   .value="${_s.activetransaction?.amount ?? ''}"
-					   tabindex="4">
+					   .value="${_s.activetransaction?.amount.toFixed(0) ?? ''}"
+					   tabindex="5">
 			</div>
 		</div>
 
 		<div class="toparea_row_b">
 
-			<div class="editwrap">
-				<input id="input-tag" type="text" placeholder="Tag"
+			<div id="wrap-tag" class="editwrap">
+				<input id="input-tag" type="text" placeholder="tag"
 					   class="editprop ${_s.inputmode === 'tag' ? 'highlight' : ''}"
 					   @keyup="${(e)=>this.handle_input_keyup(e, 'tag')}"
 					   .value="${_s.activetransaction && _s.activetransaction.tags && _s.activetransaction.tags && _s.activetransaction.tags.length ? _s.activetransaction.tags[0].name : ''}"
-					   tabindex="3">
+					   tabindex="4">
 			</div>
 
-			<div class="editwrap">
-				<input id="input-note" type="text" placeholder="Note"
+
+			<div id="wrap-note" class="editwrap">
+				<input id="input-note" type="text" placeholder="note"
 					   class="editprop ${_s.inputmode === 'note' ? 'highlight' : ''}"
 					   @keyup="${(e)=>this.handle_input_keyup(e, 'note')}"
 					   .value="${_s.activetransaction?.notes ?? ''}"
@@ -49,26 +50,40 @@
 			</div>
 
 
-			<div id="showsource">${_s.activetransaction?.source.name}</div>
+			<div id="wrap-source" class="editwrap">
+				<div id="showsource">${_s.activetransaction?.source.name}</div>
+			</div>
 		</div>
-	</div>
 
-	<div id="topmidarea">
+
 		<div class="toparea_row_c">
-			<div class="editwrap">
+			<div id="wrap-split" class="editwrap">
+				<div id="split" @click="${()=>this.splitclicked()}">${_s.split.count ? (_s.split.activeindex+1) + ' of ' + Number( _s.split.count ) + Number(1) : '0 splits'}</div>
+				<!--
+				<input id="input-split" type="text" placeholder="split"
+					   class="editprop ${_s.inputmode === 'split' ? 'highlight' : ''}"
+					   @keyup="${(e)=>this.handle_input_keyup(e, 'split')}"
+					   .value=""
+					   tabindex="3">
+				-->
+			</div>
+
+			<div id="wrap-cat" class="editwrap">
 				<input id="input-cat" type="text" placeholder="category"
 					   class="editprop ${_s.inputmode === 'cat' ? 'highlight' : ''}"
 					   @keyup="${(e)=>this.handle_input_keyup(e, 'cat')}"
 					   .value="${_s.activetransaction?.cat?.name ?? ''}"
 					   tabindex="1">
 			</div>
+
+			<div id="wrap-ofcount" class="editwrap">
+				<div id="ofcount">${_m.newtransactions.findIndex(nt=> nt.ynab_id === _s.activetransaction?.ynab_id) + 1 || 1} of ${_s.newcount}</div>
+			</div>
 		</div>
+
 	</div>
 
-
-	<div id="info">
-			<div id="ofcount">${_m.newtransactions.findIndex(nt=> nt.ynab_id === _s.activetransaction?.ynab_id) + 1 || 1} of ${_s.newcount}</div>
-	</div>
+	<div id="splittotal">0</div>
 
 	<div id="actionbtns">
 		<c-btn @btnclick="${(e)=>this.skip(e)}" class="actionbtn">Skip</c-btn>
