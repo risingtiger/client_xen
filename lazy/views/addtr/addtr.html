@@ -58,7 +58,7 @@
 
 		<div class="toparea_row_c">
 			<div id="wrap-split" class="editwrap">
-				<div id="split" @click="${()=>this.splitclicked()}">${_s.split.count ? (_s.split.activeindex+1) + ' of ' + Number( _s.split.count ) + Number(1) : '0 splits'}</div>
+				<div id="split" @click="${()=>this.splitclicked()}">${_s.split.count ? (_s.split.activeindex+1) + ' of ' + (Number(_s.split.count) + Number(1)) : '0 splits'}</div>
 				<!--
 				<input id="input-split" type="text" placeholder="split"
 					   class="editprop ${_s.inputmode === 'split' ? 'highlight' : ''}"
