@@ -166,7 +166,7 @@ class VAddTr extends HTMLElement {
 			await this.set_next_focus('standard')
 			this.sc();
 		}
-		else if (e.shiftKey && e.key === 'ArrowUp') {
+		else if (e.altKey && e.key === 'ArrowUp') {
 			console.log("addsplit")
 			this.addsplit()
 			e.preventDefault();
