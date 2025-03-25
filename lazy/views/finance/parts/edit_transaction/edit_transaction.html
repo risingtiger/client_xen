@@ -6,7 +6,7 @@
 	<c-in label="Cat" name="cat" type="dselect" val="${_m.transaction.catref.id}" options="${_s.cat_options}" @save="${(e)=>this.prop_changed(e)}"></c-in>
 	<c-in label="Tag" name="tag" type="dselect" val="${_m.transaction_tag_id}" options="${_s.tag_options}" @save="${(e)=>this.prop_changed(e)}"></c-in>
 	<c-in label="Notes" name="notes" type="text" val="${_m.transaction.notes}" @save="${(e)=>this.prop_changed(e)}"></c-in>
-	<c-in label="EPOCHDate" name="epoch_date" type="text" val="${_m.transaction.date}" @save="${(e)=>this.prop_changed(e)}"></c-in>
+	<c-in label="EPOCHDate" name="epoch_date" type="date" val="${new Date(_m.transaction.date * 1000).toISOString().split('T')[0]}" @save="${(e)=>this.prop_changed(e)}"></c-in>
 	<c-in label="ID" name="id" type="text" val="${_m.transaction.id}" @save="${(e)=>this.prop_changed(e)}"></c-in>
 </c-form>
 
