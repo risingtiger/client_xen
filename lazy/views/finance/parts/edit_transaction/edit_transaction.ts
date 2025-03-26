@@ -1,9 +1,9 @@
 
 
-import { $NT } from "../../../../../defs_client_symlink.js"
+import { $NT, CMechLoadedDataT, CMechLoadStateE } from "../../../../../defs_client_symlink.js"
 import { str } from "../../../../../defs_server_symlink.js"
-import { TransactionT, AreaT, CatT, TagT } from '../../../../../defs.js'
-import { knit_cats, knit_tags  } from '../../../../libs/financefuncs_knit.js'
+import { TransactionT, AreaT, CatT, TagT, SourceT } from '../../../../../defs.js'
+import { knit_cats, knit_transactions, knit_tags  } from '../../../../libs/financefuncs_knit.js'
 
 declare var render: any;
 declare var html: any;
@@ -11,52 +11,50 @@ declare var $N: $NT;
 
 
 
+type AttributesT = {
+	transaction: string
+}
 
-type Model = {
-	prop: str,
+type ModelT = {
+	areas: AreaT[],
 	cats: CatT[],
 	tags: TagT[],
 	transaction:TransactionT|null,
 	transaction_tag_id:string
 }
 
-type State = {
+type StateT = {
 	prop: str,
 	cat_options: str
 	tag_options: str
 }
 
 
+const ATTRIBUTES:AttributesT = { transaction:"" }
 
 
 class VPFinanceEditTransaction extends HTMLElement {
 
-    s:State
-    m:Model
+	a:AttributesT = { ...ATTRIBUTES };
+    s:StateT = {
+		prop: "",
+		cat_options: "",
+		tag_options: ""
+	}
+    m:ModelT = {
+		areas: [],
+		transaction: null,
+		cats: [],
+		tags: [],
+		transaction_tag_id: ""
+	}
     shadow:ShadowRoot
 
 
 
 
 	constructor() {   
-
 		super(); 
-
-
-		this.m = {
-			prop: "",
-			transaction: null,
-			cats: [],
-			tags: [],
-			transaction_tag_id: ""
-		}
-
-		this.s = {
-			prop: "",
-			cat_options: "",
-			tag_options: ""
-		} 
-
 		this.shadow = this.attachShadow({mode: 'open'});
 	}
 
@@ -65,11 +63,42 @@ class VPFinanceEditTransaction extends HTMLElement {
 
 	async connectedCallback() {   
 
+		await $N.CMech.ViewPartConnectedCallback(this)
+		this.dispatchEvent(new Event('hydrated'));
+	}
+
+
+
+
+	async attributeChangedCallback(name:str, oldval:str|boolean|number, newval:str|boolean|number) {
+		$N.CMech.AttributeChangedCallback(this,name,oldval,newval);
+	}
+
+
+
+
+	disconnectedCallback() {}
+
+
+
+
+	kd = (loadeddata: CMechLoadedDataT, _loadstate:CMechLoadStateE) => new Promise<void>(async (_res) => {
+		const trs             = loadeddata.get("transactions") as TransactionT[]
+
+		this.m.areas          = loadeddata.get("areas")! as AreaT[]
+		this.m.cats           = knit_cats(this.m.areas, loadeddata.get('cats')!) as CatT[]
+		this.m.tags           = $N.Utils.resolve_object_references(loadeddata.get("tags")!, loadeddata) as TagT[]
+
+		const sources         = loadeddata.get("sources") as SourceT[]
+		const transaction     = trs.find(t=>t.id === this.a.transaction)! as any
+
+		this.m.transaction    = ( knit_transactions(this.m.cats, sources, this.m.tags, [transaction]) as TransactionT[] )[0]
+
 		const get_cat_options = () => {
 			let s = ""
 
 			for (let cparent of this.m.cats) {
-				for (let sub of cparent.subs!) {
+				for (let sub of cparent.subsref!) {
 					s += `${sub.name}:${sub.id},`
 				}
 			}
@@ -85,6 +114,17 @@ class VPFinanceEditTransaction extends HTMLElement {
 			return s.slice(0, -1)
 		} 
 
+		let areas:AreaT[] = []
+		if (localStorage.getItem("user_email") !== 'accounts@risingtiger.com') {
+			areas = ( loadeddata.get("areas")! as AreaT[]).filter(a=>a.name === "fam")
+		} else {
+			areas = loadeddata.get("areas")! as AreaT[]
+		}
+
+		this.s.cat_options = get_cat_options()
+		this.s.tag_options = get_tag_options()
+
+		/*
 		const transaction = await $N.Firestore.Retrieve(`transactions/${this.getAttribute("transaction")}`)
 
 		this.m.transaction = transaction[0];
@@ -108,12 +148,13 @@ class VPFinanceEditTransaction extends HTMLElement {
 		this.sc()
 
 		this.dispatchEvent(new Event('hydrated'))
-	}
+		*/
+	})
 
 
 
 
-	async prop_changed(e:any) {
+	async prop_updated(e:any) {
 
 		let changed:any = {}
 		let changed_merchant_name = ""
@@ -134,7 +175,7 @@ class VPFinanceEditTransaction extends HTMLElement {
 			changed.tag_id = e.detail.newval
 		}
 
-		if (e.detail.name === "epoch_date") {
+		if (e.detail.name === "date") {
 			changed.date = e.detail.newval
 		}
 
@@ -153,9 +194,7 @@ class VPFinanceEditTransaction extends HTMLElement {
 		}
 
 		if (r.err) {
-			e.detail.set_save_fail(r.err)
-		} else {
-			e.detail.set_save_success(e.detail.newval)
+			console.error(r.err)
 		}
 	}
 
@@ -169,7 +208,7 @@ class VPFinanceEditTransaction extends HTMLElement {
 
 
 
-	template = (_s:State, _m:Model) => { return html`{--css--}{--html--}`; } 
+	template = (_s:StateT, _m:ModelT) => { return html`{--css--}{--html--}`; } 
 
 }
 
