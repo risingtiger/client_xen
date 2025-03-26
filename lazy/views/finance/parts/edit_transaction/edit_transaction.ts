@@ -176,7 +176,9 @@ class VPFinanceEditTransaction extends HTMLElement {
 		}
 
 		if (e.detail.name === "date") {
-			changed.date = e.detail.newval
+			// Convert date string (YYYY-MM-DD) to epoch timestamp
+			const dateObj = new Date(e.detail.newval);
+			changed.date = Math.floor(dateObj.getTime() / 1000); // Convert to seconds
 		}
 
 		if (e.detail.name === "merchant") {
