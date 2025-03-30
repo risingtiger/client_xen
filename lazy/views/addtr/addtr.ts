@@ -101,10 +101,29 @@ class VAddTr extends HTMLElement {
 		else if (loadstate === CMechLoadStateE.LATELOADED) {
 
 			this.m.newtransactions = this.m.ynab_transactions.map((tr) => {
+				// Find category by searching through both parent cats and their subcats
+				let foundCat = null;
+				if (tr.preset_cat_name) {
+					// First try to find direct match in parent cats
+					foundCat = this.m.cats.find(cat => cat.name === tr.preset_cat_name);
+					
+					// If not found, search through subcats of each parent cat
+					if (!foundCat) {
+						for (const parentCat of this.m.cats) {
+							if (parentCat.subsref) {
+								const subCat = parentCat.subsref.find(sub => sub.name === tr.preset_cat_name);
+								if (subCat) {
+									foundCat = subCat;
+									break;
+								}
+							}
+						}
+					}
+				}
 
 				return {
 					ynab_id: tr.ynab_id,
-					cat: this.m.cats.find(cat => cat.name === tr.preset_cat_name) || null,
+					cat: foundCat,
 					date: tr.date,
 					notes: tr.notes,
 					amount: tr.amount,
