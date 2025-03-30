@@ -198,14 +198,14 @@ class VAddTr extends HTMLElement {
 
 		if (mode === 'standard' && this.s.infocusindex == this.s.activetransactions.length-1) {  // either no split or at last split
 			await this.save_activetransactions() 
-			next_of_newtransactions(this.s, this.m)
+			next_of_newtransactions.call(this, this.s, this.m)
 		} 
 		else if (mode === 'standard') { // there is a split and not at last split
 			this.s.infocusindex++
 			this.s.infocus = this.s.activetransactions[this.s.infocusindex]
 		} 
 		else if (mode === 'skip' || mode === 'delete') {
-			next_of_newtransactions(this.s, this.m)
+			next_of_newtransactions.call(this, this.s, this.m)
 		}
 
 		this.set_cleared()
