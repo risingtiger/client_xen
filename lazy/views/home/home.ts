@@ -4,6 +4,11 @@ import { SSETriggersE } from "../../../defs_server_symlink.js";
 import { $NT } from "../../../defs_client_symlink.js";
 import { AreaT, CatT, TransactionT, SourceT } from "../../../defs.js";
 
+// Add Plaid Link JavaScript library
+const plaidScript = document.createElement('script');
+plaidScript.src = 'https://cdn.plaid.com/link/v2/stable/link-initialize.js';
+document.head.appendChild(plaidScript);
+
 
 type str = string;   //type int = number;   //type bool = boolean;
 
