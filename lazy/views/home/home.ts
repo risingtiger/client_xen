@@ -126,8 +126,9 @@ class VHome extends HTMLElement {
 
 
 linkplaid = async () => {
-		debugger
     try {
+        console.log("Starting Plaid Link process (Sandbox mode)");
+        
         // 1. Fetch Link Token
         const tokenResponse = await $N.FetchLassie("/api/xen/finance/plaid/create_link_token") as { link_token?: string, error?: string };
         if (!tokenResponse || !tokenResponse.link_token) {
@@ -136,6 +137,7 @@ linkplaid = async () => {
             return;
         }
         const linkToken = tokenResponse.link_token;
+        console.log("Link token received successfully");
 
         // 2. Load Plaid Link Script (if not already loaded)
         // Use official Plaid CDN link
@@ -159,11 +161,15 @@ linkplaid = async () => {
             }
         }
 
-        // 3. Initialize and Open Plaid Link
+        // 3. Initialize and Open Plaid Link with Sandbox configuration
         const linkHandler = (window as any).Plaid.create({
             token: linkToken,
+            // In sandbox mode, you can use these test credentials:
+            // username: user_good
+            // password: pass_good
+            env: 'sandbox',
             onSuccess: async (public_token: string, metadata: any) => {
-                console.log('Plaid Link success:', public_token, metadata);
+                console.log('Plaid Link success (Sandbox):', metadata.institution?.name);
                 // 4. Send public_token and metadata to backend
                 try {
                     const exchangeResponse = await $N.FetchLassie("/api/xen/finance/plaid/exchange_public_token", {
@@ -178,7 +184,8 @@ linkplaid = async () => {
 
                     // Check if the exchange was successful based on your API's response structure
                     if (exchangeResponse && (exchangeResponse.ok || exchangeResponse.success)) { // Example success check
-                        alert("Plaid account linked successfully!");
+                        alert("Plaid account linked successfully in Sandbox mode!");
+                        console.log("Sandbox account linked successfully:", exchangeResponse);
                     } else {
                         alert("Failed to exchange public token with backend. Please try again.");
                         console.error("Exchange public token error response:", exchangeResponse);
@@ -197,11 +204,17 @@ linkplaid = async () => {
                 if (err != null) {
                     // Log and display Plaid API errors or internal errors
                     const displayMessage = err.display_message || err.error_message || `Error code: ${err.error_code}`;
-                    alert(`Plaid Link exited with error: ${displayMessage}`);
+                    
+                    // Special handling for sandbox-specific errors
+                    if (err.error_code === 'SANDBOX_ERROR') {
+                        alert(`Sandbox error: ${displayMessage}. Remember to use test credentials (username: user_good, password: pass_good)`);
+                    } else {
+                        alert(`Plaid Link exited with error: ${displayMessage}`);
+                    }
                     console.error('Plaid Link exit error details:', err);
                 } else {
                     // User closed the modal without error
-                    console.log('User exited Plaid Link.');
+                    console.log('User exited Plaid Link (Sandbox mode).');
                     // Optionally provide feedback to the user that the process was cancelled.
                     // alert("Plaid linking cancelled.");
                 }
