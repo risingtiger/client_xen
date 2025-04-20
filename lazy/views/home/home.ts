@@ -126,6 +126,7 @@ class VHome extends HTMLElement {
 
 
 linkplaid = async () => {
+		debugger
     try {
         // 1. Fetch Link Token
         const tokenResponse = await $N.FetchLassie("/api/xen/finance/plaid/create_link_token") as { link_token?: string, error?: string };
@@ -178,8 +179,6 @@ linkplaid = async () => {
                     // Check if the exchange was successful based on your API's response structure
                     if (exchangeResponse && (exchangeResponse.ok || exchangeResponse.success)) { // Example success check
                         alert("Plaid account linked successfully!");
-                        // Trigger data refresh after successful linking
-                        $N.SSE.Triggers([SSETriggersE.SOURCES, SSETriggersE.TRANSACTIONS]);
                     } else {
                         alert("Failed to exchange public token with backend. Please try again.");
                         console.error("Exchange public token error response:", exchangeResponse);
