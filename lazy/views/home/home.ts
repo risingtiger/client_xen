@@ -57,9 +57,19 @@ class VHome extends HTMLElement {
 
 	async connectedCallback() {
 
+		// Create and load the Plaid script
 		const plaidScript = document.createElement('script');
 		plaidScript.src = 'https://cdn.plaid.com/link/v2/stable/link-initialize.js';
-		document.head.appendChild(plaidScript);
+		
+		// Wait for the script to load before continuing
+		await new Promise((resolve) => {
+			plaidScript.onload = () => resolve(true);
+			plaidScript.onerror = () => {
+				console.error('Failed to load Plaid Link script');
+				resolve(false);
+			};
+			document.head.appendChild(plaidScript);
+		});
 
 		await $N.CMech.ViewConnectedCallback(this)
 		this.dispatchEvent(new Event('hydrated'));
