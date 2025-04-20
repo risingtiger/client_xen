@@ -57,21 +57,9 @@ class VHome extends HTMLElement {
 
 	async connectedCallback() {
 
-		// Create and load the Plaid script
-		const plaidScript = document.createElement('script');
-		plaidScript.src = 'https://cdn.plaid.com/link/v2/stable/link-initialize.js';
-		
-		// Wait for the script to load before continuing
-		await new Promise((resolve) => {
-			plaidScript.onload = () => resolve(true);
-			plaidScript.onerror = () => {
-				console.error('Failed to load Plaid Link script');
-				resolve(false);
-			};
-			document.head.appendChild(plaidScript);
-		});
 
 		await $N.CMech.ViewConnectedCallback(this)
+
 		this.dispatchEvent(new Event('hydrated'));
 	}
 
@@ -133,6 +121,37 @@ class VHome extends HTMLElement {
 			this.sc()
 		}
 	}
+
+
+
+
+	linkplaid = () => new Promise(async (res,_rej) => {
+
+		const r = await $N.FetchLassie("/api/xen/finance/plaid/create_link_token" ) as any
+		if (!r) {   alert("Error creating link token");   return;   }
+
+
+		const plaidScript = document.createElement('script');
+		plaidScript.src = 'https://sandbox.plaid.com/link/v2/stable/link-initialize.js';
+		
+		await new Promise((resolve) => {
+			plaidScript.onload = () => resolve(true);
+			plaidScript.onerror = () => {
+				console.error('Failed to load Plaid Link script');
+				resolve(false);
+			};
+			document.head.appendChild(plaidScript);
+		});
+
+		const config:any = {
+			onSuccess: (public_token, metadata) => {},
+			onExit: (err, metadata) => {},
+			onEvent: (eventName, metadata) => {},
+			token: 'GENERATED_LINK_TOKEN',
+		};
+
+		const { open, exit, ready } = usePlaidLink(config);
+	})
 
 
 
