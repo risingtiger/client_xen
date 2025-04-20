@@ -169,8 +169,10 @@ linkplaid = async () => {
             // password: pass_good
             env: 'sandbox',
             onSuccess: async (public_token: string, metadata: any) => {
-                console.log('Plaid Link success (Sandbox):', metadata.institution?.name);
-                // 4. Send public_token and metadata to backend
+                console.log('>>> onSuccess CALLED! <<<', 'Token:', public_token, 'Metadata:', metadata); // <-- TEMPORARY CHANGE
+                alert('onSuccess fired!'); // <-- TEMPORARY CHANGE
+                // 4. Send public_token and metadata to backend (Temporarily commented out)
+                /*
                 try {
                     const exchangeResponse = await $N.FetchLassie("/api/xen/finance/plaid/exchange_public_token", {
                         method: "POST",
@@ -194,12 +196,15 @@ linkplaid = async () => {
                     alert("An error occurred while sending Plaid data to the server.");
                     console.error("Error exchanging public token:", error);
                 }
+                */
             },
             onLoad: () => {
                 console.log('Plaid Link loaded');
                 // Optional: Handler may be called multiple times.
             },
             onExit: (err: any, metadata: any) => {
+                console.log('>>> onExit CALLED <<<', 'Error:', err, 'Metadata:', metadata); // <-- ADD THIS LINE
+
                 console.log('Plaid Link exited. Error:', err, 'Metadata:', metadata);
                 if (err != null) {
                     // Log and display Plaid API errors or internal errors
