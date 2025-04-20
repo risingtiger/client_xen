@@ -125,33 +125,103 @@ class VHome extends HTMLElement {
 
 
 
-	linkplaid = () => new Promise(async (res,_rej) => {
+linkplaid = async () => {
+    try {
+        // 1. Fetch Link Token
+        const tokenResponse = await $N.FetchLassie("/api/xen/finance/plaid/create_link_token") as { link_token?: string, error?: string };
+        if (!tokenResponse || !tokenResponse.link_token) {
+            alert("Error creating link token: " + (tokenResponse?.error || "Unknown error"));
+            console.error("Error fetching link token:", tokenResponse);
+            return;
+        }
+        const linkToken = tokenResponse.link_token;
 
-		const r = await $N.FetchLassie("/api/xen/finance/plaid/create_link_token" ) as any
-		if (!r) {   alert("Error creating link token");   return;   }
+        // 2. Load Plaid Link Script (if not already loaded)
+        // Use official Plaid CDN link
+        const plaidScriptUrl = 'https://cdn.plaid.com/link/v2/stable/link-initialize.js';
+        if (!(window as any).Plaid) {
+            const plaidScript = document.createElement('script');
+            plaidScript.src = plaidScriptUrl;
 
+            const scriptLoaded = await new Promise((resolve) => {
+                plaidScript.onload = () => resolve(true);
+                plaidScript.onerror = (err) => {
+                    console.error('Failed to load Plaid Link script:', err);
+                    resolve(false);
+                };
+                document.head.appendChild(plaidScript);
+            });
 
-		const plaidScript = document.createElement('script');
-		plaidScript.src = 'https://sandbox.plaid.com/link/v2/stable/link-initialize.js';
-		
-		await new Promise((resolve) => {
-			plaidScript.onload = () => resolve(true);
-			plaidScript.onerror = () => {
-				console.error('Failed to load Plaid Link script');
-				resolve(false);
-			};
-			document.head.appendChild(plaidScript);
-		});
+            if (!scriptLoaded) {
+                alert("Failed to load Plaid Link library.");
+                return;
+            }
+        }
 
-		const config:any = {
-			onSuccess: (public_token, metadata) => {},
-			onExit: (err, metadata) => {},
-			onEvent: (eventName, metadata) => {},
-			token: 'GENERATED_LINK_TOKEN',
-		};
+        // 3. Initialize and Open Plaid Link
+        const linkHandler = (window as any).Plaid.create({
+            token: linkToken,
+            onSuccess: async (public_token: string, metadata: any) => {
+                console.log('Plaid Link success:', public_token, metadata);
+                // 4. Send public_token and metadata to backend
+                try {
+                    const exchangeResponse = await $N.FetchLassie("/api/xen/finance/plaid/exchange_public_token", {
+                        method: "POST",
+                        body: JSON.stringify({
+                            public_token: public_token,
+                            institution_id: metadata.institution?.institution_id,
+                            institution_name: metadata.institution?.name,
+                            accounts: metadata.accounts // Send account metadata if needed by backend
+                        })
+                    }) as any; // Adjust type based on expected response
 
-		const { open, exit, ready } = usePlaidLink(config);
-	})
+                    // Check if the exchange was successful based on your API's response structure
+                    if (exchangeResponse && (exchangeResponse.ok || exchangeResponse.success)) { // Example success check
+                        alert("Plaid account linked successfully!");
+                        // Trigger data refresh after successful linking
+                        $N.SSE.Triggers([SSETriggersE.SOURCES, SSETriggersE.TRANSACTIONS]);
+                    } else {
+                        alert("Failed to exchange public token with backend. Please try again.");
+                        console.error("Exchange public token error response:", exchangeResponse);
+                    }
+                } catch (error) {
+                    alert("An error occurred while sending Plaid data to the server.");
+                    console.error("Error exchanging public token:", error);
+                }
+            },
+            onLoad: () => {
+                console.log('Plaid Link loaded');
+                // Optional: Handler may be called multiple times.
+            },
+            onExit: (err: any, metadata: any) => {
+                console.log('Plaid Link exited. Error:', err, 'Metadata:', metadata);
+                if (err != null) {
+                    // Log and display Plaid API errors or internal errors
+                    const displayMessage = err.display_message || err.error_message || `Error code: ${err.error_code}`;
+                    alert(`Plaid Link exited with error: ${displayMessage}`);
+                    console.error('Plaid Link exit error details:', err);
+                } else {
+                    // User closed the modal without error
+                    console.log('User exited Plaid Link.');
+                    // Optionally provide feedback to the user that the process was cancelled.
+                    // alert("Plaid linking cancelled.");
+                }
+            },
+            onEvent: (eventName: string, metadata: any) => {
+                // Log events or handle specific transitions
+                console.log('Plaid Link event:', eventName, metadata);
+                // Example: if (eventName === 'HANDOFF') { // User is navigating to institution }
+            }
+        });
+
+        // Open the Plaid Link modal
+        linkHandler.open();
+
+    } catch (error) {
+        console.error("Error during Plaid Link initialization:", error);
+        alert("An unexpected error occurred setting up Plaid Link.");
+    }
+}
 
 
 
