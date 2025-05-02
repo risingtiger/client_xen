@@ -1,5 +1,6 @@
 
 
+
 table {                                                                                                   
 	border-collapse: collapse;                                                                            
 	width: 100%;                                                                                          
@@ -21,6 +22,11 @@ tfoot tr {
 td:first-child, th:first-child {                                                                          
 	text-align: left;                                                                                     
 }   
+
+tr.row_highlight_total td {
+	background-color: #fbfbfb;
+}
+
 
 
 .issaved::after {

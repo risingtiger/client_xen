@@ -7,6 +7,7 @@ import { AreaT, CatT, SourceT } from '../../../defs.js'
 import { knit_areas, knit_cats, knit_sources } from '../../libs/financefuncs_knit.js'
 import { NewTransactionT, InputModeE, AttributesT, ModelT, StateT, RawNewTransactionT } from "../../libs/addtr_defs.js"
 import { HandleKeyup as ItemHandleKeyup, HandleReset as ItemHandleReset, Set_Cat_From_Click, Set_Tag_From_Click } from "../../libs/addtr_item.js"
+import { } from "../../libs/addtr_apple.js"
 
 
 declare var render: any;
@@ -54,7 +55,7 @@ class VAddTr extends HTMLElement {
 
 
 	async connectedCallback() {
-		await $N.CMech.ViewConnectedCallback(this, {kdonvisilbed:true, kdonlateloaded:true})
+		await $N.CMech.ViewConnectedCallback(this, {kdonvisibled:true, kdonlateloaded:true})
 		this.dispatchEvent(new Event('hydrated'));
 
 		const r = await $N.FetchLassie('/api/xen/finance/get_ynab_transactions', {}) as YnabTransactionT[]
@@ -85,6 +86,7 @@ class VAddTr extends HTMLElement {
 			this.m.cats    = knit_cats(this.m.areas, loadeddata.get('cats')!) as CatT[]
 			this.m.sources = $N.Utils.resolve_object_references(loadeddata.get("sources")!, loadeddata) as SourceT[]
 			this.m.tags    = $N.Utils.resolve_object_references(loadeddata.get("tags")!, loadeddata) as any[]
+			this.m.quick_notes = $N.Utils.resolve_object_references(loadeddata.get("quick_notes")!, loadeddata) as any[]
 
 			this.s.filteredcats = this.m.cats
 			this.s.filteredtags = this.m.tags
@@ -103,11 +105,16 @@ class VAddTr extends HTMLElement {
 					}
 				}
 
+				const quick_note = this.m.quick_notes.find(qn => {
+					const is_match = qn.amount === tr.amount && qn.ts > tr.date - ( 86400*5 ) && qn.ts < tr.date + ( 86400 * 5 )
+					return is_match
+				})
+
 				return {
 					ynab_id: tr.ynab_id,
 					catref: foundcat,
 					date: tr.date,
-					notes: tr.notes,
+					notes: tr.notes || (quick_note ? quick_note.note : ""),
 					amount: tr.amount,
 					merchant: tr.merchant,
 					tags: [],

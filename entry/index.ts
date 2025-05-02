@@ -1,14 +1,76 @@
-
-
 declare var APPVERSION: any;
 
 type StateT = {
-	state: 'loggedout' | 'loggingin' | 'loggedin'
-	loginerror: string
+	state: 'loggedout' | 'loggingin' | 'loggedin',
+	error_rows: string[],
+	error_rows_show: boolean,
+	loginerror: string,
+	updatedone: boolean
 }
 
 
-let s:StateT = { state: 'loggedout', loginerror: '' }
+let s:StateT = { state: 'loggedout', error_rows:[], error_rows_show:false, loginerror: '', updatedone: false }
+
+
+
+const template = (_s: StateT) => { return html`
+
+	<div id="login" class="${_s.state === 'loggingin' ? 'active' : ''} ${_s.loginerror !== '' ? 'error' : ''}">
+		<h1>Pure Water Login</h1>
+
+		<ul class="items">
+			<li>
+				<h5>Email</h5>
+				<input type="text" name="username" id="email" value="" class="${_s.loginerror !== '' ? 'input-error' : ''}">
+			</li>
+
+			<li>
+				<h5>Password</h5>
+				<input type="password" name="password" id="password" value="" class="${_s.loginerror !== '' ? 'input-error' : ''}">
+			</li>
+		</ul>
+
+		<div @click="${()=>loginsubmit()}" class="btn" id="submit_login_button">login</div>
+
+
+		<div id="login_errormsg" class="${_s.loginerror !== '' ? 'active' : ''}">${_s.loginerror}</div>
+
+
+	</div>
+
+	<div id="logged_out" class="${_s.state === 'loggedout' ? 'active' : ''}">
+		<div id="login_button" class="btn"><a href='/index.html?loggingin=true'>Pure Water Login</a></div>
+
+	</div>
+
+	${_s.updatedone ? html`<div id="update_done"><br><br><br>Update Done</div>` : ''}
+
+	<div id="logged_in" class="${_s.state === 'loggedin' ? 'active' : ''}">
+		<div id="home_button" class="btn"><a href="/v/home">Pure Water Dashboard Home</a></div>
+		<!--<div id="logout_button" class="btn"><a>Log out</a></div>-->
+	</div>
+
+	<div id="error" class="${_s.error_rows.length ? 'active' : ''}">
+		<br><br><h6 style="text-align: center;">An Error Occurred in the App. - <a href="#" @click="${()=>{s.error_rows_show=true;sc();}}">Show Errors</a></h6>
+		${s.error_rows_show ? html`
+			${s.error_rows.map((row) => html`<div>${row}</div>`)}
+		` : ''}
+	</div>
+`; };
+
+
+
+
+function sc() {
+
+	// hopefully soon I can circle back to this and get entry working on lit. AND, better yet, get all auth stuff back into home and/or turn auth view into component that is in home and create dashboard that is logged in stuff
+
+	render(template(s), document.getElementById("litroot"));
+}
+
+
+
+
 
 
 
@@ -17,85 +79,42 @@ window.addEventListener("load", async (_e) => {
 
 	const id_token = localStorage.getItem('id_token');
 
-	if (id_token) {
+	localStorage.removeItem('synccollections')
+
+	if (window.location.search.includes("appupdate=done")) {
+		s.state = 'loggedout'
+		s.updatedone = true
+		sc()
+	}
+
+	else if (window.location.search.includes("logsubj")) {
+		s.state = id_token ? 'loggedin' : 'loggedout'
+		s.error_rows_show = false
+		const l = localStorage.getItem('logs')
+		const logs = l && l.includes('-') ? l.split('-') : []
+		s.error_rows = logs
+		sc()
+	}
+
+	else if (id_token) {
 		s.state = 'loggedin'
 		sc()	
-		return
 	} 
-	
+
 	else if (window.location.search.includes("loggingin")) {
 		s.state = 'loggingin'
 		sc()
-		return
 	}
 
 	else {
 		s.state = 'loggedout'
 		sc()
-		return
 	}
 });
 
 
 
 
-/*
-function setup_service_worker() {
-
-	const update_to_href = "https://yavada.com/bouncebacktonifty.html"
-	const origin = window.location.origin
-	const urlParams = new URLSearchParams(window.location.search);
-
-	navigator.serviceWorker.register('sw.js').then(reg => {
-
-		if (urlParams.get("update") && urlParams.get("update") === "1") {
-
-			s.state = 'updating'
-			sc()
-
-			setTimeout(() => {
-				reg.update()
-					.then(_issuccess=> {
-						console.log("update then called")
-					})
-					.catch(err=> {
-						window.location.href = '/index.html?update_failed=1&err=' + err
-					})
-			}, 2000)
-		}
-
-		else if (urlParams.get("update") && urlParams.get("update") === "done") {
-			s.state = 'updated'
-			sc()
-
-			setTimeout(() => {
-				window.location.href = "/index.html"
-			}, 3000)
-		}
-	})
-
-
-	navigator.serviceWorker.addEventListener('message', (_event) => {
-	})
-
-	navigator.serviceWorker.addEventListener('controllerchange', onNewServiceWorkerControllerChange);
-
-
-	function onNewServiceWorkerControllerChange() {
-		console.log('[Main Thread] New service worker has taken control. Reloading...');
-		navigator.serviceWorker.removeEventListener('controllerchange', onNewServiceWorkerControllerChange);
-
-		localStorage.clear();
-
-		s.state = 'updated'
-		sc()
-
-		setTimeout(() => {
-			window.location.href = "/index.html"
-		}, 3000)
-	}
-}
-*/
 
 
 async function loginsubmit() {
@@ -120,6 +139,7 @@ async function loginsubmit() {
 
 	if (data.error) {
 		s.loginerror = data.error.message
+		sc()
 
 	} else {
 		localStorage.setItem('id_token', data.idToken);
@@ -132,57 +152,16 @@ async function loginsubmit() {
 		else 
 			localStorage.setItem('auth_group', 'user');
 
-		window.location.href = '/v#home'
+		window.location.href = '/v/home'
 	}
 }
 
 
 
 
-function sc() {
-
-	// hopefully soon I can circle back to this and get entry working on lit. AND, better yet, get all auth stuff back into home and/or turn auth view into component that is in home and create dashboard that is logged in stuff
-
-	Lit_Render(template(s), document.getElementById("litroot"));
-}
 
 
 
 
-const template = (_s: StateT) => { return Lit_Html`
-
-	<div id="login" class="${_s.state === 'loggingin' ? 'active' : ''}">
-		<h1>Xen Login</h1>
-
-		<ul class="items">
-			<li>
-				<h5>Email</h5>
-				<input type="text" name="username" id="email" value="">
-			</li>
-
-			<li>
-				<h5>Password</h5>
-				<input type="password" name="password" id="password" value="">
-			</li>
-		</ul>
-
-		<div @click="${()=>loginsubmit()}" class="btn" id="submit_login_button">login</div>
-
-
-		<div id="login_errormsg" class="${_s.loginerror !== '' ? 'active' : ''}"></div>
-
-
-	</div>
-
-	<div id="logged_out" class="${_s.state === 'loggedout' ? 'active' : ''}">
-		<div id="login_button" class="btn"><a href='/index.html?loggingin=true'>Xen Login</a></div>
-		<button @click="${()=>window.location.href='/index.html?update=1'}">Update SW</button>
-	</div>
-
-	<div id="logged_in" class="${_s.state === 'loggedin' ? 'active' : ''}">
-		<div id="home_button" class="btn"><a href="/v#home">Xen Dashboard Home</a></div>
-		<!--<div id="logout_button" class="btn"><a>Log out</a></div>-->
-	</div>
-`; };
 
 

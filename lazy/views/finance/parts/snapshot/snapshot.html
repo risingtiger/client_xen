@@ -11,6 +11,7 @@
 			 <th>Quad4</th>                                                                                    
 			 <th>Quad1+2</th>                                                                                  
 			 <th>Quad1+2+3</th>                                                                                
+			 <th>Quad1+2+3+4</th>                                                                                
 		 </tr>                                                                                                 
 	 </thead>                                                                                                  
 	 <tbody>                                                                                                   
@@ -19,10 +20,11 @@
 				 <td>${snapshot.areaName}</td>                                                                 
 				 <td>${snapshot.quad1_avg} | ${snapshot.quad1_budget}</td>                                   
 				 <td>${snapshot.quad2_avg} | ${snapshot.quad2_budget}</td>                                   
-				 <td>${snapshot.quad3_avg} | ${snapshot.quad3_budget}</td>                                   
-				 <td>${snapshot.quad4_avg} | ${snapshot.quad4_budget}</td>                                   
+				 <td>${snapshot.quad3_avg}</td>                                   
+				 <td>${snapshot.quad4_avg}</td>                                   
 				 <td>${snapshot.sum_quad1_2_avg} | ${snapshot.sum_quad1_2_budget}</td>                       
-				 <td>${snapshot.sum_quad1_2_3_avg} | ${snapshot.sum_quad1_2_3_budget}</td>                   
+				 <td>${snapshot.sum_quad1_2_3_avg}</td>                   
+				 <td>${snapshot.sum_quad1_2_3_4_avg}</td>
 			 </tr>                                                                                             
 		 `)}                                                                                                   
 	 </tbody>                                                                                                  
@@ -33,14 +35,15 @@
 
 	 <tbody>                                                                                                   
 		 ${_s.month_snapshots.map(ms => html`
-			 <tr>
-				 <td @click="${(e)=>this.save_monthsnapshot(e)}" data-month="${ms.month}" data-areaid="${ms.area.id}" class="${ms.issaved && !ms.isTotal ? 'issaved' : ''}">${ms.area.name}::${ms.month}</td>                                                                 
+			<tr class="${ms.isTotal ? 'row_highlight_total' : '' }">
+				 <td @click="${(e)=>this.save_monthsnapshot(e)}" data-month="${ms.month}" data-areaid="${ms.arearef.id}" class="${ms.issaved && !ms.isTotal ? 'issaved' : ''}">${ms.arearef.name}::${ms.month}</td>                                                                 
 				 <td>${ms.quad1_spent} | ${ms.quad1_budget}</td>                                   
 				 <td>${ms.quad2_spent} | ${ms.quad2_budget}</td>                                   
-				 <td>${ms.quad3_spent} | ${ms.quad3_budget}</td>                                   
-				 <td>${ms.quad4_spent} | ${ms.quad4_budget}</td>                                   
+				 <td>${ms.quad3_spent}</td>                                   
+				 <td>${ms.quad4_spent}</td>                                   
 				 <td>${ms.quad1_spent+ms.quad2_spent} | ${ms.quad1_budget+ms.quad2_budget}</td>                       
-				 <td>${ms.quad1_spent+ms.quad2_spent+ms.quad3_spent} | ${ms.quad1_budget+ms.quad2_budget+ms.quad3_budget}</td>                       
+				 <td>${ms.quad1_spent+ms.quad2_spent+ms.quad3_spent}</td>                       
+				 <td>${ms.quad1_spent+ms.quad2_spent+ms.quad3_spent+ms.quad4_spent}</td>
 			 </tr>                                                                                             
 		 `)}                                                                                                   
 	 </tbody>                                                                                                  

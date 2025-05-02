@@ -14,12 +14,12 @@ function cat_buckets_info(area:AreaT, cats:CatT[], transactions:TransactionT[]) 
 	const refquad4_ts = area.bucketquad4_ref_ts
 
 	const tr = [
-		transactions.filter(txn => txn.area === area && txn.date >= refquad3_ts),
-		transactions.filter(txn => txn.area === area && txn.date >= refquad4_ts),
+		transactions.filter(txn => txn.arearef === area && txn.date >= refquad3_ts),
+		transactions.filter(txn => txn.arearef === area && txn.date >= refquad4_ts),
 	]
 
 	// only subcats and ones that are of quad3 or quad4 and of this specific area
-	const allsubcats = cats.filter(c=>c.area===area).flatMap(cat => cat.subs ? cat.subs : []).filter(cat => { 
+	const allsubcats = cats.filter(c=>c.arearef===area).flatMap(cat => cat.subsref ? cat.subsref : []).filter(cat => { 
 		if (cat.tags[0] < 3 || cat.tags[0] > 4) return false   
 		if (cat.bucket === null)                return false
 		if (cat.bucket === 0)                   return false
@@ -27,9 +27,9 @@ function cat_buckets_info(area:AreaT, cats:CatT[], transactions:TransactionT[]) 
 	});
 
 	const info:CatBucketsInfoT[] = allsubcats.map(cat => {
-		const spent       = tr[cat.tags[0] - 3].filter(t=>t.cat === cat).reduce((acc, txn) => acc + txn.amount, 0);
+		const spent       = tr[cat.tags[0] - 3].filter(t=>t.catref === cat).reduce((acc, txn) => acc + txn.amount, 0);
 		const remainder   = cat.bucket! - spent
-		return { cat, spent: Math.round(spent), remainder: Math.round(remainder) }
+		return { catref:cat, spent: Math.round(spent), remainder: Math.round(remainder) }
 	})
 
 	return info
@@ -39,10 +39,10 @@ function cat_buckets_info(area:AreaT, cats:CatT[], transactions:TransactionT[]) 
 
 
 function area_quad_bucket_totals(area:AreaT, catbuckets:CatBucketsInfoT[], quad:number) : AreaQuadBucketTotalsT {
-	const filtered_catbucket = catbuckets.filter(({cat}) => cat.tags[0] === quad)
+	const filtered_catbucket = catbuckets.filter(({catref}) => catref.tags[0] === quad)
 	const spent      = filtered_catbucket.reduce((acc, {spent}) => acc + (spent || 0), 0)
 	const remainder  = area['bucketquad'+quad] - spent
-	const assigned   = filtered_catbucket.reduce((acc, {cat}) => acc + (cat.bucket || 0), 0)
+	const assigned   = filtered_catbucket.reduce((acc, {catref}) => acc + (catref.bucket || 0), 0)
 	const unassigned = area['bucketquad'+quad] - assigned
 
 	return { remainder, spent, assigned, unassigned }
@@ -61,9 +61,9 @@ function cat_bucket_remainder(area:AreaT, cat:CatT, transactions:TransactionT[])
     let ref_ts = area[ref_ts_key] as number;
 
     const filteredTransactions = transactions.filter(txn =>
-        txn.area === area && 
+        txn.arearef === area && 
         txn.ts >= ref_ts && 
-        txn.cat.id === cat.id
+        txn.catref.id === cat.id
     );
 
     const totalSpent = filteredTransactions.reduce((sum, txn) => sum + txn.amount, 0);

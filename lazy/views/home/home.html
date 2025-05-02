@@ -13,6 +13,8 @@
 		<div id="hldr">Placeholder</div>
 
         ${localStorage.getItem("auth_group") === 'admin' ? html`
+            <h5 @click="${()=>this.linkplaid()}">linkplaid</h5>
+
             <h5 @click="${()=>this.adminetc('firestore_misc_update')}">firestore_misc_update</h5>
             <h5 @click="${()=>this.adminetc('firestore_misc_get')}">firestore_misc_get</h5>
         ` : ''}
@@ -25,11 +27,11 @@
             `}
         </div>
 
-        <h5 @click="${()=>window.location.hash='finance'}">Finance</h5>
+		<c-btn noanime='true' @btnclick="${()=>$N.SwitchStation.NavigateTo('finance')}">Finance</c-btn>
 
         ${localStorage.getItem("auth_group") === 'admin' ? html`
             <br><br>
-            <h5 @click="${()=>window.location.hash='addtr'}">AddTr</h5>
+            <c-btn noanime='true' @click="${()=>$N.SwitchStation.NavigateTo('addtr')}">AddTr</c-btn>
         ` : ''}
 
         <br><br>

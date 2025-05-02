@@ -2,11 +2,11 @@
 
 
 import { str, num } from "../../../defs_server_symlink.js"
-import { $NT } from "../../../defs_client_symlink.js"
+import { $NT, CMechLoadedDataT, CMechLoadStateE } from "../../../defs_client_symlink.js"
 import { AreaT, CatT, SourceT, TagT, PaymentT, TransactionT, CatCalcsT, CatCalcsTotalsT, MonthSnapShotT, FilterT, CatBucketsInfoT, AreaQuadBucketTotalsT } from '../../../defs.js'
 
 import { get_months  } from '../../libs/financefuncs_gen.js'
-import { knit_all } from '../../libs/financefuncs_knit.js'
+import { knit_cats, knit_transactions, knit_monthsnapshots } from '../../libs/financefuncs_knit.js'
 import { filter_transactions, sort_transactions, current_month_of_filtered_transactions  } from '../../libs/financefuncs_sortfilter.js'
 import { catcalcs, catcalc_totals  } from '../../libs/financefuncs_catcalcs.js'
 import { cat_buckets_info, area_quad_bucket_totals  } from '../../libs/financefuncs_bucket.js'
@@ -22,29 +22,31 @@ declare var html: any;
 declare var $N: $NT;
 
 
-//const dummyArea:AreaT = { id: "1", bucketquad3:0, bucketquad4:0, bucketquad3_ref_ts:0, bucketquad4_ref_ts:0, name: "", longname: "", ts: 0 }
-//const dummyCat:CatT = { id: "1", area: dummyArea, budget: 0, name: "", parent: null, subs: null, tags: [], ts: 0, transfer_state: 0 }
-
 
 enum KeyE { NONE, MONTHS_COUNT }
 
-type Model = {
+export type AttributesT = {
+    propa: str,
+}
+
+type ModelT = {
 	ynab_accounts:any[],
     areas:AreaT[], 
     cats:CatT[], 
     sources:SourceT[], 
     tags: TagT[],
+	payments: PaymentT[],
     transactions:TransactionT[], 
+	monthsnapshots: MonthSnapShotT[],
     previous_static_monthsnapshots:MonthSnapShotT[],
     filtered_transactions:TransactionT[], 
     current_month_transactions:TransactionT[], 
     catcalcs:CatCalcsT[],
     catcalcstotals: CatCalcsTotalsT,
-    payments: PaymentT[],
 	data_to_sync: string[]
 }
 
-type State = {
+type StateT = {
 	touch_attached: boolean,
     filter: FilterT,
     months: Date[],
@@ -52,7 +54,7 @@ type State = {
 	cat_buckets: CatBucketsInfoT[],
 	area_quad_bucket_totals: AreaQuadBucketTotalsT,
     catsview: { show_ui: 0|1|2, cats_with_deleteflag: {id:str, name:string}[] },
-    paymentsview: { show_ui: 0|1|2 },
+    paymentsview: { show_ui: 0|1|2, detailsview:boolean },
     tagsview: { show_ui: 0|1|2, tagtotals: {id:str, name:str, sort:num, total:number}[] },
 	editview: { show_ui: 0|1|2, transaction_id: str },
 	snapshotview_showui: 0|1|2,
@@ -69,57 +71,60 @@ type State = {
 
 
 
+const ATTRIBUTES:AttributesT = { propa: "" }
+
+
+
 
 class VFinance extends HTMLElement {
 
-	m:Model
-	s:State
+	a:AttributesT = { ...ATTRIBUTES }
+	s:StateT = {
+		touch_attached: false,
+		filter: { arearef: null, parentcatref: null, catref: null, sourceref: null, tagsref: null, daterange: null, merchant: null, note: null, amountrange: null, cattags: [] },
+		months: [],
+		transactiondetails: { show_ui: 0, t: null },
+		cat_buckets: [],
+		area_quad_bucket_totals: { remainder: 0, spent: 0, assigned: 0, unassigned: 0 },
+		catsview: { show_ui: 0, cats_with_deleteflag: [] },
+		paymentsview: { show_ui: 0, detailsview: false },
+		tagsview: { show_ui: 0, tagtotals: []},
+		editview: { show_ui: 0, transaction_id: '' },
+		bucketview_showui: 0,
+		balancesview_showui: 0,
+		snapshotview_showui: 0,
+		months_display_str: [],
+		touch: { isactive: false, beginx: 0, beginy: 0, origin_action: 'month'},
+		key: { listen_for: KeyE.NONE },
+		prefs: { avgormed: 1 },
+		calcs_view_size: 'small',
+		howmany_months_toshow: 0, // will be set later
+	}
+	m:ModelT = {
+		ynab_accounts: [],
+		areas: [],
+		cats: [],
+		sources: [],
+		tags: [],
+		transactions: [],
+		monthsnapshots: [],
+		previous_static_monthsnapshots: [],
+		filtered_transactions: [],
+		current_month_transactions: [],
+		catcalcs: [],
+		catcalcstotals: { sums: [], budget: 0, med: 0, avg: 0 },
+		payments: [], 
+		data_to_sync: ["areas", "cats", "sources", "tags", "payments", "transactions", "monthsnapshots"]
+	}
+
 	shadow:ShadowRoot
 
 
+	static get observedAttributes() { return Object.keys(ATTRIBUTES); }
+
 
 	constructor() {   
-
 		super(); 
-
-		this.s = {
-			touch_attached: false,
-			filter: { area: null, parentcat: null, cat: null, source: null, tags: null, daterange: null, merchant: null, note: null, amountrange: null, cattags: [] },
-			months: [],
-			transactiondetails: { show_ui: 0, t: null },
-			cat_buckets: [],
-			area_quad_bucket_totals: { remainder: 0, spent: 0, assigned: 0, unassigned: 0 },
-			catsview: { show_ui: 0, cats_with_deleteflag: [] },
-			paymentsview: { show_ui: 0 },
-			tagsview: { show_ui: 0, tagtotals: []},
-			editview: { show_ui: 0, transaction_id: '' },
-			bucketview_showui: 0,
-			balancesview_showui: 0,
-			snapshotview_showui: 0,
-			months_display_str: [],
-			touch: { isactive: false, beginx: 0, beginy: 0, origin_action: 'month'},
-			key: { listen_for: KeyE.NONE },
-			prefs: { avgormed: 1 },
-			calcs_view_size: 'small',
-			howmany_months_toshow: 0, // will be set later
-		}
-
-		this.m = {
-			ynab_accounts: [],
-			areas: [],
-			cats: [],
-			sources: [],
-			tags: [],
-			transactions: [],
-			previous_static_monthsnapshots: [],
-			filtered_transactions: [],
-			current_month_transactions: [],
-			catcalcs: [],
-			catcalcstotals: { sums: [], budget: 0, med: 0, avg: 0 },
-			payments: [], 
-			data_to_sync: ["areas", "cats", "sources", "tags", "payments", "transactions", "monthsnapshots"]
-		}
-
 		this.shadow = this.attachShadow({mode: 'open'});
 	}
 
@@ -127,66 +132,41 @@ class VFinance extends HTMLElement {
 
 
 	async connectedCallback() {
+		await $N.CMech.ViewConnectedCallback(this, {kdonvisibled:true, kdonlateloaded:true})
+		this.dispatchEvent(new Event('hydrated'));
 
-		this.setAttribute("backhash", "home")
-
-		this.set_calcs_view_size('medium') // keep in mind, will be downgraded to small if window screen is small (aka phone)
-
-		const thismonth = new Date()
-		thismonth.setUTCDate(1)
-		thismonth.setUTCHours(0, 0, 0, 0)
-
-		this.set_active_month(thismonth)
-		this.set_default_cattags()
-		this.set_default_except_area_and_date_and_cattags()
+		const r = await $N.FetchLassie('/api/xen/finance/grab_em', {}) as any
+		if (r === null) { alert("couldnt get grabems. throwing up"); throw new Error("timeout"); }
+		this.m.ynab_accounts = r.ynab_accounts
+		this.dispatchEvent(new Event('lateloaded'));
 
 
-		$N.DataSync.Subscribe(this, this.m.data_to_sync, ()=> this.handledata())
-		$N.FetchLassie('/api/xen/finance/grab_em').then((data:any)=> {   this.m.ynab_accounts = data.ynab_accounts;   })
-	}
+		const eltoattach = this.shadow.querySelector('.touchroot') as HTMLElement
 
+		if (!this.s.touch_attached) {
+			eltoattach.addEventListener("touchstart", this.handle_touch_start.bind(this));
+			eltoattach.addEventListener("touchend", this.handle_touch_end.bind(this));
+			eltoattach.addEventListener("touchcancel", this.handle_touch_cancel.bind(this));
+			eltoattach.addEventListener("touchmove", this.handle_touch_move.bind(this));
 
+			document.addEventListener('keydown', this.handle_keydown.bind(this))
 
-
-	async handledata() {
-
-		console.time("indexeddb getall finance data")
-		const idata = await $N.IndexedDB.GetAll(this.m.data_to_sync)
-		console.timeEnd("indexeddb getall finance data")
-
-		checkit.bind(this)()
-		
-
-		function checkit() {
-
-			if (this.m.ynab_accounts.length) {
-
-				this.runit(idata)
-
-				this.dispatchEvent(new Event('hydrated'))
-
-				const eltoattach = this.shadow.querySelector('.touchroot') as HTMLElement
-
-				if (!this.s.touch_attached) {
-					eltoattach.addEventListener("touchstart", this.handle_touch_start.bind(this));
-					eltoattach.addEventListener("touchend", this.handle_touch_end.bind(this));
-					eltoattach.addEventListener("touchcancel", this.handle_touch_cancel.bind(this));
-					eltoattach.addEventListener("touchmove", this.handle_touch_move.bind(this));
-
-					document.addEventListener('keydown', this.handle_keydown.bind(this))
-
-					this.s.touch_attached = true
-				}
-
-			} else {
-				setTimeout(checkit.bind(this), 10)
-			}
+			this.s.touch_attached = true
 		}
 	}
 
 
 
-	disconnectedCallback() {
+
+	async attributeChangedCallback(name:string, oldval:string|boolean|number, newval:string|boolean|number) {
+		$N.CMech.AttributeChangedCallback(this, name, oldval, newval);
+	}
+
+
+
+
+	disconnectedCallback() {   
+		$N.CMech.ViewDisconnectedCallback(this);   
 
 		const eltoattach = this.shadow.querySelector('.touchroot') as HTMLElement
 
@@ -201,25 +181,62 @@ class VFinance extends HTMLElement {
 
 
 
-	runit(data:any) {
+	kd = (loadeddata: CMechLoadedDataT, loadstate:CMechLoadStateE) =>  {
 
-		//data.get("areas").forEach((m:any)=> { // loop through areas
-		//})
 
-		let k = knit_all(data.get("areas"), data.get("cats"), data.get("sources"), data.get("tags"), data.get("payments"), data.get("transactions"), data.get("monthsnapshots"))
+		if (loadstate === CMechLoadStateE.INITIAL || loadstate === CMechLoadStateE.DATACHANGED) {
+			this.m.areas          = loadeddata.get("areas")! as AreaT[]
+			this.m.cats           = knit_cats(this.m.areas, loadeddata.get('cats')!) as CatT[]
+			this.m.sources        = loadeddata.get("sources") as SourceT[]
+			this.m.tags           = $N.Utils.resolve_object_references(loadeddata.get("tags")!, loadeddata) as TagT[]
+			this.m.payments       = $N.Utils.resolve_object_references(loadeddata.get("payments")!, loadeddata) as PaymentT[]
+			this.m.monthsnapshots = knit_monthsnapshots(loadeddata.get("monthsnapshots")!, this.m.areas) as MonthSnapShotT[]
+			this.m.transactions   = knit_transactions(this.m.cats, this.m.sources, this.m.tags, loadeddata.get("transactions")!) as TransactionT[]
 
-		this.m.areas = k.areas
-		this.m.cats = k.cats
-		this.m.sources = k.sources
-		this.m.tags = k.tags
-		this.m.payments = k.payments
-		this.m.transactions = k.transactions
-		this.m.previous_static_monthsnapshots = k.previous_static_monthsnapshots
-		
-		this.s.filter.area = this.s.filter.area ? this.m.areas.find(area => area.name === this.s.filter.area?.name) as AreaT : this.m.areas.find(area => area.name === 'fam') as AreaT
+			this.m.previous_static_monthsnapshots = knit_monthsnapshots(loadeddata.get("monthsnapshots")!, this.m.areas) as MonthSnapShotT[]
 
-		this.parse_new_state()
-		this.sc()
+			if (loadstate === CMechLoadStateE.INITIAL) {
+				this.s.filter.arearef = this.m.areas.find(area => area.name === 'fam') as AreaT
+				this.set_default_cattags()
+				this.set_calcs_view_size('medium') // keep in mind, will be downgraded to small if window screen is small (aka phone)
+
+				const thismonth = new Date()
+				thismonth.setUTCDate(1)
+				thismonth.setUTCHours(0, 0, 0, 0)
+
+				this.set_active_month(thismonth)
+				this.set_default_except_area_and_date_and_cattags()
+			}
+
+			this.parse_new_state()
+
+			for(let i = 0; i < ( this as any ).subelshldr.length; i++) {
+				( this as any ).subelshldr[i].kd(loadeddata, loadstate);
+				( this as any ).subelshldr[i].sc();
+			}
+
+			//TODO: When i figure out the datachanged events and attributes potential conflicts and resolve in CMech, I'm just calling into subels to force update (calling kd and sc) of sub elements
+			console.log("When i figure out the datachanged events and attributes potential conflicts and resolve in CMech, I'm just calling into subels to force update (calling kd and sc) of sub elements")
+		}
+
+
+		if (loadstate === CMechLoadStateE.VISIBLED) {
+			console.log("visibled")
+		}
+
+		if (loadstate === CMechLoadStateE.LATELOADED) {
+			console.log("late loaded")
+		}
+	}
+
+
+
+
+	sc(state_changes = {}) {   
+
+		this.s = Object.assign(this.s, state_changes);
+
+		render(this.template(this.s, this.m), this.shadow);
 	}
 
 
@@ -236,10 +253,10 @@ class VFinance extends HTMLElement {
 		this.s.filter.daterange             = [this.s.months[0], this.s.months[this.s.months.length-1]];
 		this.m.filtered_transactions        = filter_transactions(this.m.transactions, this.s.filter);
 		this.m.current_month_transactions   = current_month_of_filtered_transactions(this.m.filtered_transactions, this.s.months[this.s.months.length-1]);
-		this.m.catcalcs                     = catcalcs(this.m.filtered_transactions, this.s.filter.area as AreaT, this.s.filter.cattags, this.m.cats, this.s.months);
+		this.m.catcalcs                     = catcalcs(this.m.filtered_transactions, this.s.filter.arearef as AreaT, this.s.filter.cattags, this.m.cats, this.s.months);
 		this.m.catcalcstotals               = catcalc_totals(this.m.catcalcs, this.s.filter);
-		this.s.cat_buckets                  = cat_buckets_info((this.m.areas.find(a=>a === this.s.filter.area) as AreaT), this.m.cats, this.m.transactions); // wlll only contain cats of quad3 or 4
-		this.s.area_quad_bucket_totals      = area_quad_bucket_totals((this.m.areas.find(a=>a === this.s.filter.area) as AreaT), this.s.cat_buckets, this.s.filter.cattags[0]) // will all be 0 unless we are specifically viewing quad 3 or 4
+		this.s.cat_buckets                  = cat_buckets_info((this.m.areas.find(a=>a === this.s.filter.arearef) as AreaT), this.m.cats, this.m.transactions); // wlll only contain cats of quad3 or 4
+		this.s.area_quad_bucket_totals      = area_quad_bucket_totals((this.m.areas.find(a=>a === this.s.filter.arearef) as AreaT), this.s.cat_buckets, this.s.filter.cattags[0]) // will all be 0 unless we are specifically viewing quad 3 or 4
 		this.m.current_month_transactions   = sort_transactions(this.m.current_month_transactions, "date", "asc")
 	}
 
@@ -253,8 +270,8 @@ class VFinance extends HTMLElement {
 
 	set_default_except_area_and_date_and_cattags() {
 
-		this.s.filter.parentcat = null; this.s.filter.cat = null; this.s.filter.source = null;
-		this.s.filter.tags = null; this.s.filter.merchant = null;
+		this.s.filter.parentcatref = null; this.s.filter.catref = null; this.s.filter.sourceref = null;
+		this.s.filter.tagsref = null; this.s.filter.merchant = null;
 		this.s.filter.note = null; this.s.filter.amountrange = null;
 	}
 
@@ -264,7 +281,7 @@ class VFinance extends HTMLElement {
 	set_area(areaname:string) {
 
 		if(localStorage.getItem("auth_group") === 'admin') {
-			this.s.filter.area = this.m.areas.find(area => area.name === areaname) as AreaT
+			this.s.filter.arearef = this.m.areas.find(area => area.name === areaname) as AreaT
 			this.set_default_except_area_and_date_and_cattags()
 			this.parse_new_state()
 			this.sc()
@@ -290,7 +307,7 @@ class VFinance extends HTMLElement {
 
 
 	filter_by_source(sourcename:string) {
-		this.s.filter.source = this.m.sources.find(source => source.name === sourcename) as SourceT
+		this.s.filter.sourceref = this.m.sources.find(source => source.name === sourcename) as SourceT
 		this.parse_new_state()
 		this.sc()
 	}
@@ -308,7 +325,7 @@ class VFinance extends HTMLElement {
 
 
 	filter_by_tag(tag:TagT) {
-		this.s.filter.tags = [tag]
+		this.s.filter.tagsref = [tag]
 		this.parse_new_state()
 		this.sc()
 	}
@@ -367,26 +384,26 @@ class VFinance extends HTMLElement {
 		let cat:CatT|null       = null
 
 		if (ii !== -1) {
-			parentcat = this.m.catcalcs[i].cat
-			cat = this.m.catcalcs[i].subs![ii].cat
+			parentcat = this.m.catcalcs[i].catref
+			cat = this.m.catcalcs[i].subsref![ii].catref
 
-			if (this.s.filter.parentcat === parentcat && this.s.filter.cat === cat) {
+			if (this.s.filter.parentcatref === parentcat && this.s.filter.catref === cat) {
 				parentcat = null
 				cat = null
 			}
 
 		} else { 
 			cat = null
-			parentcat = this.m.catcalcs[i].cat
+			parentcat = this.m.catcalcs[i].catref
 
-			if (this.s.filter.parentcat === parentcat) {
+			if (this.s.filter.parentcatref === parentcat) {
 				parentcat = null
 				cat = null
 			}
 		}
 
-		this.s.filter.parentcat = parentcat
-		this.s.filter.cat = cat
+		this.s.filter.parentcatref = parentcat
+		this.s.filter.catref = cat
 
 		this.parse_new_state()
 
@@ -447,7 +464,7 @@ class VFinance extends HTMLElement {
 		this.sc()
 		setTimeout(()=> {
 			const el = (this.shadow.querySelector('vp-finance-bucket') as any)
-			el.showManageUI(this.m.areas.find(a=>a === this.s.filter.area)!, this.s.filter.cattags, this.s.cat_buckets, this.s.area_quad_bucket_totals)
+			el.showManageUI(this.m.areas.find(a=>a === this.s.filter.arearef)!, this.s.filter.cattags, this.s.cat_buckets, this.s.area_quad_bucket_totals)
 			el.addEventListener('close', ()=> this.sc({ bucketview_showui: 0 }))
 		}, 30)
 	}
@@ -464,7 +481,7 @@ class VFinance extends HTMLElement {
 			el.twoStepClicks(
 				catId, 
 				elId,
-				this.m.areas.find(a=>a === this.s.filter.area)!, 
+				this.m.areas.find(a=>a === this.s.filter.arearef)!, 
 				this.m.cats, 
 				this.m.transactions,
 				this.s.filter.cattags,
@@ -494,7 +511,7 @@ class VFinance extends HTMLElement {
 
 		const r = await $N.FetchLassie('/api/xen/finance/ynab_sync_categories')
 
-		this.s.catsview.cats_with_deleteflag = r.cats_with_deleteflag
+		this.s.catsview.cats_with_deleteflag = (r as any).cats_with_deleteflag
 
 		this.sc()
 	}
@@ -511,11 +528,11 @@ class VFinance extends HTMLElement {
 		}
 
 
-		const filtered_tags = this.m.tags.filter((tag:any) => tag.area === this.s.filter.area)
+		const filtered_tags = this.m.tags.filter((tag:any) => tag.arearef === this.s.filter.arearef)
 
 		this.s.tagsview.tagtotals = filtered_tags.map(tag => {
 
-			const t = this.m.transactions.filter(tr => tr.tags.find(t=> t.id === tag.id))
+			const t = this.m.transactions.filter(tr => tr.tagsref.find(t=> t.id === tag.id))
 			const total = t.reduce((acc, tr) => acc + tr.amount, 0)
 
 			return { id: tag.id, name: tag.name, sort: total, total }
@@ -540,7 +557,7 @@ class VFinance extends HTMLElement {
 			size = size === 'small' ? 'small' : 'medium'
 		}
 
-		this.s.howmany_months_toshow = size === 'small' ? 3 : size === 'medium' ? 6 : 12
+		this.s.howmany_months_toshow = size === 'small' ? 2 : size === 'medium' ? 7 : 12
 		this.s.calcs_view_size = size	
 	}
 
@@ -584,7 +601,7 @@ async handle_touch_start(e:TouchEvent) {
         this.s.touch.origin_action = 'catquad'
     }
 
-    else if (target.classList.contains('touch_area')) {
+    else if (target.classList.contains('touch_avgmed')) {
         this.s.touch.isactive = true
         this.s.touch.beginx = e.touches[0].clientX
         this.s.touch.beginy = e.touches[0].clientY
@@ -648,13 +665,13 @@ async handle_touch_end(e:TouchEvent) {
 
                 if (localStorage.getItem("auth_group") === 'admin') {
 
-                    if (this.s.filter.area?.name === 'fam' && !is_direction_right) 
+                    if (this.s.filter.arearef?.name === 'fam' && !is_direction_right) 
                         this.set_area('pers')
-                    else if (this.s.filter.area?.name === 'pers' && !is_direction_right) 
+                    else if (this.s.filter.arearef?.name === 'pers' && !is_direction_right) 
                         this.set_area('rtm')
-                    else if (this.s.filter.area?.name === 'pers' && is_direction_right) 
+                    else if (this.s.filter.arearef?.name === 'pers' && is_direction_right) 
                         this.set_area('fam')
-                    else if (this.s.filter.area?.name === 'rtm' && is_direction_right) 
+                    else if (this.s.filter.arearef?.name === 'rtm' && is_direction_right) 
                         this.set_area('pers')
                 }
             }
@@ -840,16 +857,16 @@ async handle_keydown(e:KeyboardEvent) {
 		s += "area,parent,cat," + months + ",budget," + "\n"
 
 		for (const c of this.m.catcalcs) {
-			s += c.cat.area.name + ","
+			s += c.catref.arearef.name + ","
 			s += "1,",
-			s += c.cat.name + ","
+			s += c.catref.name + ","
 			s += c.sums.map(s=> Math.round(s)).join(",") + ","
 			s += c.budget + "\n"
 
-			for (const cs of c.subs!) {
-				s += c.cat.area.name + ","
+			for (const cs of c.subsref!) {
+				s += c.catref.arearef.name + ","
 				s += "0,",
-				s += cs.cat.name + ","
+				s += cs.catref.name + ","
 				s += cs.sums.map(s=> Math.round(s)).join(",") + ","
 				s += cs.budget + "\n"
 			}
@@ -866,36 +883,32 @@ async handle_keydown(e:KeyboardEvent) {
 
 
 
-	sc(state_changes = {}) {   
-
-		this.s = Object.assign(this.s, state_changes);
-
-		render(this.template(this.s, this.m), this.shadow);
-	}
 
 	payments_r(p:PaymentT) {
 
+		let daypostfix = p.day.toString().endsWith('0') ? 'th' : p.day.toString().endsWith('1') ? 'st' : p.day.toString().endsWith('2') ? 'nd' : 'th'
+
 		let breakdown = p.breakdown.map(b=> {
 			let s = b.split(":")
-			return {name:s[0], date:s[1], amount:s[2]}
+			return {name:s[0], amount:s[1], date:s[2]}
 		})
 
 		return html`
-			<div class="payment ${p.breakdown.length ? 'hasbreakdown' : ''}" @click="${(e:any)=>{let el = e.currentTarget.querySelector('.notes'); el.style.display = el.style.display === 'block' ? 'none' : 'block';}}">
-				<h4>${p.payee} ${p.notes ? '..' : ''}</h4>
-				<p>
-					${ p.is_auto ? html`<strong>A</strong>&nbsp;` : '' }
-					${ p.is_auto && p.source && p.source.name === 'checkpers' ? html`<strong class="extra">B</strong>&nbsp;` : '' }
-					${p.day}&nbsp;
-					${p.amount ? "$"+p.amount : ''}
-				</p>
-				<p class="notes">${p.notes}</p>
+			<div class="payment ${p.breakdown.length ? 'hasbreakdown' : ''}">
+				<h4 @click="${()=> {this.s.paymentsview.detailsview=this.s.paymentsview.detailsview ? false : true; this.sc(); } }">
+					<span class="payee">${p.payee}</span>
+					<span class="amount">${p.amount ? "$"+p.amount : ''}</span>
+					<span class="day">${p.day}${daypostfix} &nbsp;</span>
+					${ p.is_auto ? html`<span class="isauto">A</span>&nbsp;` : '' }</span>
+					${ p.is_auto && p.payment_sourceref && p.payment_sourceref.name === 'checkpers' ? html`<span class="isauto_ischecking">B</span>&nbsp;` : '' }
+				</h4>
+				<p class="notes ${this.s.paymentsview.detailsview ? 'active' : ''}">${p.notes || '-'}</p>
 				${breakdown ? html`
 					<div class="breakdown">
 					   ${breakdown.map(b=> html`
 							<div class="item">
 								<h6>${b.name}</h6>
-								<p>${b.date} &nbsp; $${b.amount}</p>	
+								<p class="notes ${this.s.paymentsview.detailsview ? 'active' : ''}">$${b.amount} - ${b.date}</p>
 							</div>
 					   `)}
 					</div>
@@ -906,7 +919,7 @@ async handle_keydown(e:KeyboardEvent) {
 
 
 
-	template = (_s:State, _m:any) => { return html`{--css--}{--html--}`; };
+	template = (_s:StateT, _m:ModelT) => { return html`{--css--}{--html--}`; };
 
 
 }
@@ -915,9 +928,6 @@ async handle_keydown(e:KeyboardEvent) {
 
 
 customElements.define('v-finance', VFinance);
-
-
-
 
 export {  }
 

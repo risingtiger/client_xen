@@ -51,6 +51,7 @@ class VPFinanceEditTransaction extends HTMLElement {
     shadow:ShadowRoot
 
 
+	static get observedAttributes() { return Object.keys(ATTRIBUTES); }
 
 
 	constructor() {   
@@ -62,7 +63,6 @@ class VPFinanceEditTransaction extends HTMLElement {
 
 
 	async connectedCallback() {   
-
 		await $N.CMech.ViewPartConnectedCallback(this)
 		this.dispatchEvent(new Event('hydrated'));
 	}
@@ -77,12 +77,13 @@ class VPFinanceEditTransaction extends HTMLElement {
 
 
 
-	disconnectedCallback() {}
+	disconnectedCallback() { $N.CMech.ViewPartDisconnectedCallback(this); }
 
 
 
 
-	kd = (loadeddata: CMechLoadedDataT, _loadstate:CMechLoadStateE) => new Promise<void>(async (_res) => {
+	kd = (loadeddata: CMechLoadedDataT, _loadstate:CMechLoadStateE) => {
+
 		const trs             = loadeddata.get("transactions") as TransactionT[]
 
 		this.m.areas          = loadeddata.get("areas")! as AreaT[]
@@ -107,7 +108,7 @@ class VPFinanceEditTransaction extends HTMLElement {
 		} 
 
 		const get_tag_options = () => {
-			let s = ""
+			let s = "None:none,"
 			for (let tag of this.m.tags) {
 				s += `${tag.name}:${tag.id},`
 			}
@@ -123,6 +124,8 @@ class VPFinanceEditTransaction extends HTMLElement {
 
 		this.s.cat_options = get_cat_options()
 		this.s.tag_options = get_tag_options()
+
+		this.m.transaction_tag_id = this.m.transaction.tagsref.length ? (this.m.transaction.tagsref[0] as any).id : ""
 
 		/*
 		const transaction = await $N.Firestore.Retrieve(`transactions/${this.getAttribute("transaction")}`)
@@ -149,7 +152,7 @@ class VPFinanceEditTransaction extends HTMLElement {
 
 		this.dispatchEvent(new Event('hydrated'))
 		*/
-	})
+	}
 
 
 
@@ -157,7 +160,6 @@ class VPFinanceEditTransaction extends HTMLElement {
 	async prop_updated(e:any) {
 
 		let changed:any = {}
-		let changed_merchant_name = ""
 
 		if (e.detail.name === "amount") {
 			changed.amount = parseFloat(e.detail.newval)
@@ -168,35 +170,25 @@ class VPFinanceEditTransaction extends HTMLElement {
 		}
 
 		else if (e.detail.name === "cat") {
-			changed.cat_id = e.detail.newval
+			changed.cat__ref = "cats/" + e.detail.newval
 		}
 
-		else if (e.detail.name === "tag") {
-			changed.tag_id = e.detail.newval
-		}
-
-		if (e.detail.name === "date") {
-			// Convert date string (YYYY-MM-DD) to epoch timestamp
+		else if (e.detail.name === "date") {
 			const dateObj = new Date(e.detail.newval);
 			changed.date = Math.floor(dateObj.getTime() / 1000); // Convert to seconds
 		}
 
-		if (e.detail.name === "merchant") {
-			changed_merchant_name = e.detail.newval
+		else if (e.detail.name === "tag") {
+			await $N.FetchLassie("/api/xen/finance/update_transaction_tag", { method: "POST", body: JSON.stringify({ docid: this.m.transaction!.id, tagid: e.detail.newval }) })
+		}
+
+		else if (e.detail.name === "merchant") {
+			await $N.FetchLassie("/api/xen/finance/update_merchant_name", { method: "POST", body: JSON.stringify({ newname: e.detail.newval, oldname: e.detail.oldval }) })
 		}
 
 
-		let r:any = null
-
-		if (changed_merchant_name) {
-			r = await $N.FetchLassie("/api/xen/finance/update_merchant_name", { method: "POST", body: JSON.stringify({ newname: changed_merchant_name, oldname: e.detail.oldval }) })
-
-		} else {
-			r = await $N.FetchLassie("/api/xen/finance/patch_transaction", { method: "PATCH", body: JSON.stringify({ id: this.m.transaction!.id, changed }) })
-		}
-
-		if (r.err) {
-			console.error(r.err)
+		if (Object.keys(changed).length) {
+			await $N.LocalDBSync.Patch("transactions/"+this.m.transaction!.id, changed);
 		}
 	}
 

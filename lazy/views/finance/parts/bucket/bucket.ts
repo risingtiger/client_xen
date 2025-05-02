@@ -1,6 +1,6 @@
 
 
-import { $NT } from "../../../../../defs_client_symlink.js"
+import { $NT, CMechLoadedDataT, CMechLoadStateE } from "../../../../../defs_client_symlink.js"
 import { TransactionT, AreaT, CatT, AreaQuadBucketTotalsT, CatBucketsInfoT } from '../../../../../defs.js'
 import { cat_bucket_remainder } from '../../../../libs/financefuncs_bucket.js'
 
@@ -34,11 +34,15 @@ type ManageT = {
 }
 
 
-type Model = {
+type AttributesT = {
 	prop1: string,
 }
 
-type State = {
+type ModelT = {
+	prop1: string,
+}
+
+type StateT = {
     clicks: {
         fromType: 'cat' | 'unassigned' | 'none',
         toType: 'cat' | 'unassigned' | 'none',
@@ -57,12 +61,34 @@ type State = {
 }
 
 
+const ATTRIBUTES:AttributesT = { prop1:"" }
 
 
 class VPFinanceBucket extends HTMLElement {
 
-    s:State
-    m:Model
+	a:AttributesT = { ...ATTRIBUTES }
+	s:StateT = {
+		clicks: {
+			fromType: 'none',
+			toType: 'none',
+			fromCatId: null,
+			toCatId: null
+		},
+		error: "",
+		manage: {
+			ref_ts_as_date_str: "",
+			cat_buckets: [],
+			area_quad_bucket_totals: {remainder: 0, spent: 0, assigned:0, unassigned: 0}
+		},
+		quad: 0,
+		amount: 0,
+		area: null,
+		from: { available: 0, newAmt: 0, cat: null, name: "" },
+		to: { available: 0, newAmt: 0, cat: null, name: "" },
+		bigmoveit: { newBucket: 0, newUnassigned:0, newSpentCovered:0, newRemainder:0, newDrawnAwayFromCats:0, newCatBucketAmounts:[], newInAmount:0, transfer_statement: "" },
+		mode: 'inactive'
+	}
+    m:ModelT = { prop1: "prop1" }
     shadow:ShadowRoot
 
 
@@ -70,32 +96,6 @@ class VPFinanceBucket extends HTMLElement {
 
     constructor() {   
         super();
-        this.m = {
-			prop1: "prop1"
-        };
-        
-        this.s = {
-            clicks: {
-                fromType: 'none',
-                toType: 'none',
-                fromCatId: null,
-                toCatId: null
-            },
-			error: "",
-			manage: {
-				ref_ts_as_date_str: "",
-				cat_buckets: [],
-				area_quad_bucket_totals: {remainder: 0, spent: 0, assigned:0, unassigned: 0}
-			},
-			quad: 0,
-            amount: 0,
-			area: null,
-            from: { available: 0, newAmt: 0, cat: null, name: "" },
-            to: { available: 0, newAmt: 0, cat: null, name: "" },
-			bigmoveit: { newBucket: 0, newUnassigned:0, newSpentCovered:0, newRemainder:0, newDrawnAwayFromCats:0, newCatBucketAmounts:[], newInAmount:0, transfer_statement: "" },
-            mode: 'inactive'
-        };
-        
         this.shadow = this.attachShadow({mode: 'open'});
     }
 
@@ -103,8 +103,26 @@ class VPFinanceBucket extends HTMLElement {
 
 
 	async connectedCallback() {   
-		this.sc()
-		this.dispatchEvent(new Event('hydrated'))
+		await $N.CMech.ViewPartConnectedCallback(this)
+		this.dispatchEvent(new Event('hydrated'));
+	}
+
+
+
+
+	async attributeChangedCallback(name:string, oldval:string|boolean|number, newval:string|boolean|number) {
+		$N.CMech.AttributeChangedCallback(this,name,oldval,newval);
+	}
+
+
+
+
+	disconnectedCallback() { $N.CMech.ViewPartDisconnectedCallback(this); }
+
+
+
+
+	kd = (_loadeddata: CMechLoadedDataT, _loadstate:CMechLoadStateE) => {
 	}
 
 
@@ -140,7 +158,7 @@ class VPFinanceBucket extends HTMLElement {
 
     twoStepClicks(catId:string, elId:string, area: AreaT, cats: CatT[], transactions: TransactionT[], catTags: number[], area_quad_bucket_totals:AreaQuadBucketTotalsT) {
 
-        const flatCats           = cats.flatMap(c => c.subs || []);
+        const flatCats           = cats.flatMap(c => c.subsref || []);
         const cat                = catId ? flatCats.find(c => c.id === catId) : null;
         const isUnassignedBucket = elId === "unassigned";
 
@@ -247,7 +265,7 @@ class VPFinanceBucket extends HTMLElement {
 			catupdates.push({ id: this.s.to.cat.id, bucket: Math.round(newBucketAmnt) });
 		} // if from is unassigned bin , just do nothing. calculations of unassigned are soley based on totals of all cat buckets
 
-		const sendobj:any = {catupdates}
+		const sendobj:any = { catupdates }
 
 		// if between holder bin, there is NO holder bin in the database. just add to or subtract cat's bucket and the 'hldr' is deduced as difference from area's bucket
 
@@ -293,14 +311,14 @@ class VPFinanceBucket extends HTMLElement {
 			this.s.bigmoveit.newCatBucketAmounts = []
 
 			for (const catbucket of this.s.manage.cat_buckets) {
-				if (catbucket.cat.tags[0] === this.s.quad && catbucket.cat.bucket) {
+				if (catbucket.catref.tags[0] === this.s.quad && catbucket.catref.bucket) {
 
-					const robj = {catId: catbucket.cat.id, catName: catbucket.cat.name, bucket: 0};
+					const robj = {catId: catbucket.catref.id, catName: catbucket.catref.name, bucket: 0};
 
 					if (this.s.amount < this.s.manage.area_quad_bucket_totals.spent) {
 						const percent = this.s.amount / this.s.manage.area_quad_bucket_totals.spent;
 						const amountToReduceBucket = catbucket.spent * percent; // spent will be 0 if nothing has been 0 and thus nothing will be reduced from this cat
-						const bucket = Math.round(catbucket.cat.bucket - amountToReduceBucket);
+						const bucket = Math.round(catbucket.catref.bucket - amountToReduceBucket);
 						robj.bucket = bucket;
 
 					} else {
@@ -363,7 +381,7 @@ class VPFinanceBucket extends HTMLElement {
 
 
 
-	template = (_s:State, _m:Model) => { return html`{--css--}{--html--}`; } 
+	template = (_s:StateT, _m:ModelT) => { return html`{--css--}{--html--}`; } 
 
 }
 

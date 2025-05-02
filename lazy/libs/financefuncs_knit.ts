@@ -3,6 +3,7 @@
 
 //import { num } from "../../../defs_server_symlink.js";
 import { AreaT, CatT, SourceT, TagT, PaymentT, TransactionT, MonthSnapShotT  } from '../../defs.js'
+import { GenericRowT } from '../../defs_client_symlink.js'
 
 
 
@@ -45,43 +46,43 @@ function knit_areas(raw_areas:any) : AreaT[] {
 
 
 
-function knit_cats(raw_areas:any, raw_cats:any) : CatT[] {
+function knit_cats(areas:AreaT[], raw_cats:any) : CatT[] {
 
     const cats = raw_cats.filter((raw_cat:any) => raw_cat.area !== null && raw_cat.parent == null).map((raw_cat:any) => {
         return {
             id: raw_cat.id,
-            area: raw_areas.find((area:AreaT) => area.id === raw_cat.area._path.segments[1]) as AreaT,
+            arearef: areas.find((area:AreaT) => area.id === raw_cat.area.__path[1]),
             bucket: raw_cat.bucket,
             budget: raw_cat.budget,
             name: raw_cat.name,
-            parent:null,
+            parentref:null,
             tags: raw_cat.tags,
-            subs: [],
+            subsref: [],
             ts: raw_cat.date,
             transfer_state: 0
-        }
+        } as CatT
     })
 
     cats.forEach((cat:CatT) => {
-        cat.subs = raw_cats.filter((raw_cat:any) => raw_cat.parent !== null && raw_cat.parent._path.segments[1] === cat.id).map((raw_cat:any) => {
+        cat.subsref = raw_cats.filter((raw_cat:any) => raw_cat.parent !== null && raw_cat.parent.__path[1] === cat.id).map((raw_cat:any) => {
             return {
                 id: raw_cat.id,
-                area: null,
+                arearef: null,
                 bucket: raw_cat.bucket,
                 budget: raw_cat.budget,
                 name: raw_cat.name,
-                parent: cat,
+                parentref: cat,
                 tags: raw_cat.tags,
-                subs: null,
+                subsref: null,
                 ts: raw_cat.date,
                 transfer_state: 0
-            }
+            } 
         })
 
-        cat.subs!.sort((a:CatT, b:CatT) => a.name.localeCompare(b.name))
+        cat.subsref!.sort((a:CatT, b:CatT) => a.name.localeCompare(b.name))
     })
 
-    cats.sort((a:CatT, b:CatT) => a.area.name.localeCompare(b.area.name) || a.name.localeCompare(b.name))
+    cats.sort((a:CatT, b:CatT) => a.arearef.name.localeCompare(b.arearef.name) || a.name.localeCompare(b.name))
 
     return cats 
 }
@@ -130,31 +131,30 @@ function knit_transactions(cats:CatT[], sources:SourceT[], tags:TagT[], raw_tran
         let trcat:CatT|null = null
         let trarea:AreaT|null = null
         for (const cat of cats) {
-            const subcat_match = cat.subs?.find((subcat:CatT) => subcat.id === raw_transaction.cat._path.segments[1])
+            const subcat_match = cat.subsref?.find((subcat:CatT) => subcat.id === raw_transaction.cat.__path[1])
             if (subcat_match) { 
                 trcat = subcat_match 
-                trarea = cat.area
+                trarea = cat.arearef!
                 break
             }
         }
 
-        const trsource = sources.find((source:SourceT) => source.id === raw_transaction.source._path.segments[1])
+        const trsource = sources.find((source:SourceT) => source.id === raw_transaction.source.__path[1])
 
         const trtags = raw_transaction.tags.map((t:any) => tags.find((tag:TagT) => tag.id === t._path.segments[1]) as TagT)
 
         return {
             id: raw_transaction.id,
             amount: raw_transaction.amount,
-            area: trarea,
-            cat: trcat,
+            arearef: trarea,
+            catref: trcat,
             merchant: raw_transaction.merchant,
 			date: raw_transaction.date,
             ts: raw_transaction.ts,
-			transacted_ts: raw_transaction.transacted_ts ? raw_transaction.transacted_ts : raw_transaction.date,
             notes: raw_transaction.notes,
-            source: trsource,
-            tags: trtags
-        }
+            sourceref: trsource,
+            tagsref: trtags
+        } as TransactionT
     })
 
     return transactions
@@ -166,11 +166,12 @@ function knit_transactions(cats:CatT[], sources:SourceT[], tags:TagT[], raw_tran
 function knit_monthsnapshots(raw_monthsnapshots:any, areas: AreaT[]) : MonthSnapShotT[] {
 
     return raw_monthsnapshots.map((raw_monthsnapshot:any) => { 
-		let area = areas.find((area:AreaT) => area.id === raw_monthsnapshot.area._path.segments[1]) as AreaT
+		let arearef = areas.find((area:AreaT) => area.id === raw_monthsnapshot.area.__path[1]) as AreaT
 
 		return { 
-			area,
+			arearef,
 			month: raw_monthsnapshot.month,
+			issaved: false,
 			bucket: raw_monthsnapshot.bucket,
 			savings: raw_monthsnapshot.savings,
 			quad1_budget: raw_monthsnapshot.quad1_budget || 0,
@@ -181,7 +182,7 @@ function knit_monthsnapshots(raw_monthsnapshots:any, areas: AreaT[]) : MonthSnap
 			quad2_spent: raw_monthsnapshot.quad2_spent || 0,
 			quad3_spent: raw_monthsnapshot.quad3_spent || 0,
 			quad4_spent: raw_monthsnapshot.quad4_spent || 0
-		}
+		} as MonthSnapShotT
     })
 }
 
@@ -192,6 +193,6 @@ function knit_monthsnapshots(raw_monthsnapshots:any, areas: AreaT[]) : MonthSnap
 
 
 
-export { knit_all, knit_areas, knit_cats, knit_tags, knit_sources }
+export { knit_all, knit_areas, knit_cats, knit_tags, knit_sources, knit_transactions, knit_monthsnapshots, knit_payments }
 
 

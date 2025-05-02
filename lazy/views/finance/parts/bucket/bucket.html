@@ -52,7 +52,7 @@ ${ _s.mode === "manage" ? html`
 	<p>Unassigned: ${_s.manage.area_quad_bucket_totals.unassigned}</p>
 
 	<input name="move-between-savings-and-checking-input" type="range" min="-${(_s.area["bucketquad"+_s.quad])}" max="${_s.area["bucketquad"+_s.quad]}" 
-		   step="50" value="0"
+			step="${_s.area["bucketquad"+_s.quad] > 60 ? 20 : 5}" value="0"
 		   @input="${(e) => this.onMoveBetweenSavingsAndCheckingChange(e.currentTarget.value)}">
 
 	${ _s.amount > 0 || _s.amount < 0 ? html`

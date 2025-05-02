@@ -24,12 +24,12 @@ function filter_transactions(transactions:TransactionT[], filter:FilterT) : Tran
 
     return transactions.filter((transaction:TransactionT) => {
 
-        if (filter.area && transaction.area !== filter.area) { return false }
-        if (filter.cat && transaction.cat !== filter.cat) { return false }
-        if (filter.cattags && filter.cattags.length && !transaction.cat.tags.some((t:number) => filter.cattags.includes(t))) { return false }
-        if (filter.parentcat && transaction.cat.parent !== filter.parentcat) { return false }
-        if (filter.source && transaction.source !== filter.source) { return false }
-        if (filter.tags && !filter.tags.every(tag=> transaction.tags.find(t_tag=> t_tag === tag))) { return false }
+        if (filter.arearef && transaction.arearef !== filter.arearef) { return false }
+        if (filter.catref && transaction.catref !== filter.catref) { return false }
+        if (filter.cattags && filter.cattags.length && !transaction.catref.tags.some((t:number) => filter.cattags.includes(t))) { return false }
+        if (filter.parentcatref && transaction.catref.parentref !== filter.parentcatref) { return false }
+        if (filter.sourceref && transaction.sourceref !== filter.sourceref) { return false }
+        if (filter.tagsref && !filter.tagsref.every(tag=> transaction.tagsref.find(t_tag=> t_tag === tag))) { return false }
         if (filter.daterange && (transaction.date < daterange.begin || transaction.date > daterange.end)) { return false }
         if (filter.merchant && !transaction.merchant.toLowerCase().includes(filter.merchant)) { return false }
         if (filter.note && !transaction.notes.toLowerCase().includes(filter.note)) { return false }
@@ -51,7 +51,7 @@ function sort_transactions(transactions:TransactionT[], sort_by:string, sort_dir
         }
 
         if (sort_by === "cat") {
-            return sort_direction === "asc" ? a.cat.name.localeCompare(b.cat.name) : b.cat.name.localeCompare(a.cat.name)
+            return sort_direction === "asc" ? a.catref.name.localeCompare(b.catref.name) : b.catref.name.localeCompare(a.catref.name)
         }
 
         if (sort_by === "merchant") {
@@ -59,7 +59,7 @@ function sort_transactions(transactions:TransactionT[], sort_by:string, sort_dir
         }
 
         if (sort_by === "source") {
-            return sort_direction === "asc" ? a.source.name.localeCompare(b.source.name) : b.source.name.localeCompare(a.source.name)
+            return sort_direction === "asc" ? a.sourceref.name.localeCompare(b.sourceref.name) : b.sourceref.name.localeCompare(a.sourceref.name)
         }
 
         if (sort_by === "notes") {
@@ -67,7 +67,7 @@ function sort_transactions(transactions:TransactionT[], sort_by:string, sort_dir
         }
 
         if (sort_by === "tags") {
-            return sort_direction === "asc" ? a.tags.join().localeCompare(b.tags.join()) : b.tags.join().localeCompare(a.tags.join())
+            return sort_direction === "asc" ? a.tagsref.join().localeCompare(b.tagsref.join()) : b.tagsref.join().localeCompare(a.tagsref.join())
         }
 
         if (sort_by === "date") {

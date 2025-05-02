@@ -20,13 +20,13 @@ function catcalcs(transactions:TransactionT[], filter_area:AreaT, filter_cattags
 
     const filteredcats = cats.filter((cat:CatT) => { 
 
-        if (cat.area !== filter_area) { return false }
+        if (cat.arearef !== filter_area) { return false }
 
-        const isofarea = cat.area === filter_area
+        const isofarea = cat.arearef === filter_area
 
         if (filter_cattags.length === 0) return isofarea
 
-        const has_filter_a_cattag = cat.subs?.some((subcat:CatT) => {
+        const has_filter_a_cattag = cat.subsref?.some((subcat:CatT) => {
             return subcat.tags.some((t:number) => { 
                 return filter_cattags.includes(t) 
             })
@@ -37,9 +37,9 @@ function catcalcs(transactions:TransactionT[], filter_area:AreaT, filter_cattags
 
     for (const cat of filteredcats) {
 
-        const catcalc:CatCalcsT = { cat, subs: [], sums: [], budget:0, med:0, avg:0 }
+        const catcalc:CatCalcsT = { catref:cat, subsref: [], sums: [], budget:0, med:0, avg:0 }
 
-        const filtered_sub_cats = cat.subs!.filter((cat:CatT) => { 
+        const filtered_sub_cats = cat.subsref!.filter((cat:CatT) => { 
             if (filter_cattags.length === 0) { return true }
             return cat.tags.some((t:number) => filter_cattags.includes(t))
         })
@@ -47,14 +47,14 @@ function catcalcs(transactions:TransactionT[], filter_area:AreaT, filter_cattags
         for (const subcat of filtered_sub_cats) {
 
 
-            const subcatcalc:CatCalcsT = { cat: subcat, subs: null, sums: [], budget:subcat.budget!, med:0, avg:0}
+            const subcatcalc:CatCalcsT = { catref: subcat, subsref: null, sums: [], budget:subcat.budget!, med:0, avg:0}
 
             for (let m = 0; m < months_ts.length; m++) {
 
                 const month_ts = months_ts[m]
 
                 const filtered_transactions = transactions.filter(transaction => {
-                    return (transaction.cat === subcat && transaction.date > month_ts.start && transaction.date < month_ts.end) 
+                    return (transaction.catref === subcat && transaction.date > month_ts.start && transaction.date < month_ts.end) 
                 })
 
                 const sum = filtered_transactions.reduce((acc:number, transaction:TransactionT) => { return acc + transaction.amount }, 0)
@@ -67,10 +67,10 @@ function catcalcs(transactions:TransactionT[], filter_area:AreaT, filter_cattags
             subcatcalc.med               = sorted_sums_desc[Math.floor(sorted_sums_desc.length / 2)]
             subcatcalc.avg               = sums_except_last_month.reduce((acc:number, sum:number) => { return acc + sum }, 0) / sums_except_last_month.length
 
-            catcalc.subs!.push(subcatcalc)
+            catcalc.subsref!.push(subcatcalc)
         }
 
-        catcalc.budget = catcalc.subs!.reduce((acc:number, subcatcalc:CatCalcsT) => { return acc + subcatcalc.budget }, 0)
+        catcalc.budget = catcalc.subsref!.reduce((acc:number, subcatcalc:CatCalcsT) => { return acc + subcatcalc.budget }, 0)
 
         all_catcalcs.push(catcalc)
     }
@@ -81,7 +81,7 @@ function catcalcs(transactions:TransactionT[], filter_area:AreaT, filter_cattags
 
         for (let i = 0; i < months_ts.length; i++) {
             let sum = 0
-            for (const subcatcalc of catcalc.subs!) {
+            for (const subcatcalc of catcalc.subsref!) {
                 sum += subcatcalc.sums[i]
             }
             sums.push(sum)
@@ -105,9 +105,9 @@ function catcalcs(transactions:TransactionT[], filter_area:AreaT, filter_cattags
 function catcalc_totals(catcalcs:CatCalcsT[], filter:FilterT) : CatCalcsTotalsT {
 
     const catcalcs_f = catcalcs.filter((cc:CatCalcsT) => { 
-        const a = cc.cat.area === filter.area
+        const a = cc.catref.arearef === filter.arearef
 
-        const t = cc.cat.subs!.some((subcat:CatT) => subcat.tags.some((t:number) => filter.cattags.includes(t)))
+        const t = cc.catref.subsref!.some((subcat:CatT) => subcat.tags.some((t:number) => filter.cattags.includes(t)))
 
         return a && t
     })

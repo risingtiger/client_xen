@@ -6,29 +6,29 @@
 		<div class="toparea_row_a">
 
 			<div id="wrap-date" class="editwrap">
-				<input id="input-date" type="text" placeholder="date"
+				<input id="input-date" type="text" placeholder="date" disabled="true"
 					   class="editprop ${_s.inputmode === 'date' ? 'highlight' : ''}"
 					   @keyup="${(e)=>this.handle_input_keyup(e, 'date')}"
-					   .value="${_s.activetransaction ? new Date(_s.activetransaction.ts * 1000).toLocaleDateString('en-US', {month: '2-digit', day: '2-digit'}) : ''}"
-					   tabindex="7">
+					   .value="${_s.infocus.date ? new Date(_s.infocus.date * 1000).toLocaleDateString('en-US', {month: '2-digit', day: '2-digit'}) : '--/--'}">
 			</div>
 
 			<div id="wrap-merchant" class="editwrap">
 				<input id="input-merchant" type="text" placeholder="merchant"
 					   class="editprop ${_s.inputmode === 'merchant' ? 'highlight' : ''}"
 					   @keyup="${(e)=>this.handle_input_keyup(e, 'merchant')}"
-					   .value="${_s.activetransaction?.merchant ?? ''}"
-					   tabindex="6">
+					   .value="${_s.infocus.merchant || '--'}"
+					   tabindex="5">
 			</div>
 
 			<div id="wrap-amount" class="editwrap">
 				<input id="input-amount" type="number" placeholder="amount"
 					   class="editprop ${_s.inputmode === 'amount' ? 'highlight' : ''}"
 					   @keyup="${(e)=>this.handle_input_keyup(e, 'amount')}"
-					   .value="${_s.activetransaction?.amount.toFixed(0) ?? ''}"
-					   tabindex="5">
+					   .value="${_s.infocus.amount || 0}"
+					   tabindex="4">
 			</div>
 		</div>
+
 
 		<div class="toparea_row_b">
 
@@ -36,8 +36,8 @@
 				<input id="input-tag" type="text" placeholder="tag"
 					   class="editprop ${_s.inputmode === 'tag' ? 'highlight' : ''}"
 					   @keyup="${(e)=>this.handle_input_keyup(e, 'tag')}"
-					   .value="${_s.activetransaction && _s.activetransaction.tags && _s.activetransaction.tags && _s.activetransaction.tags.length ? _s.activetransaction.tags[0].name : ''}"
-					   tabindex="4">
+						.value="${_s.infocus.tags && _s.infocus.tags.length > 0 ? _s.infocus.tags[0]?.name ?? '' : ''}"
+					   tabindex="3">
 			</div>
 
 
@@ -45,20 +45,20 @@
 				<input id="input-note" type="text" placeholder="note"
 					   class="editprop ${_s.inputmode === 'note' ? 'highlight' : ''}"
 					   @keyup="${(e)=>this.handle_input_keyup(e, 'note')}"
-					   .value="${_s.activetransaction?.notes ?? ''}"
+					   .value="${_s.infocus.notes || ''}"
 					   tabindex="2">
 			</div>
 
 
 			<div id="wrap-source" class="editwrap">
-				<div id="showsource">${_s.activetransaction?.source.name}</div>
+				<div id="showsource">${_s.infocus.source?.name ?? 'source'}</div>
 			</div>
 		</div>
 
 
 		<div class="toparea_row_c">
 			<div id="wrap-split" class="editwrap">
-				<div id="split" @click="${()=>this.splitclicked()}">${_s.split.count ? (_s.split.activeindex+1) + ' of ' + (Number(_s.split.count) + Number(1)) : '0 splits'}</div>
+				<div id="split" @click="${()=>this.addsplit()}">${_s.activetransactions.length>1 ? (_s.infocusindex+1) + ' of ' + (Number(_s.activetransactions.length)) : 'add split'}</div>
 				<!--
 				<input id="input-split" type="text" placeholder="split"
 					   class="editprop ${_s.inputmode === 'split' ? 'highlight' : ''}"
@@ -72,23 +72,25 @@
 				<input id="input-cat" type="text" placeholder="category"
 					   class="editprop ${_s.inputmode === 'cat' ? 'highlight' : ''}"
 					   @keyup="${(e)=>this.handle_input_keyup(e, 'cat')}"
-					   .value="${_s.activetransaction?.cat?.name ?? ''}"
+					   .value="${_s.infocus.catref?.name ?? ''}"
 					   tabindex="1">
 			</div>
 
 			<div id="wrap-ofcount" class="editwrap">
-				<div id="ofcount">${_m.newtransactions.findIndex(nt=> nt.ynab_id === _s.activetransaction?.ynab_id) + 1 || 1} of ${_s.newcount}</div>
+				<div id="ofcount">${_m.newtransactions.findIndex(nt=> nt.ynab_id === _s.infocus?.ynab_id) + 1 || 1} of ${_s.newcount}</div>
 			</div>
 		</div>
 
 	</div>
 
-	<div id="splittotal">0</div>
+	<div id="splittotal">${_s.original_amount ? _s.activetransactions.reduce((acc, tr) => acc + tr.amount, 0) + ' of ' + _s.original_amount : ''}</div>
 
 	<div id="actionbtns">
 		<c-btn @btnclick="${(e)=>this.skip(e)}" class="actionbtn">Skip</c-btn>
 		<c-btn @btnclick="${(e)=>this.delete(e)}" class="actionbtn">Delete</c-btn>
 	</div>
+
+	<div id="fullmerchant">${_s.infocus.merchant || '--'}</div>
 
 	<!--
     <div id="rawtransaction">
@@ -150,6 +152,8 @@
 
     <footer id="pagefooter">
         <a class="syncgetter" @click="${()=> window.location.reload()}">sync latest</a>
+		&nbsp; | &nbsp;
+        <a class="addnew" @click="${()=> this.addnew()}">add new</a>
     </footer>
 
 </div>

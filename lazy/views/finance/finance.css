@@ -1,18 +1,17 @@
 
 
 
-
 div.content {
     width: 100%;
     height: 100%;
 }
-
 
 #calc_transactions_wrapper {
     display: flex;
     justify-content: space-between;
     height: 100%;
     width: 100%;
+    overflow: hidden;
 }
 
 #calcs, #transactions {
@@ -21,6 +20,7 @@ div.content {
         border-collapse: collapse;
         position: relative;
         width: 100%;
+        overflow: hidden;
     }
 
 
@@ -29,6 +29,7 @@ div.content {
         padding: 3px 4px;
         white-space: nowrap;
     }
+
 
     & thead th {
         background-color: white;
@@ -43,12 +44,11 @@ div.content {
 }
 
 
-#calcs {
-
-    width: 43%;
+#calcs {width: 43%;overflow: hidden;
 
     & #tablewrap {
-        overflow-y: scroll;
+        overflow-x: hidden;
+        width: 100%;
         height: calc(100% - 87px);
     }
 
@@ -221,31 +221,38 @@ div.content {
 
 vp-finance-balances {
     position: absolute;
-    top: 29px;
-    left: 747px;
-    width: 786px;
+    top: 10px;
+    left: 10px;
+    width: 370px;
+    height: 807px;
     z-index: 10000;
     background: white;
 }
 
 vp-finance-snapshot {
     position: absolute;
-    top: 29px;
-    left: 588px;
-    width: 786px;
+    top: 10px;
+    left: 10px;
+    width: 1020px;
+    height: 720px;
     z-index: 10000;
     background: white;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 48%);
 }
 
 
 vp-finance-bucket {
     position: absolute;
-    top: 74px;
-    right: 143px;
-    width: 400px;
-    height: 200px;
+    top: 10px;
+    left: 10px;
+    width: 370px;
+    height: 342px;
     z-index: 100000;
+    box-sizing: border-box;
+    padding: var(--padding-container);
+    border-radius: 10px;
     background: white;
+    box-shadow: 0px 2px 3px rgb(0 0 0 / 26%);
 }
 
 
@@ -327,120 +334,71 @@ footer {
         margin-bottom: 18px;
     }
     
+
     & > section.payments {
+		display: flex;
+
+		& h3 {
+			font-weight: bold;
+			margin-top: 5px;
+			margin-right: 10px;
+			margin-bottom: 10px;
+			color: #989898;
+			font-size: 15px;
+			text-decoration: underline;
+		}
+
 
         & .payment {
             position: relative;
-            margin-right: 0;
-            padding: 0;
-            margin-bottom: 11px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            padding: 5px 8px 7px 10px;
             border-radius: 4px;
-            width: 50%;
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
+            background: #f9f9f9;
+
+			& h4 {
+				margin-bottom: 0;
+
+				& .isauto {
+					font-size: 11px;
+					font-weight: normal;
+					color: #c2c2c2;
+				}
+				& .isauto_ischecking {
+					font-size: 11px;
+					font-weight: bold;
+					color: #00f123;
+				}
+				& .payee {
+					color: #868686;
+					font-size: 12px;
+				}
+				& .day {
+					color: #7f7f7f;
+					font-size: 11px;
+					font-weight: normal;
+				}
+				& .amount {
+					color: #7f7f7f;
+					font-weight: normal;
+					font-size: 12px;
+				}
+			}
 
             & .notes {
 				display: none;
-				position: absolute;
-				top: 0;
-				left: 0;
-				background: white;
+				font-size: 11px;
             }
+			& .notes.active {
+				display: block;
+			}
 
 
-            &
-            strong {
+            & strong {
                 color: #18c3c5;
             }
-            &
-            strong.extra {
+            & strong.extra {
                 color: #a61b78;
             }
 
@@ -455,11 +413,16 @@ footer {
 						font-weight: normal;
 						display: block;
 						padding: 0px 0 0px 0;
+						font-size: 12px;
+						color: gray;
 					}
-					& p {
+					& p.notes {
+						display: none;
 						font-weight: normal;
-						display: block;
 						padding: 0 0 13px 0;
+					}
+					& p.notes.active {
+						display: block;
 					}
 				}
             }
@@ -467,24 +430,6 @@ footer {
         & .payment.hasbreakdown {
             width: 100%;
         }
-        
-    }
-
-    & h3 {
-        width: 100%;
-        font-size: 16px;
-        margin-bottom: 5px;
-    }
-    
-    & td {
-        overflow-x: hidden;
-    }
-
-    & td > span {
-        display: block;
-        width: 188px;
-        overflow-x: scroll;
-        text-wrap: nowrap;
     }
 }
 
@@ -496,10 +441,10 @@ footer {
     height: 90%;
 
     & h3 {
-        margin: 0 0 var(--padding-section-vert) 0;
-    padding: 3px 0 5px 0;
-    font-size: 16px;
-    border-bottom: 1px solid #e2e2e2;
+        margin: 0 0 20px 0;
+        padding: 3px 0 5px 0;
+        font-size: 16px;
+        border-bottom: 1px solid #e2e2e2;
     }
 
     & .parent {

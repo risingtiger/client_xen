@@ -17,12 +17,12 @@ export type AreaT = {
 
 export type CatT = {
     id: string,
-    area: AreaT,
+    arearef: AreaT,
     bucket: number|null,
     budget: number|null,
     name: string,
-    parent: CatT|null,
-    subs: CatT[]|null,
+    parentref: CatT|null,
+    subsref: CatT[]|null,
     tags: number[],
     ts: number,
     transfer_state: 0|1|2
@@ -42,40 +42,23 @@ export type TagT = {
     ts: number,
 }
 
-export type RawTransactionT = {
-    skipsave: boolean,
-	ignore: boolean,
-    preset_area_id: string|null,
-    preset_cat_name: string|null,
-    ynab_id: string|null,
-    amount: number,
-    cat_id: string|null,
-    cat_name: string|null,
-    tag_ids: string[],
-    tag_names: string[],
-    merchant: string,
-    notes: string
-    source_id: string,
-    tags: number[],
-    ts: number,
-}
 
 export type TransactionT = {
     id: string,
     amount: number,
-    area: AreaT,
-    cat: CatT,
+    arearef: AreaT,
+    catref: CatT,
     merchant: string,
     ts: number,
     date: number,
     notes: string,
-    source: SourceT,
-    tags: TagT[]
+    sourceref: SourceT,
+    tagsref: TagT[]
 }
 
 export type CatCalcsT = {
-    cat:  CatT,
-    subs: CatCalcsT[]|null,
+    catref:  CatT,
+    subsref: CatCalcsT[]|null,
     sums: Array<number>,
     budget: number,
     med:  number,
@@ -89,7 +72,7 @@ export type CatCalcsTotalsT = {
 }
 
 export type MonthSnapShotT = {
-    area: AreaT,
+    arearef: AreaT,
     month: string,
 	issaved:bool,
 	quad1_budget: number,
@@ -103,12 +86,12 @@ export type MonthSnapShotT = {
 }
 
 export type SnapShotsT = {
-	months: MonthSnapShotT[],
-	avgs: AvgsSnapShotT[],
+	monthsref: MonthSnapShotT[],
+	avgsref: AvgsSnapShotT[],
 }
 
 export type AvgsSnapShotT = {
-    area: AreaT,
+    arearef: AreaT,
 	quad1_spent: number,
 	quad2_spent: number,
 	quad3_spent: number,
@@ -116,12 +99,12 @@ export type AvgsSnapShotT = {
 }
 
 export type FilterT = {
-    area: AreaT|null,
-    parentcat: CatT|null,
-    cat: CatT|null,
+    arearef: AreaT|null,
+    parentcatref: CatT|null,
+    catref: CatT|null,
     cattags: number[],
-    source: SourceT|null,
-    tags: TagT[]|null,
+    sourceref: SourceT|null,
+    tagsref: TagT[]|null,
     daterange: [Date, Date]|null,
     merchant: string|null,
     note: string|null,
@@ -132,20 +115,20 @@ export type PaymentT = {
     id: string,
     payee: string,
     type: "carloan"|"cylecredit"|"debtpay"|"rent"|"subcription"|"utilities",
-    cat: CatT|null,
+    catref: CatT|null,
     recurence: "yearly"|"monthly"|"weekly"|"daily"|"once",
     day: number,
     amount: number,
     varies: boolean,
     is_auto: boolean,
-    source: SourceT|null,
+    payment_sourceref: SourceT|null,
     breakdown: Array<string>,
     notes: string
 }
 
 
 export type CatBucketsInfoT = {
-	cat: CatT,
+	catref: CatT,
 	spent: number,
 	remainder: number
 }

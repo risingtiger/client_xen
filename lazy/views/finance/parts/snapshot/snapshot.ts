@@ -1,9 +1,10 @@
 
 
-import { $NT } from "../../../../../defs_client_symlink.js"
+import { $NT, CMechLoadedDataT, CMechLoadStateE } from "../../../../../defs_client_symlink.js"
 import { str } from "../../../../../defs_server_symlink.js"
-import { TransactionT, AreaT, CatT, SnapShotsT, MonthSnapShotT } from '../../../../../defs.js'
+import { TransactionT, AreaT, CatT, SnapShotsT, SourceT, TagT, MonthSnapShotT } from '../../../../../defs.js'
 import { snapshots } from '../../../../libs/financefuncs_snapshot.js'
+import { knit_monthsnapshots, knit_transactions, knit_cats } from '../../../../libs/financefuncs_knit.js'
 
 declare var render: any;
 declare var html: any;
@@ -12,8 +13,17 @@ declare var $N: $NT;
 
 
 
-type Model = {
-	prop:string
+export type AttributesT = {
+    propa: str,
+}
+
+type ModelT = {
+	areas:AreaT[],
+	cats:CatT[],
+	transactions: TransactionT[],
+	sources: SourceT[],
+	tags: TagT[],
+	monthsnapshots:MonthSnapShotT[]
 }
 
 interface CurrentMonthSnapshotT {
@@ -28,11 +38,13 @@ interface CurrentMonthSnapshotT {
     quad4_budget: number;
     sum_quad1_2_avg: number;
     sum_quad1_2_3_avg: number;
+    sum_quad1_2_3_4_avg: number;
     sum_quad1_2_budget: number;
     sum_quad1_2_3_budget: number;
+    sum_quad1_2_3_4_budget: number;
 }
 
-type State = {
+type StateT = {
     propa: str;
     snapshots: SnapShotsT;
     current_month_snapshot_rows: CurrentMonthSnapshotT[];
@@ -41,12 +53,29 @@ type State = {
 }
 
 
+const ATTRIBUTES:AttributesT = { propa: "" }
+
+
 
 
 class VPFinanceSnapShot extends HTMLElement {
 
-    s:State
-    m:Model
+	a:AttributesT = { ...ATTRIBUTES }
+	m:ModelT = {
+		areas: [],
+		cats: [],
+		transactions: [],
+		sources: [],
+		tags: [],
+		monthsnapshots: []
+	}
+	s:StateT = {
+		propa: "",
+		snapshots: { monthsref: [], avgsref: [] },
+		current_month_snapshot_rows: [],
+		month_snapshots: []
+	} 
+
     shadow:ShadowRoot
 
 
@@ -54,18 +83,6 @@ class VPFinanceSnapShot extends HTMLElement {
 
 	constructor() {   
 		super(); 
-
-		this.m = {
-			prop: "",
-		}
-
-		this.s = {
-			propa: "",
-			snapshots: { months: [], avgs: [] },
-			current_month_snapshot_rows: [],
-			month_snapshots: []
-		} 
-
 		this.shadow = this.attachShadow({mode: 'open'});
 	}
 
@@ -73,8 +90,36 @@ class VPFinanceSnapShot extends HTMLElement {
 
 
 	async connectedCallback() {   
-		this.sc()
-		this.dispatchEvent(new Event('hydrated'))
+		await $N.CMech.ViewPartConnectedCallback(this)
+		this.dispatchEvent(new Event('hydrated'));
+	}
+
+
+
+
+	async attributeChangedCallback(name:string, oldval:string|boolean|number, newval:string|boolean|number) {
+		$N.CMech.AttributeChangedCallback(this, name, oldval, newval);
+	}
+
+
+
+
+	disconnectedCallback() {   
+		$N.CMech.ViewPartDisconnectedCallback(this);   
+	}
+
+
+
+
+	kd = (loadeddata: CMechLoadedDataT) =>  {
+		this.m.areas          = loadeddata.get("areas")! as AreaT[]
+		this.m.cats           = knit_cats(this.m.areas, loadeddata.get('cats')!) as CatT[]
+		this.m.sources        = loadeddata.get("sources") as SourceT[]
+		this.m.monthsnapshots = knit_monthsnapshots(loadeddata.get("monthsnapshots")!, this.m.areas) as MonthSnapShotT[]
+		this.m.tags           = $N.Utils.resolve_object_references(loadeddata.get("tags")!, loadeddata) as TagT[]
+		this.m.transactions   = knit_transactions(this.m.cats, this.m.sources, this.m.tags, loadeddata.get("transactions")!) as TransactionT[]
+
+        //this.s.snapshots = snapshots(this.m.areas, this.m.cats, this.m.transactions, this.m.monthsnapshots, months_minus_last_one);
 	}
 
 
@@ -99,9 +144,9 @@ class VPFinanceSnapShot extends HTMLElement {
         const snapshotsForUI: CurrentMonthSnapshotT[] = [];
 
         areasToShow.forEach(areaName => {
-            const areaAvg = this.s.snapshots.avgs.find(avg => avg.area.name === areaName);
-            const latestSnapshot = this.s.snapshots.months
-                .filter(ms => ms.area.name === areaName)
+            const areaAvg = this.s.snapshots.avgsref.find(avg => avg.arearef.name === areaName);
+            const latestSnapshot = this.s.snapshots.monthsref
+                .filter(ms => ms.arearef.name === areaName)
                 .sort((a, b) => b.month.localeCompare(a.month))[0];
 
             if (areaAvg && latestSnapshot) {
@@ -117,8 +162,10 @@ class VPFinanceSnapShot extends HTMLElement {
 
                 const sum_quad1_2_avg = quad1_avg + quad2_avg;
                 const sum_quad1_2_3_avg = sum_quad1_2_avg + quad3_avg;
+				const sum_quad1_2_3_4_avg = sum_quad1_2_3_avg + quad4_avg;
                 const sum_quad1_2_budget = quad1_budget + quad2_budget;
                 const sum_quad1_2_3_budget = sum_quad1_2_budget + quad3_budget;
+				const sum_quad1_2_3_4_budget = sum_quad1_2_3_budget + quad4_budget;
 
                 snapshotsForUI.push({
                     areaName,
@@ -132,8 +179,10 @@ class VPFinanceSnapShot extends HTMLElement {
                     quad4_budget,
                     sum_quad1_2_avg,
                     sum_quad1_2_3_avg,
+					sum_quad1_2_3_4_avg,
                     sum_quad1_2_budget,
-                    sum_quad1_2_3_budget
+                    sum_quad1_2_3_budget,
+					sum_quad1_2_3_4_budget
                 });
             }
         });
@@ -151,8 +200,10 @@ class VPFinanceSnapShot extends HTMLElement {
             quad4_budget: acc.quad4_budget + curr.quad4_budget,
             sum_quad1_2_avg: acc.sum_quad1_2_avg + curr.sum_quad1_2_avg,
             sum_quad1_2_3_avg: acc.sum_quad1_2_3_avg + curr.sum_quad1_2_3_avg,
+			sum_quad1_2_3_4_avg: acc.sum_quad1_2_3_4_avg + curr.sum_quad1_2_3_4_avg,
             sum_quad1_2_budget: acc.sum_quad1_2_budget + curr.sum_quad1_2_budget,
-            sum_quad1_2_3_budget: acc.sum_quad1_2_3_budget + curr.sum_quad1_2_3_budget
+            sum_quad1_2_3_budget: acc.sum_quad1_2_3_budget + curr.sum_quad1_2_3_budget,
+			sum_quad1_2_3_4_budget: acc.sum_quad1_2_3_4_budget + curr.sum_quad1_2_3_4_budget
         }));
 
         snapshotsForUI.push(grandTotals);
@@ -171,12 +222,12 @@ class VPFinanceSnapShot extends HTMLElement {
 
 
 	showMonthSnapshots() {
-		 const m = this.s.snapshots.months.sort((a, b) => {
+		 const m = this.s.snapshots.monthsref.sort((a, b) => {
 			 const monthCompare = b.month.localeCompare(a.month);
 			 if (monthCompare !== 0) return monthCompare;
 			 
 			 const areaOrder = {'fam': 0, 'pers': 1, 'rtm': 2};
-			 return areaOrder[a.area.name] - areaOrder[b.area.name];
+			 return areaOrder[a.arearef.name] - areaOrder[b.arearef.name];
 		 });
 
 		 // Get unique months
@@ -193,7 +244,7 @@ class VPFinanceSnapShot extends HTMLElement {
 			 const monthTotal = {
 				 month,
 				 isTotal: true, // Add a flag to identify total rows
-				 area: { name: 'Total' }, // Add area property to match structure
+				 arearef: { name: 'Total' }, // Add area property to match structure
 				 quad1_spent: monthEntries.reduce((sum, item) => sum + item.quad1_spent, 0),
 				 quad2_spent: monthEntries.reduce((sum, item) => sum + item.quad2_spent, 0),
 				 quad3_spent: monthEntries.reduce((sum, item) => sum + item.quad3_spent, 0),
@@ -219,8 +270,8 @@ class VPFinanceSnapShot extends HTMLElement {
 		const month = el.dataset.month;
 		const areaId = el.dataset.areaid;
 
-		const monthSnapshot = this.s.snapshots.months.find(
-			ms => ms.month === month && ms.area.id === areaId
+		const monthSnapshot = this.s.snapshots.monthsref.find(
+			ms => ms.month === month && ms.arearef.id === areaId
 		);
 
 		const payload = { monthSnapshot };
@@ -246,7 +297,7 @@ class VPFinanceSnapShot extends HTMLElement {
 
 
 
-	template = (_s:State, _m:Model) => { return html`{--css--}{--html--}`; } 
+	template = (_s:StateT, _m:ModelT) => { return html`{--css--}{--html--}`; } 
 
 }
 

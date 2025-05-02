@@ -32,28 +32,24 @@ button {
     color: var(--textcolor);
 }
 
-#update {
+#updating {
 	display: none;
-	
-	#update_progress {
-		display: none;
-		margin: 0 auto;
-		width: 300px;
-	}
-	#update_progress {
-		display: block;
-	}
-	
-	#update_done {
-		display: none;
-		margin: 0 auto;
-		width: 300px;
-	}
-	#update_done {
-		display: block;
-	}
 }
-#update.active {
+#updating.active {
+	display: block;
+}
+
+#updated {
+	display: none;
+}
+#updated.active {
+	display: block;
+}
+
+#updateerror {
+	display: none;
+}
+#updateerror.active {
 	display: block;
 }
 
@@ -103,19 +99,37 @@ button {
 		display: none;
 		margin-top: 10px;
 		padding: 10px;
-		border: 1px solid #dc3545;
+		border: 2px solid #dc3545;
 		border-radius: 5px;
 		background-color: #f8d7da;
 		color: #721c24;
-		font-size: 14px;
+		font-size: 16px;
+		text-align: center;
 	}
 	& #login_errormsg.active {
 		display: block;
 	}
 }
 #login.active {
-	display: block;
-} 
+    display: block;
+}
+
+.input-error {
+    border: 2px solid #dc3545;
+    background-color: #ffe6e6;
+}
+
+@keyframes shake {
+    0% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    50% { transform: translateX(5px); }
+    75% { transform: translateX(-5px); }
+    100% { transform: translateX(0); }
+}
+
+#login.error {
+    animation: shake 0.5s;
+}
 
 
 #logged_out {
@@ -127,6 +141,13 @@ button {
         text-align: center;
         font-size: 19px;
         padding-bottom: 13px;
+		text-decoration: none;
+		color: var(--actioncolor);
+
+		& a {
+			color: var(--actioncolor);
+			text-decoration: none;
+		}
 	}
 
 }
@@ -140,9 +161,6 @@ button {
     width: 283px;
     margin: 0 auto;
 
-	& #logout_button {
-		
-	}
 
 	& #home_button {
 		margin-bottom: 12px;
@@ -159,6 +177,19 @@ button {
 	display: block;
 }
 
+#update_done {
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+#error {
+	display: none;
+}
+#error.active {
+	display: block;
+}
+
 
 .btn {
 	cursor: pointer;
@@ -168,3 +199,6 @@ button {
 	text-align: center;
 	font-size: 17px;
 }
+
+
+
