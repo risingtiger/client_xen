@@ -976,6 +976,8 @@ async handle_keydown(e:KeyboardEvent) {
 		
 		// Handle keyup event for Enter key
 		chatTextarea.addEventListener('keyup', async (e) => {
+			e.stopPropagation(); // Stop propagation to prevent other app components from responding
+			
 			if (e.key === 'Enter' && !e.shiftKey) {
 				e.preventDefault();
 				
