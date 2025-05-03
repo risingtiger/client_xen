@@ -447,15 +447,19 @@ class VFinance extends HTMLElement {
 
 
 
-	show_balances() { 
+	show_balances = () => new Promise <void>(async (res, _rej) => { 
+
+		const balances = await $N.FetchLassie("/api/xen/finance/sheets/get_balances")
+
 		this.s.balancesview_showui = 1
 		this.sc()
 		setTimeout(()=> {
 			const el = (this.shadow.querySelector('vp-finance-balances') as any)
-			el.Show(this.m.areas, this.m.cats, this.m.transactions, this.m.sources, this.m.ynab_accounts)
+			el.Show(this.m.areas, this.m.cats, this.m.transactions, this.m.sources, balances)
 			el.addEventListener('close', ()=> this.sc({ balancesview_showui: 0 }))
+			res()
 		}, 30)
-	}
+	})
 
 
 
@@ -916,6 +920,101 @@ async handle_keydown(e:KeyboardEvent) {
 			</div>
 		`
 	}
+
+
+
+
+	chat_about_transactions = (p:PaymentT) => new Promise<void>((res:any, rej:any) => {
+
+		const chatWrapper = document.createElement('div');
+		chatWrapper.style.position = 'absolute';
+		chatWrapper.style.top = '50%';
+		chatWrapper.style.left = '50%';
+		chatWrapper.style.transform = 'translate(-50%, -50%)';
+		chatWrapper.style.width = '80%';
+		chatWrapper.style.maxWidth = '600px';
+		chatWrapper.style.backgroundColor = '#fff';
+		chatWrapper.style.boxShadow = '0 0 10px rgba(0,0,0,0.3)';
+		chatWrapper.style.borderRadius = '8px';
+		chatWrapper.style.padding = '16px';
+		chatWrapper.style.zIndex = '1000';
+		
+		// Create textarea for chat
+		const chatTextarea = document.createElement('textarea');
+		chatTextarea.style.width = '100%';
+		chatTextarea.style.height = '300px';
+		chatTextarea.style.padding = '8px';
+		chatTextarea.style.border = '1px solid #ccc';
+		chatTextarea.style.borderRadius = '4px';
+		chatTextarea.style.resize = 'none';
+		chatTextarea.style.marginBottom = '8px';
+		chatTextarea.placeholder = 'Ask a question about this transaction...';
+		
+		// Create close button
+		const closeButton = document.createElement('button');
+		closeButton.textContent = 'Close';
+		closeButton.style.padding = '8px 16px';
+		closeButton.style.marginTop = '8px';
+		closeButton.style.backgroundColor = '#f44336';
+		closeButton.style.color = 'white';
+		closeButton.style.border = 'none';
+		closeButton.style.borderRadius = '4px';
+		closeButton.style.cursor = 'pointer';
+		
+		// Add elements to wrapper
+		chatWrapper.appendChild(chatTextarea);
+		chatWrapper.appendChild(closeButton);
+		
+		// Add wrapper to content div
+		const contentDiv = this.shadow.querySelector('.content');
+		if (contentDiv) {
+			contentDiv.appendChild(chatWrapper);
+		}
+		
+		// Focus the textarea
+		chatTextarea.focus();
+		
+		// Handle keyup event for Enter key
+		chatTextarea.addEventListener('keyup', async (e) => {
+			if (e.key === 'Enter' && !e.shiftKey) {
+				e.preventDefault();
+				
+				const question = chatTextarea.value.trim();
+				if (question) {
+					// Add a visual indicator that we're waiting for a response
+					chatTextarea.value += '\n\nWaiting for response...\n';
+					chatTextarea.scrollTop = chatTextarea.scrollHeight;
+					
+					try {
+						const response = await $N.FetchLassie('/api/xen/finance/ai/chat_about_transactions', {
+							method: 'POST',
+							body: JSON.stringify({ question })
+						}) as { answer: string };
+						
+						chatTextarea.value = chatTextarea.value.replace('\n\nWaiting for response...\n', '');
+						
+						if (response && response.answer) {
+							chatTextarea.value += '\n\n' + response.answer;
+							chatTextarea.scrollTop = chatTextarea.scrollHeight;
+						} else {
+							chatTextarea.value += '\n\nNo answer received from the server.';
+							chatTextarea.scrollTop = chatTextarea.scrollHeight;
+						}
+					} catch (error) {
+						chatTextarea.value += '\n\nError: Could not get a response.';
+						chatTextarea.scrollTop = chatTextarea.scrollHeight;
+					}
+				}
+			}
+		});
+		
+		closeButton.addEventListener('click', () => {
+			if (contentDiv) {
+				contentDiv.removeChild(chatWrapper);
+			}
+			res();
+		});
+	})
 
 
 
