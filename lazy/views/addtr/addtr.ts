@@ -1,13 +1,13 @@
 
 
-import { str,num } from "../../../defs_server_symlink.js"
-import { $NT, FetchResultT, CMechLoadStateE, CMechLoadedDataT } from "../../../defs_client_symlink.js"
-import { SaveNewTransactionServerT, YnabTransactionT } from "../../../defs_instance_server_symlink.js"
+import { str } from "../../../defs_server_symlink.js"
+import { $NT, CMechLoadedDataT } from "../../../defs_client_symlink.js"
+import { SaveNewTransactionServerT, SheetsTransactionT } from "../../../defs_instance_server_symlink.js"
 import { AreaT, CatT, SourceT } from '../../../defs.js'
-import { knit_areas, knit_cats, knit_sources } from '../../libs/financefuncs_knit.js'
-import { NewTransactionT, InputModeE, AttributesT, ModelT, StateT, RawNewTransactionT } from "../../libs/addtr_defs.js"
+import { knit_cats } from '../../libs/financefuncs_knit.js'
+import { NewTransactionT, InputModeE, AttributesT, ModelT, StateT } from "../../libs/addtr_defs.js"
 import { HandleKeyup as ItemHandleKeyup, HandleReset as ItemHandleReset, Set_Cat_From_Click, Set_Tag_From_Click } from "../../libs/addtr_item.js"
-import { } from "../../libs/addtr_apple.js"
+import { ParseApple } from "../../libs/addtr_apple.js"
 
 
 declare var render: any;
@@ -23,7 +23,7 @@ const ATTRIBUTES:AttributesT = { propa: "" }
 
 class VAddTr extends HTMLElement {
 	a:AttributesT = { ...ATTRIBUTES }
-	m:ModelT = { areas: [], cats: [], sources: [], tags: [], quick_notes: [], ynab_transactions:[], newtransactions:[],  }
+	m:ModelT = { areas: [], cats: [], sources: [], tags: [], sheet_transactions:[], newtransactions:[],  }
 	s:StateT = {
 		newcount: 0,
 		index: 0,
@@ -58,9 +58,13 @@ class VAddTr extends HTMLElement {
 		await $N.CMech.ViewConnectedCallback(this, {kdonvisibled:true, kdonlateloaded:true})
 		this.dispatchEvent(new Event('hydrated'));
 
-		const r = await $N.FetchLassie('/api/xen/finance/get_ynab_transactions', {}) as YnabTransactionT[]
-		if (r === null) { alert("couldnt get transactions. throwing up"); throw new Error("timeout"); }
-		this.m.ynab_transactions = r
+		const r = await $N.FetchLassie('/api/xen/finance/get_sheets_transactions', {}) 
+		if (!r.ok) { 
+			$N.Unrecoverable("Error", "Unable to Retreive New Transactions", "Reset", "swe", "err on get_sheets_transactions", null);
+			return; 
+		}
+
+		this.m.sheet_transactions = r.data as SheetsTransactionT[]
 		this.dispatchEvent(new Event('lateloaded'));
 	}
 
@@ -79,44 +83,31 @@ class VAddTr extends HTMLElement {
 
 
 
-	kd = (loadeddata: CMechLoadedDataT, loadstate:CMechLoadStateE) => {
+	kd = (loadeddata: CMechLoadedDataT, loadstate:string) => {
 
-		if (loadstate === CMechLoadStateE.INITIAL || loadstate === CMechLoadStateE.DATACHANGED) {
+		if (loadstate === 'initial' || loadstate === 'datachanged') {
 			this.m.areas   = $N.Utils.resolve_object_references(loadeddata.get("areas")!, loadeddata) as AreaT[]
 			this.m.cats    = knit_cats(this.m.areas, loadeddata.get('cats')!) as CatT[]
 			this.m.sources = $N.Utils.resolve_object_references(loadeddata.get("sources")!, loadeddata) as SourceT[]
 			this.m.tags    = $N.Utils.resolve_object_references(loadeddata.get("tags")!, loadeddata) as any[]
-			this.m.quick_notes = $N.Utils.resolve_object_references(loadeddata.get("quick_notes")!, loadeddata) as any[]
 
 			this.s.filteredcats = this.m.cats
 			this.s.filteredtags = this.m.tags
 		}
 
 
-		else if (loadstate === CMechLoadStateE.LATELOADED) {
+		else if (loadstate === 'lateloaded') {
 
-			this.m.newtransactions = this.m.ynab_transactions.map((tr) => {
-
-				let foundcat:CatT|null = null;
-				if (tr.preset_cat_name) {
-					for (const parentcat of this.m.cats) {
-						const subcat = parentcat.subsref?.find(sub => sub.name === tr.preset_cat_name) || null
-						if (subcat) { foundcat = subcat; break; }
-					}
-				}
-
-				const quick_note = this.m.quick_notes.find(qn => {
-					const is_match = qn.amount === tr.amount && qn.ts > tr.date - ( 86400*5 ) && qn.ts < tr.date + ( 86400 * 5 )
-					return is_match
-				})
+			this.m.newtransactions = this.m.sheet_transactions.map((tr) => {
 
 				return {
-					ynab_id: tr.ynab_id,
-					catref: foundcat,
+					sheets_id: tr.id,
+					catref: null,
 					date: tr.date,
-					notes: tr.notes || (quick_note ? quick_note.note : ""),
+					notes: tr.notes || "",
 					amount: tr.amount,
 					merchant: tr.merchant,
+					merchant_long: tr.merchant_long,
 					tags: [],
 					source: this.m.sources.find(s => s.id === tr.source_id) as SourceT,
 				}
@@ -124,17 +115,7 @@ class VAddTr extends HTMLElement {
 
 			this.m.tags = this.m.tags.sort((a, b) => b.ts - a.ts)
 
-			this.s.newcount = this.m.newtransactions.length
-
-			this.focus_inputmode()
-
-			if (this.m.newtransactions.length === 0) {   alert("no new transactions"); return;   }
-
-
-			this.s.activetransactions = [this.copynewtr(this.m.newtransactions[0])]
-			this.s.infocus = this.s.activetransactions[0]
-			this.s.infocusindex = 0
-			this.s.index = 0
+			this.handle_initing_newtransactions()
 
 			return
 		}
@@ -198,6 +179,22 @@ class VAddTr extends HTMLElement {
 
 
 
+	handle_initing_newtransactions = () => {
+		this.s.newcount = this.m.newtransactions.length
+		this.focus_inputmode()
+
+		if (this.m.newtransactions.length === 0) {   alert("no new transactions"); return;   }
+
+		this.s.activetransactions = [this.copynewtr(this.m.newtransactions[0])]
+		this.s.infocus = this.s.activetransactions[0]
+		this.s.infocus.simplified_merchant = simplify_merchant_name(this.s.infocus.merchant)
+		this.s.infocusindex = 0
+		this.s.index = 0
+	}
+
+
+
+
 	set_next_focus = (mode:'standard'|'skip'|'delete') => new Promise<void>(async res => {
 
 		if (mode === 'standard' && !this.s.infocus.catref) { alert("missing category"); this.set_cleared(); res(); return; }
@@ -210,6 +207,7 @@ class VAddTr extends HTMLElement {
 		else if (mode === 'standard') { // there is a split and not at last split
 			this.s.infocusindex++
 			this.s.infocus = this.s.activetransactions[this.s.infocusindex]
+			this.s.infocus.simplified_merchant = simplify_merchant_name(this.s.infocus.merchant)
 		} 
 		else if (mode === 'skip' || mode === 'delete') {
 			next_of_newtransactions.call(this, this.s, this.m)
@@ -232,6 +230,7 @@ class VAddTr extends HTMLElement {
 				s.activetransactions = [this.copynewtr(m.newtransactions[s.index])]
 				s.infocusindex = 0
 				s.infocus = s.activetransactions[0]
+				s.infocus.simplified_merchant = simplify_merchant_name(s.infocus.merchant)
 			}
 
 		}
@@ -300,14 +299,17 @@ class VAddTr extends HTMLElement {
 			notes: tr?.notes || "",
 			source: tr?.source?.id || "",
 			tags: tr?.tags.map(tag => tag.id),
-			ynab_id: tr?.ynab_id,
+			sheets_id: tr?.sheets_id,
 		}; })
 
 		const r = await $N.FetchLassie( `/api/xen/finance/save_transaction`, { 
 			method:"POST", 
 			body:JSON.stringify(transactions_to_server) 
 		})
-		if (r === null) { alert("couldnt save transaction. throwing up"); throw new Error("timeout"); }
+		if (!r.ok) { 
+			$N.Unrecoverable("Error", "Unable to save transaction", "Reset", "sw4", "", null);
+			return
+		}
 
 		res(1)
 	})
@@ -335,7 +337,7 @@ class VAddTr extends HTMLElement {
 			method:"POST", 
 			body:JSON.stringify({ ynab_id: this.s.infocus.ynab_id }) 
 		})
-		if (r === null) { alert("couldnt delete transaction. throwing up"); throw new Error("timeout"); }
+		if (!r.ok) { alert("couldnt delete transaction. throwing up"); window.location.href = "/index.html"; return; }
 
 		await this.set_next_focus('delete')
 		if (e.detail) e.detail.resolved()
@@ -348,12 +350,14 @@ class VAddTr extends HTMLElement {
 	addnew = () => {
 
 		const newtr:NewTransactionT = {
-			ynab_id: null,
+			sheets_id: null,
 			catref: null,
 			date: Math.floor(Date.now() / 1000),
 			notes: "",
 			amount: 0,
 			merchant: "",
+			merchant_long: "",
+			simplified_merchant: "",
 			tags: [],
 			source: this.m.sources.find(s => s.id === "61771fdb-4121-4442-bd4f-057290a64b2e") as SourceT, //cashpers
 		}
@@ -365,6 +369,7 @@ class VAddTr extends HTMLElement {
 		this.focus_inputmode()
 
 		this.s.infocus = this.s.activetransactions[0]
+		this.s.infocus.simplified_merchant = simplify_merchant_name(this.s.infocus.merchant)
 		this.s.infocusindex = 0
 		this.s.index = 0
 
@@ -394,12 +399,14 @@ class VAddTr extends HTMLElement {
 
 	copynewtr = (nt:NewTransactionT) : NewTransactionT => {
 		return {
-			ynab_id: nt.ynab_id,
+			sheets_id: nt.sheets_id,
 			catref: nt.catref,
 			date: nt.date,
 			notes: nt.notes,
 			amount: nt.amount,
 			merchant: nt.merchant,
+			simplified_merchant: "",
+			merchant_long: nt.merchant_long,
 			tags: nt.tags.map(tag => tag),
 			source: nt.source,
 		} 
@@ -432,9 +439,11 @@ class VAddTr extends HTMLElement {
 
 
 
-
-
-
+	parseapple = () => new Promise<void>(async (_res) => {   
+		this.m.newtransactions = await ParseApple(this.m.sources, this.m.quick_notes);   
+		this.handle_initing_newtransactions()
+		this.sc()
+	})
 
 
 
@@ -448,6 +457,20 @@ class VAddTr extends HTMLElement {
 
 customElements.define('v-addtr', VAddTr);
 
+
+
+
+
+function simplify_merchant_name(name:string) : string {
+
+	let cname = ""
+
+	if (name.startsWith("Loan Advance Cre")) {
+		cname = name.slice(17).trim()
+	}
+
+	return cname
+}
 
 
 
