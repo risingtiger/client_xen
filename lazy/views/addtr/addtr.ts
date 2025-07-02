@@ -468,6 +468,12 @@ function simplify_merchant_name(name:string) : string {
 	if (name.startsWith("Loan Advance Cre")) {
 		cname = name.slice(17).trim()
 	}
+	else if (name.includes("Cash App*")) {
+		const cash_app_match = name.match(/Cash App\*([^\s]+)/);
+		if (cash_app_match) {
+			cname = "Cash App: " + cash_app_match[1];
+		}
+	}
 
 	return cname
 }
