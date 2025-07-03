@@ -20,11 +20,47 @@ export const ParseApple = async (sources:SourceT[]) => new Promise<NewTransactio
 
 	const blob = await imgclip.getType('image/png');
 	
-	// Convert blob to base64
-	const arrayBuffer = await blob.arrayBuffer();
-	const uint8Array = new Uint8Array(arrayBuffer);
-	const binaryString = Array.from(uint8Array, byte => String.fromCharCode(byte)).join('');
-	const base64Image = btoa(binaryString);
+	// Create image element to get dimensions and compress
+	const img = new Image();
+	const imgUrl = URL.createObjectURL(blob);
+	
+	await new Promise((resolve, reject) => {
+		img.onload = resolve;
+		img.onerror = reject;
+		img.src = imgUrl;
+	});
+	
+	// Create canvas to resize/compress image
+	const canvas = document.createElement('canvas');
+	const ctx = canvas.getContext('2d')!;
+	
+	// Calculate new dimensions (max width/height of 800px to reduce size)
+	const maxSize = 800;
+	let { width, height } = img;
+	
+	if (width > height) {
+		if (width > maxSize) {
+			height = (height * maxSize) / width;
+			width = maxSize;
+		}
+	} else {
+		if (height > maxSize) {
+			width = (width * maxSize) / height;
+			height = maxSize;
+		}
+	}
+	
+	canvas.width = width;
+	canvas.height = height;
+	
+	// Draw and compress image
+	ctx.drawImage(img, 0, 0, width, height);
+	
+	// Convert to base64 with compression (0.7 quality for JPEG-like compression)
+	const base64Image = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
+	
+	// Clean up
+	URL.revokeObjectURL(imgUrl);
 
 	const now = new Date();
 	const timezone_offset = -(now.getTimezoneOffset() / 60);
