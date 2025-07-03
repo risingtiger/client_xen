@@ -16,8 +16,13 @@ export const ParseApple = async (sources:SourceT[]) => new Promise<NewTransactio
 	}
 
 	const now = new Date();
-	const relative_date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-	const timezone_offset = -(now.getTimezoneOffset() / 60);
+	const tz_offset = now.getTimezoneOffset();
+	const tz_offset_str = (tz_offset > 0 ? '-' : '+') +
+		String(Math.floor(Math.abs(tz_offset) / 60)).padStart(2, '0') + ':' +
+		String(Math.abs(tz_offset) % 60).padStart(2, '0');
+
+	const relative_date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}T${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}${tz_offset_str}`;
+	const timezone_offset = -(tz_offset / 60);
 	
 	const splitText = clipboardText.split("123");
 	const apple_data_str = splitText[1];
