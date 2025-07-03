@@ -8,7 +8,85 @@ declare var $N: $NT;
 
 export const ParseApple = async (sources:SourceT[]) => new Promise<NewTransactionT[]>(async (res, rej) => {
 
-	const clipboardText = await navigator.clipboard.readText();
+	const clipboardText = `
+
+8:06
+Done
+
+-123
+
+
+Bee's Marketplace
+Pending - Colorado City
+3 hours ago
+$12.75
+2%
+
+
+Red Brick take N bake... $10.86
+Pending - Colorado City
+5 hours ago
+2%
+へ
+
+Amazon Web Services
+Card Number Used
+Yesterday
+$1.11
+1%
+
+
+InfluxData
+Card Number Used
+Yesterday
+$0.05
+1%
+
+G
+Google
+Card Number Used
+Yesterday
+$22.72
+1%
+
+G
+Google
+Card Number Used
+Yesterday
+$17.88
+1%
+
+Beans
+Brews
+Beans & Brews Coffee...
+Colorado City, AZ
+Monday
+$4.85
+2%
+＞
+
+Essential Coffee
+Colorado City, AZ
+Monday
+$5.75
+2%
+
+
+YouTube
+Card Number Used
+Monday
+$5.42
+1%
+
+
+Hildale-Colorado Cit... $135.03
+Card Number Used
+Mondak
+1%
+	`
+
+
+	//const clipboardText = await navigator.clipboard.readText();
 	
 	if (!clipboardText.includes('Done') || !clipboardText.includes('123')) { 
 		rej('Clipboard text must contain both "Done" and "123"'); 
@@ -18,6 +96,7 @@ export const ParseApple = async (sources:SourceT[]) => new Promise<NewTransactio
 	const now = new Date();
 	const relative_date = now.toISOString();
 	const timezone_offset = -(now.getTimezoneOffset() / 60);
+	console.log("relative_date", relative_date, "timezone_offset", timezone_offset);
 	
 	const splitText = clipboardText.split("123");
 	const apple_data_str = splitText[1];
