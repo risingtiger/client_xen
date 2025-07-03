@@ -90,10 +90,20 @@ class VPCats extends HTMLElement {
 
 
 	editCategory(subcatid: string) {
-		// modity this. subcatid refers to a sub category nested within a parent category (one of this.m.cats). Find the sub categroy AI!
-		const cat = this.m.cats.find(c => c.id === catId);
-		if (cat) {
-			this.s.editing_cat = cat;
+		let found_subcat: CatT | null = null;
+		
+		for (const parent_cat of this.m.cats) {
+			if (parent_cat.subsref) {
+				const subcat = parent_cat.subsref.find(sub => sub.id === subcatid);
+				if (subcat) {
+					found_subcat = subcat;
+					break;
+				}
+			}
+		}
+		
+		if (found_subcat) {
+			this.s.editing_cat = found_subcat;
 			this.s.mode = 'edit';
 			this.sc();
 		}
