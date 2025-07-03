@@ -94,8 +94,22 @@ Mondak
 	}
 
 	const now = new Date();
-	const relative_date = now.toISOString();
 	const timezone_offset = -(now.getTimezoneOffset() / 60);
+	
+	// Create ISO string in local time with timezone offset
+	const year = now.getFullYear();
+	const month = String(now.getMonth() + 1).padStart(2, '0');
+	const day = String(now.getDate()).padStart(2, '0');
+	const hours = String(now.getHours()).padStart(2, '0');
+	const minutes = String(now.getMinutes()).padStart(2, '0');
+	const seconds = String(now.getSeconds()).padStart(2, '0');
+	const milliseconds = String(now.getMilliseconds()).padStart(3, '0');
+	
+	const offset_sign = timezone_offset >= 0 ? '+' : '-';
+	const offset_hours = String(Math.abs(Math.floor(timezone_offset))).padStart(2, '0');
+	const offset_minutes = String(Math.abs((timezone_offset % 1) * 60)).padStart(2, '0');
+	
+	const relative_date = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}${offset_sign}${offset_hours}:${offset_minutes}`;
 	console.log("relative_date", relative_date, "timezone_offset", timezone_offset);
 	
 	const splitText = clipboardText.split("123");
