@@ -6,9 +6,10 @@
 	box-sizing: border-box;
 	background: #0082c9;
 }
+
 #splittotal {
 	position: absolute;
-	top: 31px;
+	top: 47px;
 	right: 11px;
 	color: white;
 	text-align: right;
@@ -36,6 +37,7 @@
 	font-size: 12px;
 	text-align: center;
 	background: none;
+	color: #d1d1d1;
 }
 
 
@@ -72,13 +74,13 @@
 	padding: 5px 11px;
 }
 #input-merchant {
-	text-align: center;
+	text-align: left;
 	font-size: 16px;
 	font-weight: bold;
 }
 
 #input-amount {
-	text-align: right;
+	text-align: left;
 	padding: 5px 11px;
 	-webkit-appearance: none;
 	appearance: none;
@@ -91,10 +93,10 @@
 	padding: 5px 11px;
 }
 #input-note {
-	text-align: center;
+	text-align: left;
 }
 #input-cat {
-	text-align: center;
+	text-align: left;
 }
 #split {
 	color: white;
@@ -105,25 +107,24 @@
 }
 #showsource {
 	color: white;
-	text-align: right;
-	padding: 9px 11px 0 0;
+	text-align: left;
+	padding: 9px 11px;
 	height: 35px;
 	box-sizing: border-box;
 }
 #ofcount {
 	color: white;
-	text-align: right;
-	padding: 9px 11px 0 0;
+	text-align: left;
+	padding: 9px 11px;
 	height: 35px;
 	box-sizing: border-box;
 }
 
+
 .toparea_row_a, .toparea_row_b, .toparea_row_c {
 	display: flex;
-	justify-content: space-between;
+	justify-content: flex-start;
 	box-sizing: border-box;
-	
-	
 	
 	& input.editwrap {
 		display: block;
@@ -131,6 +132,7 @@
 		overflow: hidden;
 		max-width: 30%;
 	}
+
 
 	& input.editprop::placeholder {
 		color: #ffffff;
@@ -143,7 +145,6 @@
 	}
 	
 	& input.editprop.highlight {
-		font-weight: bold;
 		color: white;
 	}
 }
@@ -240,15 +241,98 @@
 	display: none;
 	opacity: 0;
 	transition: opacity 0.5s, display 0.5s allow-discrete;
-	position: absolute;
+	position: relative;
 	box-sizing: border-box;
-	top: 228px;
-	left: 0;
 	width: 100%;
-	height: calc(100% - 258px);
+	height: calc(100vh - 279px);
 	background: white;
 	overflow-y: scroll;
 	padding: var(--padding-container);
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	
 	
 	
@@ -457,9 +541,13 @@
 		margin-right: 5px;
 		margin-bottom: 5px;
 		border-radius: 6px;
+		cursor:pointer
 	}
 	& h6.highlight {
-		color:red;
+	font-weight: bold;
+	}
+	& h6:hover {
+		background: #00ab9f;
 	}
 }
 
@@ -510,7 +598,7 @@ footer#pagefooter {
 	bottom: 0;
 	left: 0;
 	width: 100%;
-	height: 30px;
+	height: 40px;
 	background: #ededed;
 	color: #4e4e4e;
 	text-align: center;

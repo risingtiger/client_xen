@@ -1,6 +1,5 @@
 
 
-import { SSETriggersE } from "../../../defs_server_symlink.js";
 import { $NT } from "../../../defs_client_symlink.js";
 import { AreaT, CatT, TransactionT, SourceT } from "../../../defs.js";
 
@@ -56,10 +55,7 @@ class VHome extends HTMLElement {
 
 
 	async connectedCallback() {
-
-
 		await $N.CMech.ViewConnectedCallback(this)
-
 		this.dispatchEvent(new Event('hydrated'));
 	}
 
@@ -95,9 +91,11 @@ class VHome extends HTMLElement {
 
 		if (confirm("Are you sure you want to run admin: " + api)) {
 
-			const returndata = await $N.FetchLassie("/api/xen/admin/" + api, { method } ) as any
-			if (returndata.return_str) {
-				this.s.admin_return_str = returndata.return_str.includes("--") ? returndata.return_str.split("--") : returndata.return_str
+			const returndata = await $N.FetchLassie("/api/xen/admin/" + api, { method } )
+			if (!returndata.ok) {   alert ("Error: " + returndata.status + " " + returndata.statusText);   return;   }
+
+			if ((returndata.data as any).return_str) {
+				this.s.admin_return_str = (returndata.data as any).return_str.includes("--") ? (returndata.data as any).return_str.split("--") : (returndata.data as any).return_str
 			}
 
 			this.sc()
@@ -111,11 +109,12 @@ class VHome extends HTMLElement {
 
 		if (confirm("Are you sure you want to plaid: " + api)) {
 
-			const returndata = await $N.FetchLassie("/api/xen/finance/plaid/" + api, { method } ) as any
+			const returndata = await $N.FetchLassie("/api/xen/finance/plaid/" + api, { method } )
+			if (!returndata.ok) {   alert ("Error: " + returndata.status + " " + returndata.statusText);   return;   }
 
 			if (api === "create_link_token") {
-				localStorage.setItem("plaid_link_token", returndata.link_token)
-				alert ("Link token created: " + returndata.link_token)
+				localStorage.setItem("plaid_link_token", (returndata.data as any).link_token)
+				alert ("Link token created: " + (returndata.data as any).link_token)
 			}
 
 			this.sc()
@@ -126,14 +125,15 @@ class VHome extends HTMLElement {
 
 linkplaid = async () => {
     try {
-        // 1. Fetch Link Token
-        const tokenResponse = await $N.FetchLassie("/api/xen/finance/plaid/create_link_token") as { link_token?: string, error?: string };
-        if (!tokenResponse || !tokenResponse.link_token) {
-            alert("Error creating link token: " + (tokenResponse?.error || "Unknown error"));
+        const tokenResponse = await $N.FetchLassie("/api/xen/finance/plaid/create_link_token");
+		if (!tokenResponse.ok) {   alert ("Error: " + tokenResponse.status + " " + tokenResponse.statusText);   return;   }
+
+        if (!tokenResponse || !( tokenResponse.data as any ).link_token) {
+            alert("Error creating link token: " + (( tokenResponse.data as any ).error || "Unknown error"));
             console.error("Error fetching link token:", tokenResponse);
             return;
         }
-        const linkToken = tokenResponse.link_token;
+        const linkToken = ( tokenResponse.data as any ).link_token;
 
         // 2. Load Plaid Link Script (if not already loaded)
         // Use official Plaid CDN link
@@ -173,9 +173,10 @@ linkplaid = async () => {
                             accounts: metadata.accounts // Send account metadata if needed by backend
                         })
                     }) as any; // Adjust type based on expected response
+					if (!exchangeResponse.ok) {   alert ("Error: " + exchangeResponse.status + " " + exchangeResponse.statusText);   window.location.href = "/index.html"; return;   }
 
                     // Check if the exchange was successful based on your API's response structure
-                    if (exchangeResponse && (exchangeResponse.ok || exchangeResponse.success)) { // Example success check
+                    if ((exchangeResponse.data as any) && (exchangeResponse.ok || exchangeResponse.success)) { // Example success check
                         alert("Plaid account linked successfully!");
                     } else {
                         alert("Failed to exchange public token with backend. Please try again.");

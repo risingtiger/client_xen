@@ -25,16 +25,17 @@
 
 -->
 
-<header class="viewheader" style="display:none;">
-    <a class="left"><span>‸</span><span></span></a>
-    <div class="middle">
-        <h1>Ya</h1>
-    </div>
-    <div class="right">
-    </div>
-</header>
 
-<div class="content touchroot">
+<div class="wrapper touchroot">
+
+	<header class="viewheader" style="display:none;">
+		<a class="left"><span>‸</span><span></span></a>
+		<div class="middle">
+			<h1>Ya</h1>
+		</div>
+		<div class="right">
+		</div>
+	</header>
 
     <div id="calc_transactions_wrapper">
 
@@ -184,6 +185,10 @@
 			<a @click="${()=>{this.set_calcs_view_size_from_ui('large')}}">&nbsp;ML&nbsp;</a>
 			&nbsp;
 			<a @click="${()=>{this.download_csv();}}">&nbsp;D&nbsp;</a>
+			&nbsp;
+			<a @click="${()=>{this.download_transactions_to_csv();}}">&nbsp;DD&nbsp;</a>
+			&nbsp;
+			<a @click="${()=>{this.chat_about_transactions();}}">&nbsp;A&nbsp;</a>
 		</div>
 
 		<div id="totalies">
@@ -208,14 +213,118 @@
     <vp-finance-bucket></vp-finance-bucket>
 	` : '' }
 
+	${ _s.editview.show_ui !== 0 ? html`
+		<c-ol shape="1" title="Transaction Details" @close="${()=> { this.s.editview.show_ui = 0; this.sc(); } }">
+			<vp-finance-edittransaction transaction="${_s.editview.transaction_id}"></vp-finance-edittransaction>
+		</c-ol>
+	` : '' }
+
+
+	${ _s.catsview.show_ui !== 0 ? html`
+	<c-ol2 title="${_s.filter.arearef.longname} Cats" @close="${()=> { this.s.catsview.show_ui = 0; this.sc(); } }">
+			<vp-cats area_id="${_s.filter.arearef.id}"></vp-cats>
+		</c-ol2>
+	` : ''}
+
+	${ _s.paymentsview.show_ui !== 0 ? html`
+		<c-ol shape="1" title="Payments" ?close="${this.s.paymentsview.show_ui === 2}" @close="${()=> { this.s.paymentsview.show_ui = 0; this.sc(); } }">
+
+		<div id="paymentsview">
+
+			<section class="payments">
+				<h3>Cycle Credit</h3>
+				${_m.payments.filter(p=>p.type === 'cyclecredit').sort((a,b)=> a.payee.localeCompare(b.payee)).map(p=>this.payments_r(p))}
+			</section>
+			<hr>
+			<section class="payments">
+				<h3>Carloans</h3>
+				${_m.payments.filter(p=>p.type === 'carloan').sort((a,b)=> a.payee.localeCompare(b.payee)).map(p=>this.payments_r(p))}
+			</section>
+			<hr>
+			<section class="payments">
+				<h3>DebtPay</h3>
+				${_m.payments.filter(p=>p.type === 'debtpay').sort((a,b)=> a.payee.localeCompare(b.payee)).map(p=>this.payments_r(p))}
+			</section>
+			<hr>
+			<section class="payments">
+				<h3>Utilities n Rent</h3>
+				${_m.payments.filter(p=>p.type === 'rent' || p.type === 'utilities').sort((a,b)=> a.payee.localeCompare(b.payee)).map(p=>this.payments_r(p))}
+			</section>
+			<hr>
+			<section class="payments">
+				<h3>Subscriptions</h3>
+				${_m.payments.filter(p=>p.type === 'subscription').sort((a,b)=> a.payee.localeCompare(b.payee)).map(p=>this.payments_r(p))}
+			</section>
+
+			<!--
+			<table>
+				<tr>
+					<th>payee</th>
+					<th>type</th>
+					<th>day</th>
+					<th>auto</th>
+					<th>amount</th>
+					<th>nointerest</th>
+					<th>pingschecking</th>
+					<th>notes</th>
+				</tr>
+
+				${_m.payments.map((p,i) => html`
+					<tr>
+						<td>${p.payee}</td>
+						<td>${p.type}</td>
+						<td>${p.day}</td>
+						<td>${p.is_auto ? 'yes' : 'no'}</td>
+						<td>${p.amount}</td>
+						<td>${p.nointerest_ifby}</td>
+						<td>${p.is_auto && p.payment_source && p.payment_source.name === 'checkpers' ? 'yes' : ''}</td>
+						<td><span>${p.notes}</span></td>
+					</tr>
+
+					${p.breakdown.map(b=> html`
+					<tr>
+						<td>${b.split(':')[0]}</td>
+						<td>aggregate</td>
+						<td>0</td>
+						<td>-</td>
+						<td>${b.split(':')[1]}</td>
+						<td>-</td>
+						<td>-</td>
+						<td>-</td>
+					</tr>
+					`)}
+				`)}
+			</table>
+	-->
+		</div>
+
+		</c-ol>
+	` : ''}
+
+	${ _s.tagsview.show_ui !== 0 ? html`
+		<c-ol shape="1" title="Tags"  ?close="${this.s.tagsview.show_ui === 2}" @close="${()=> { this.s.tagsview.show_ui = 0; this.sc(); } }">
+
+			<div id="tagsview">
+
+				<ul class="items">
+					${_s.tagsview.tagtotals.map(t=>html`
+					<li @click="${(e)=>{this.tagsview_tag_clicked(e)}}" data-id="${t.id}">
+							<h5>${t.name}</h5>
+							<p>
+								<span>${Math.round(t.total)}</span>
+							</p>
+						</li>
+					`)}
+				</ul>
+
+			</div>
+
+		</c-ol>
+	` : ''}
+
 </div>
 
 
-${ _s.editview.show_ui !== 0 ? html`
-    <c-ol shape="1" title="Transaction Details" @close="${()=> { this.s.editview.show_ui = 0; this.sc(); } }">
-        <vp-finance-edittransaction transaction="${_s.editview.transaction_id}"></vp-finance-edittransaction>
-    </c-ol>
-` : '' }
 
 
 
@@ -244,131 +353,9 @@ ${ _s.transactiondetails.show_ui !== 0 ? html`
 
 
 
-${ _s.catsview.show_ui !== 0 ? html`
-    <c-ol shape="1" title="Categories" ?close="${this.s.catsview.show_ui === 2}" @close="${()=> { this.s.catsview.show_ui = 0; this.sc(); } }">
-
-        <div id="catsview">
-
-            <h3>${_s.filter.arearef.longname} Categories</h3>
-
-            ${_m.cats.filter(c=> c.arearef === _s.filter.arearef).map((cat,i) => html`
-                <div class="parent" data-i="${i}">
-                    <h4>${cat.name}</h4>
-                    <div class="sub">
-                        ${cat.subsref.map(subcat=>html`
-                            <h6>${subcat.name}</h6>
-                        `)}
-                    </div>
-                </div>
-            `)}
-        </div>
-
-        <button @click="${()=>this.ynab_sync_categories()}">Sync YNAB Cats</button>
-
-        ${_s.catsview.cats_with_deleteflag.map((cat,i) => html`
-            <p>${cat.id} :: ${cat.name}</p>
-        `)}
-
-    </c-ol>
-` : ''}
-
-
-${ _s.paymentsview.show_ui !== 0 ? html`
-    <c-ol shape="1" title="Payments" ?close="${this.s.paymentsview.show_ui === 2}" @close="${()=> { this.s.paymentsview.show_ui = 0; this.sc(); } }">
-
-    <div id="paymentsview">
-
-        <section class="payments">
-			<h3>Cycle Credit</h3>
-            ${_m.payments.filter(p=>p.type === 'cyclecredit').sort((a,b)=> a.payee.localeCompare(b.payee)).map(p=>this.payments_r(p))}
-        </section>
-        <hr>
-        <section class="payments">
-			<h3>Carloans</h3>
-            ${_m.payments.filter(p=>p.type === 'carloan').sort((a,b)=> a.payee.localeCompare(b.payee)).map(p=>this.payments_r(p))}
-        </section>
-        <hr>
-        <section class="payments">
-			<h3>DebtPay</h3>
-            ${_m.payments.filter(p=>p.type === 'debtpay').sort((a,b)=> a.payee.localeCompare(b.payee)).map(p=>this.payments_r(p))}
-        </section>
-        <hr>
-        <section class="payments">
-			<h3>Utilities n Rent</h3>
-            ${_m.payments.filter(p=>p.type === 'rent' || p.type === 'utilities').sort((a,b)=> a.payee.localeCompare(b.payee)).map(p=>this.payments_r(p))}
-        </section>
-        <hr>
-        <section class="payments">
-			<h3>Subscriptions</h3>
-            ${_m.payments.filter(p=>p.type === 'subscription').sort((a,b)=> a.payee.localeCompare(b.payee)).map(p=>this.payments_r(p))}
-        </section>
-
-        <!--
-        <table>
-            <tr>
-                <th>payee</th>
-                <th>type</th>
-                <th>day</th>
-                <th>auto</th>
-                <th>amount</th>
-                <th>nointerest</th>
-                <th>pingschecking</th>
-                <th>notes</th>
-            </tr>
-
-            ${_m.payments.map((p,i) => html`
-                <tr>
-                    <td>${p.payee}</td>
-                    <td>${p.type}</td>
-                    <td>${p.day}</td>
-                    <td>${p.is_auto ? 'yes' : 'no'}</td>
-                    <td>${p.amount}</td>
-                    <td>${p.nointerest_ifby}</td>
-                    <td>${p.is_auto && p.payment_source && p.payment_source.name === 'checkpers' ? 'yes' : ''}</td>
-                    <td><span>${p.notes}</span></td>
-                </tr>
-
-                ${p.breakdown.map(b=> html`
-                <tr>
-                    <td>${b.split(':')[0]}</td>
-                    <td>aggregate</td>
-                    <td>0</td>
-                    <td>-</td>
-                    <td>${b.split(':')[1]}</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                </tr>
-                `)}
-            `)}
-        </table>
--->
-    </div>
-
-    </c-ol>
-` : ''}
 
 
 
 
-${ _s.tagsview.show_ui !== 0 ? html`
-    <c-ol shape="1" title="Tags"  ?close="${this.s.tagsview.show_ui === 2}" @close="${()=> { this.s.tagsview.show_ui = 0; this.sc(); } }">
 
-        <div id="tagsview">
-
-            <ul class="items">
-                ${_s.tagsview.tagtotals.map(t=>html`
-                <li @click="${(e)=>{this.tagsview_tag_clicked(e)}}" data-id="${t.id}">
-                        <h5>${t.name}</h5>
-                        <p>
-                            <span>${Math.round(t.total)}</span>
-                        </p>
-                    </li>
-                `)}
-            </ul>
-
-        </div>
-
-    </c-ol>
-` : ''}
 

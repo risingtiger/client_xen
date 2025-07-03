@@ -2,13 +2,13 @@
 
 
 import { str, num } from "../../../defs_server_symlink.js"
-import { $NT, CMechLoadedDataT, CMechLoadStateE } from "../../../defs_client_symlink.js"
+import { $NT, CMechLoadedDataT } from "../../../defs_client_symlink.js"
 import { AreaT, CatT, SourceT, TagT, PaymentT, TransactionT, CatCalcsT, CatCalcsTotalsT, MonthSnapShotT, FilterT, CatBucketsInfoT, AreaQuadBucketTotalsT } from '../../../defs.js'
 
 import { get_months  } from '../../libs/financefuncs_gen.js'
 import { knit_cats, knit_transactions, knit_monthsnapshots } from '../../libs/financefuncs_knit.js'
 import { filter_transactions, sort_transactions, current_month_of_filtered_transactions  } from '../../libs/financefuncs_sortfilter.js'
-import { catcalcs, catcalc_totals  } from '../../libs/financefuncs_catcalcs.js'
+import { CatCalcs, CatCalcTotals  } from '../../libs/financefuncs_catcalcs.js'
 import { cat_buckets_info, area_quad_bucket_totals  } from '../../libs/financefuncs_bucket.js'
 
 //import { knit_all, get_months, filter_transactions, sort_transactions, current_month_of_filtered_transactions, catcalcs, catcalc_totals, snapshots, snapshots_for_ui  } from '../../libs/finance_funcs.js'
@@ -136,8 +136,9 @@ class VFinance extends HTMLElement {
 		this.dispatchEvent(new Event('hydrated'));
 
 		const r = await $N.FetchLassie('/api/xen/finance/grab_em', {}) as any
-		if (r === null) { alert("couldnt get grabems. throwing up"); throw new Error("timeout"); }
-		this.m.ynab_accounts = r.ynab_accounts
+		if (!r.ok) { alert("couldnt get grabems. throwing up"); window.location.href = "/index.html"; return; }
+
+		this.m.ynab_accounts = r.data.ynab_accounts
 		this.dispatchEvent(new Event('lateloaded'));
 
 
@@ -149,7 +150,7 @@ class VFinance extends HTMLElement {
 			eltoattach.addEventListener("touchcancel", this.handle_touch_cancel.bind(this));
 			eltoattach.addEventListener("touchmove", this.handle_touch_move.bind(this));
 
-			document.addEventListener('keydown', this.handle_keydown.bind(this))
+			//document.addEventListener('keydown', this.handle_keydown.bind(this))
 
 			this.s.touch_attached = true
 		}
@@ -181,21 +182,21 @@ class VFinance extends HTMLElement {
 
 
 
-	kd = (loadeddata: CMechLoadedDataT, loadstate:CMechLoadStateE) =>  {
+	kd = (loadeddata: CMechLoadedDataT, loadstate:string) =>  {
 
 
-		if (loadstate === CMechLoadStateE.INITIAL || loadstate === CMechLoadStateE.DATACHANGED) {
-			this.m.areas          = loadeddata.get("areas")! as AreaT[]
-			this.m.cats           = knit_cats(this.m.areas, loadeddata.get('cats')!) as CatT[]
-			this.m.sources        = loadeddata.get("sources") as SourceT[]
-			this.m.tags           = $N.Utils.resolve_object_references(loadeddata.get("tags")!, loadeddata) as TagT[]
-			this.m.payments       = $N.Utils.resolve_object_references(loadeddata.get("payments")!, loadeddata) as PaymentT[]
-			this.m.monthsnapshots = knit_monthsnapshots(loadeddata.get("monthsnapshots")!, this.m.areas) as MonthSnapShotT[]
-			this.m.transactions   = knit_transactions(this.m.cats, this.m.sources, this.m.tags, loadeddata.get("transactions")!) as TransactionT[]
+		if (loadstate === 'initial' || loadstate === 'datachanged') {
+			this.m.areas          = loadeddata.get("1:areas")! as AreaT[]
+			this.m.cats           = knit_cats(this.m.areas, loadeddata.get('1:cats')!) as CatT[]
+			this.m.sources        = loadeddata.get("1:sources") as SourceT[]
+			this.m.tags           = $N.Utils.resolve_object_references(loadeddata.get("1:tags")!, loadeddata) as TagT[]
+			this.m.payments       = $N.Utils.resolve_object_references(loadeddata.get("1:payments")!, loadeddata) as PaymentT[]
+			this.m.monthsnapshots = knit_monthsnapshots(loadeddata.get("1:monthsnapshots")!, this.m.areas) as MonthSnapShotT[]
+			this.m.transactions   = knit_transactions(this.m.cats, this.m.sources, this.m.tags, loadeddata.get("1:transactions")!) as TransactionT[]
 
-			this.m.previous_static_monthsnapshots = knit_monthsnapshots(loadeddata.get("monthsnapshots")!, this.m.areas) as MonthSnapShotT[]
+			this.m.previous_static_monthsnapshots = knit_monthsnapshots(loadeddata.get("1:monthsnapshots")!, this.m.areas) as MonthSnapShotT[]
 
-			if (loadstate === CMechLoadStateE.INITIAL) {
+			if (loadstate === 'initial') {
 				this.s.filter.arearef = this.m.areas.find(area => area.name === 'fam') as AreaT
 				this.set_default_cattags()
 				this.set_calcs_view_size('medium') // keep in mind, will be downgraded to small if window screen is small (aka phone)
@@ -209,23 +210,15 @@ class VFinance extends HTMLElement {
 			}
 
 			this.parse_new_state()
-
-			for(let i = 0; i < ( this as any ).subelshldr.length; i++) {
-				( this as any ).subelshldr[i].kd(loadeddata, loadstate);
-				( this as any ).subelshldr[i].sc();
-			}
-
-			//TODO: When i figure out the datachanged events and attributes potential conflicts and resolve in CMech, I'm just calling into subels to force update (calling kd and sc) of sub elements
-			console.log("When i figure out the datachanged events and attributes potential conflicts and resolve in CMech, I'm just calling into subels to force update (calling kd and sc) of sub elements")
 		}
 
 
-		if (loadstate === CMechLoadStateE.VISIBLED) {
-			console.log("visibled")
+		else if (loadstate === 'visibled') {
+			//
 		}
 
-		if (loadstate === CMechLoadStateE.LATELOADED) {
-			console.log("late loaded")
+		else if (loadstate === 'lateloaded') {
+			//
 		}
 	}
 
@@ -253,8 +246,8 @@ class VFinance extends HTMLElement {
 		this.s.filter.daterange             = [this.s.months[0], this.s.months[this.s.months.length-1]];
 		this.m.filtered_transactions        = filter_transactions(this.m.transactions, this.s.filter);
 		this.m.current_month_transactions   = current_month_of_filtered_transactions(this.m.filtered_transactions, this.s.months[this.s.months.length-1]);
-		this.m.catcalcs                     = catcalcs(this.m.filtered_transactions, this.s.filter.arearef as AreaT, this.s.filter.cattags, this.m.cats, this.s.months);
-		this.m.catcalcstotals               = catcalc_totals(this.m.catcalcs, this.s.filter);
+		this.m.catcalcs                     = CatCalcs(this.m.filtered_transactions, this.s.filter.arearef as AreaT, this.s.filter.cattags, this.m.cats, this.s.months);
+		this.m.catcalcstotals               = CatCalcTotals(this.m.catcalcs, this.s.filter);
 		this.s.cat_buckets                  = cat_buckets_info((this.m.areas.find(a=>a === this.s.filter.arearef) as AreaT), this.m.cats, this.m.transactions); // wlll only contain cats of quad3 or 4
 		this.s.area_quad_bucket_totals      = area_quad_bucket_totals((this.m.areas.find(a=>a === this.s.filter.arearef) as AreaT), this.s.cat_buckets, this.s.filter.cattags[0]) // will all be 0 unless we are specifically viewing quad 3 or 4
 		this.m.current_month_transactions   = sort_transactions(this.m.current_month_transactions, "date", "asc")
@@ -450,12 +443,13 @@ class VFinance extends HTMLElement {
 	show_balances = () => new Promise <void>(async (res, _rej) => { 
 
 		const balances = await $N.FetchLassie("/api/xen/finance/sheets/get_balances")
+		if (!balances.ok) {   alert ("could not get balances"); return; }
 
 		this.s.balancesview_showui = 1
 		this.sc()
 		setTimeout(()=> {
 			const el = (this.shadow.querySelector('vp-finance-balances') as any)
-			el.Show(this.m.areas, this.m.cats, this.m.transactions, this.m.sources, balances)
+			el.Show(this.m.areas, this.m.cats, this.m.transactions, this.m.sources, balances.data)
 			el.addEventListener('close', ()=> this.sc({ balancesview_showui: 0 }))
 			res()
 		}, 30)
@@ -514,8 +508,9 @@ class VFinance extends HTMLElement {
 	async ynab_sync_categories() {
 
 		const r = await $N.FetchLassie('/api/xen/finance/ynab_sync_categories')
+		if (!r.ok) { alert("couldnt get ynab categories"); return }
 
-		this.s.catsview.cats_with_deleteflag = (r as any).cats_with_deleteflag
+		this.s.catsview.cats_with_deleteflag = (r.data as any).cats_with_deleteflag
 
 		this.sc()
 	}
@@ -880,11 +875,28 @@ async handle_keydown(e:KeyboardEvent) {
 		const url = URL.createObjectURL(blob)
 		const a = document.createElement('a')
 		a.href = url
-		a.download = 'transactions.csv'
+		a.download = 'transactions_catcalcs.csv'
 		a.click()
 		URL.revokeObjectURL(url)
 	}
 
+
+
+
+	download_transactions_to_csv = () => new Promise<void>(async (_res, _rej) => {
+
+		const https = { headers: { 'Content-Type': 'text/csv' } }
+		const csvstr = await $N.FetchLassie('/api/xen/finance/download_csv/transactions', https)
+		if (!csvstr.ok) { alert("couldnt get transactions"); return }
+
+		const blob = new Blob([csvstr.data as string], {type: 'text/csv'})
+		const url = URL.createObjectURL(blob)
+		const a = document.createElement('a')
+		a.href = url
+		a.download = 'transactions.csv'
+		a.click()
+		URL.revokeObjectURL(url)
+	})
 
 
 
@@ -924,7 +936,7 @@ async handle_keydown(e:KeyboardEvent) {
 
 
 
-	chat_about_transactions = (p:PaymentT) => new Promise<void>((res:any, rej:any) => {
+	chat_about_transactions = (_p:PaymentT) => new Promise<void>((res:any, _rej:any) => {
 
 		const chatWrapper = document.createElement('div');
 		chatWrapper.style.position = 'absolute';
@@ -987,23 +999,19 @@ async handle_keydown(e:KeyboardEvent) {
 					chatTextarea.value += '\n\nWaiting for response...\n';
 					chatTextarea.scrollTop = chatTextarea.scrollHeight;
 					
-					try {
-						const response = await $N.FetchLassie('/api/xen/finance/ai/chat_about_transactions', {
-							method: 'POST',
-							body: JSON.stringify({ question })
-						}) as { answer: string };
-						
-						chatTextarea.value = chatTextarea.value.replace('\n\nWaiting for response...\n', '');
-						
-						if (response && response.answer) {
-							chatTextarea.value += '\n\n' + response.answer;
-							chatTextarea.scrollTop = chatTextarea.scrollHeight;
-						} else {
-							chatTextarea.value += '\n\nNo answer received from the server.';
-							chatTextarea.scrollTop = chatTextarea.scrollHeight;
-						}
-					} catch (error) {
-						chatTextarea.value += '\n\nError: Could not get a response.';
+					const response = await $N.FetchLassie('/api/xen/finance/ai/chat_about_transactions', {
+						method: 'POST',
+						body: JSON.stringify({ question })
+					});
+					if (!response.ok) {   alert ("couldnt get response"); return;   }
+					
+					chatTextarea.value = chatTextarea.value.replace('\n\nWaiting for response...\n', '');
+					
+					if (response && ( response.data as any ).answer) {
+						chatTextarea.value += '\n\n' + ( response.data as any ).answer;
+						chatTextarea.scrollTop = chatTextarea.scrollHeight;
+					} else {
+						chatTextarea.value += '\n\nNo answer received from the server.';
 						chatTextarea.scrollTop = chatTextarea.scrollHeight;
 					}
 				}

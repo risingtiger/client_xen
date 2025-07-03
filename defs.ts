@@ -1,6 +1,6 @@
 
 
-import { bool, num, str } from "./defs_server_symlink.js"
+import { bool } from "./defs_server_symlink.js"
 
 
 
@@ -33,6 +33,7 @@ export type SourceT = {
     ts: number,
     name: string
 	balance: number|null
+	type: string
 }
 
 export type TagT = {

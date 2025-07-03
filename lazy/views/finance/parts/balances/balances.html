@@ -1,46 +1,50 @@
 
 
 <div id="wrap">
-	<h3>Balances  <span class="allasset">asset: ${_s.allLiquidAssets}</span> | <span class="alldebt">debt: ${_s.allLiquidDebt}</span></h3>
+	<h3>Balances  <span class="allasset">asset: ${Math.round(_s.allLiquidAssets)}</span> | <span class="alldebt">debt: ${Math.round( _s.allLiquidDebt )}</span></h3>
     
-    <h4>Checking Accounts Total: ${_s.checkingTotal}</h4>
+    <h4>Checking Accounts Total: ${Math.round( _s.checkingTotal )}</h4>
 	${_s.checkingAccounts.map(account => html`
-	<p>${account.name}: ${account.balance}</p>
+	<p>${account.name}: ${Math.round( account.balance ) || 0}</p>
 	`)}
 	
-	<h4>Savings Accounts Total: ${_s.savingsTotal}</h4>
+	<h4>Savings Accounts Total: ${Math.round( _s.savingsTotal )}</h4>
 	${_s.savingsAccounts.map(account => html`
-	<p>${account.name}: ${account.balance}</p>
+	<p>${account.name}: ${Math.round( account.balance ) || 0}</p>
 	`)}
 
-	<h4>Other Liquid Assets</h4>
-	${_s.otherAssets.map(account => html`
-	<p>${account.name}: ${account.balance}</p>
+	<h4>Invoices</h4>
+	${_s.invoicesAccounts.map(account => html`
+	<p>${account.name}: ${Math.round( account.balance ) || 0}</p>
 	`)}
 	
-	<h4>Cycling Credit Total: ${_s.creditCardTotal}</h4>
+	<h4>Cycling Credit Total: ${Math.round( _s.creditCardTotal )}</h4>
 	${_s.creditCardAccounts.map(account => html`
-	<p>${account.name}: ${account.balance}</p>
+		${account.name === 'apple' ? html`
+			<p data-id="${account.id}" data-balance="${Math.round( account.balance )}" @click="${(e)=>this.set_apple_balance(e)}">${account.name}: ${Math.round( account.balance ) || 0}</p>
+		` : html`
+			<p>${account.name}: ${Math.round( account.balance ) || 0}</p>
+		`}
 	`)}
 
 	<p>&nbsp;</p>
 
-	<h3>Spent Against Buckets: ${_s.allAreasBucketInfo.spentAgainstBucketsTotal}</h3>
+	<h3>Spent Against Buckets: ${Math.round( _s.allAreasBucketInfo.spentAgainstBucketsTotal )}</h3>
 
 	<p>&nbsp;</p>
 
-	<h3>All ↑ + BucketSpents - All ↓: ${_s.net_taking_into_account_bucket_spending}</h3>
+	<h3>All ↑ + BucketSpents - All ↓: ${Math.round( _s.net_taking_into_account_bucket_spending )}</h3>
 
 	<p>&nbsp;</p>
 
-	<h3>Unspoken For: ${_s.unspoken_for}</h3>
+	<h3>Unspoken For: ${Math.round( _s.unspoken_for )}</h3>
 
 	<p>&nbsp;</p>
 
 	<h3>All Buckets</h3>
-	<h4>Buckets Totals: ${_s.allAreasBucketInfo.bucketsTotal}</h4>
-	<h4>Buckets Spent: ${_s.allAreasBucketInfo.spentAgainstBucketsTotal}</h4>
-	<h4>Buckets Remaining: ${_s.allAreasBucketInfo.remaingAgainstBucketsTotal}</h4>
+	<h4>Buckets Totals: ${Math.round( _s.allAreasBucketInfo.bucketsTotal )}</h4>
+	<h4>Buckets Spent: ${Math.round( _s.allAreasBucketInfo.spentAgainstBucketsTotal )}</h4>
+	<h4>Buckets Remaining: ${Math.round( _s.allAreasBucketInfo.remaingAgainstBucketsTotal )}</h4>
 
 	<p>&nbsp;</p>
 	<button @click="${() => this.dispatchEvent(new Event('close'))}">Close</button>

@@ -1,0 +1,27 @@
+
+
+<div id="catsview" style="display: ${_s.mode === 'view' ? 'block' : 'none'}">
+
+	${_m.cats.filter(c=> c.arearef === _s.filter.arearef).map((cat,i) => html`
+		<div class="parent" data-i="${i}">
+			<h4>${cat.name}</h4>
+			<div class="sub">
+				${cat.subsref.map(subcat=>html`
+					<h6 @click="${()=>this.editCategory(subcat.id)}">${subcat.name}</h6>
+				`)}
+			</div>
+		</div>
+	`)}
+</div>
+
+<div id="catsedit"  style="display: ${_s.mode === 'edit' ? 'block' : 'none'}">
+	${_s.editing_cat ? html`
+		<c-form name="catform">
+			<c-in2 label="Category Name" name="name" type="text" val="${_s.editing_cat?.name || ''}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
+			<c-in2 label="Budget" name="budget" type="number" val="${_s.editing_cat?.budget || 0}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
+			<c-in2 label="Quadrant" name="quadrant" type="dselect" val="${_s.editing_cat.tags[0]}" options="Hard:1,SemiHard:2,Soft:3,High:4" @update="${(e)=>this.prop_updated(e)}"></c-in>
+			<button type="button" @click="${()=>this.cancelEdit()}">Cancel</button>
+		</c-form>
+	` : ''}
+</div>
+

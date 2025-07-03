@@ -7,7 +7,7 @@ import { AreaT, CatT, SourceT } from '../../../defs.js'
 import { knit_cats } from '../../libs/financefuncs_knit.js'
 import { NewTransactionT, InputModeE, AttributesT, ModelT, StateT } from "../../libs/addtr_defs.js"
 import { HandleKeyup as ItemHandleKeyup, HandleReset as ItemHandleReset, Set_Cat_From_Click, Set_Tag_From_Click } from "../../libs/addtr_item.js"
-import { ParseApple } from "../../libs/addtr_apple.js"
+import { ParseAppleScreenShot } from "../../libs/addtr_apple.js"
 
 
 declare var render: any;
@@ -58,7 +58,7 @@ class VAddTr extends HTMLElement {
 		await $N.CMech.ViewConnectedCallback(this, {kdonvisibled:true, kdonlateloaded:true})
 		this.dispatchEvent(new Event('hydrated'));
 
-		const r = await $N.FetchLassie('/api/xen/finance/get_sheets_transactions', {}) 
+		const r = await $N.FetchLassie('/api/xen/finance/sheets/get_transactions', {}) 
 		if (!r.ok) { 
 			$N.Unrecoverable("Error", "Unable to Retreive New Transactions", "Reset", "swe", "err on get_sheets_transactions", null);
 			return; 
@@ -86,10 +86,10 @@ class VAddTr extends HTMLElement {
 	kd = (loadeddata: CMechLoadedDataT, loadstate:string) => {
 
 		if (loadstate === 'initial' || loadstate === 'datachanged') {
-			this.m.areas   = $N.Utils.resolve_object_references(loadeddata.get("areas")!, loadeddata) as AreaT[]
-			this.m.cats    = knit_cats(this.m.areas, loadeddata.get('cats')!) as CatT[]
-			this.m.sources = $N.Utils.resolve_object_references(loadeddata.get("sources")!, loadeddata) as SourceT[]
-			this.m.tags    = $N.Utils.resolve_object_references(loadeddata.get("tags")!, loadeddata) as any[]
+			this.m.areas   = $N.Utils.resolve_object_references(loadeddata.get("1:areas")!, loadeddata) as AreaT[]
+			this.m.cats    = knit_cats(this.m.areas, loadeddata.get('1:cats')!) as CatT[]
+			this.m.sources = $N.Utils.resolve_object_references(loadeddata.get("1:sources")!, loadeddata) as SourceT[]
+			this.m.tags    = $N.Utils.resolve_object_references(loadeddata.get("1:tags")!, loadeddata) as any[]
 
 			this.s.filteredcats = this.m.cats
 			this.s.filteredtags = this.m.tags
@@ -103,13 +103,14 @@ class VAddTr extends HTMLElement {
 				return {
 					sheets_id: tr.id,
 					catref: null,
-					date: tr.date,
 					notes: tr.notes || "",
 					amount: tr.amount,
 					merchant: tr.merchant,
 					merchant_long: tr.merchant_long,
+					simplified_merchant: "", // to be filled in later upon focus
 					tags: [],
 					source: this.m.sources.find(s => s.id === tr.source_id) as SourceT,
+					date: tr.date,
 				}
 			}).sort((a, b) => a.date - b.date)
 
@@ -335,9 +336,12 @@ class VAddTr extends HTMLElement {
 
 		const r = await $N.FetchLassie( `/api/xen/finance/ignore_transaction`, { 
 			method:"POST", 
-			body:JSON.stringify({ ynab_id: this.s.infocus.ynab_id }) 
+			body:JSON.stringify({ sheets_id: this.s.infocus.sheets_id }) 
 		})
-		if (!r.ok) { alert("couldnt delete transaction. throwing up"); window.location.href = "/index.html"; return; }
+		if (!r.ok) {
+			$N.Unrecoverable("Error", "Unable to delete transaction", "Reset", "sw4", "", null);
+			return; 
+		}
 
 		await this.set_next_focus('delete')
 		if (e.detail) e.detail.resolved()
@@ -439,8 +443,28 @@ class VAddTr extends HTMLElement {
 
 
 
-	parseapple = () => new Promise<void>(async (_res) => {   
-		this.m.newtransactions = await ParseApple(this.m.sources, this.m.quick_notes);   
+	parseapplescreenshot = () => new Promise<void>(async (_res) => {   
+		
+		try   { this.m.newtransactions = await ParseAppleScreenShot(this.m.sources); }  
+		catch { alert ("no transactions back"); return; }
+
+		this.handle_initing_newtransactions()
+		this.sc()
+	})
+
+
+
+
+	parseapplecsv = () => new Promise<void>(async (_res) => {   
+		
+		debugger
+		try   { 
+			const r = await $N.FetchLassie("/api/xen/finance/parse_apple_csv_month")  
+			if (!r.ok) { alert("error parsing csv"); return; }  
+			this.m.newtransactions = r.data as NewTransactionT[];
+		}
+		catch { alert ("no transactions back"); return; }
+
 		this.handle_initing_newtransactions()
 		this.sc()
 	})
@@ -463,7 +487,8 @@ customElements.define('v-addtr', VAddTr);
 
 function simplify_merchant_name(name:string) : string {
 
-	let cname = ""
+	let cname = name
+	//name = "Withdrawal Debit Cash App*violet Oakland Ca Date 06/30/25 55 4829 Card 8038"
 
 	if (name.startsWith("Loan Advance Cre")) {
 		cname = name.slice(17).trim()
@@ -471,7 +496,7 @@ function simplify_merchant_name(name:string) : string {
 	else if (name.includes("Cash App*")) {
 		const cash_app_match = name.match(/Cash App\*([^\s]+)/);
 		if (cash_app_match) {
-			cname = "Cash App: " + cash_app_match[1];
+			cname = cash_app_match[1] + " - cashapp";
 		}
 	}
 

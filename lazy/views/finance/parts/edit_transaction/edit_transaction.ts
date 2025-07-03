@@ -170,7 +170,7 @@ class VPFinanceEditTransaction extends HTMLElement {
 		}
 
 		else if (e.detail.name === "cat") {
-			changed.cat__ref = "cats/" + e.detail.newval
+			changed.cat = { __path:["cats", e.detail.newval] } 
 		}
 
 		else if (e.detail.name === "date") {
@@ -179,16 +179,19 @@ class VPFinanceEditTransaction extends HTMLElement {
 		}
 
 		else if (e.detail.name === "tag") {
-			await $N.FetchLassie("/api/xen/finance/update_transaction_tag", { method: "POST", body: JSON.stringify({ docid: this.m.transaction!.id, tagid: e.detail.newval }) })
+			const r = await $N.FetchLassie("/api/xen/finance/update_transaction_tag", { method: "POST", body: JSON.stringify({ docid: this.m.transaction!.id, tagid: e.detail.newval }) })
+			if (!r.ok) {   alert ("Error: " + r.statusText); return;   }
 		}
 
 		else if (e.detail.name === "merchant") {
-			await $N.FetchLassie("/api/xen/finance/update_merchant_name", { method: "POST", body: JSON.stringify({ newname: e.detail.newval, oldname: e.detail.oldval }) })
+			const r = await $N.FetchLassie("/api/xen/finance/update_merchant_name", { method: "POST", body: JSON.stringify({ newname: e.detail.newval, oldname: e.detail.oldval }) })
+			if (!r.ok) {   alert ("Error: " + r.statusText); return;   }
 		}
 
 
 		if (Object.keys(changed).length) {
-			await $N.LocalDBSync.Patch("transactions/"+this.m.transaction!.id, changed);
+			try   { await $N.LocalDBSync.Patch("transactions/"+this.m.transaction!.id, changed); }
+			catch {}
 		}
 	}
 

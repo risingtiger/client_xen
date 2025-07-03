@@ -27,7 +27,11 @@ export type AttributesT = {
 }
 
 type ModelT = {
-    prop: string;
+    areas: AreaT[],
+	cats: CatT[],
+	transactions: TransactionT[],
+	sources: SourceT[],
+	balances: any[]
 }
 
 
@@ -35,11 +39,12 @@ type StateT = {
 	checkingAccounts:AccountT[]
 	creditCardAccounts:AccountT[]
 	savingsAccounts:AccountT[]
-	otherAssets:AccountT[]
+	invoicesAccounts:AccountT[]
 	sourceBucketAccount: AccountT
-    checkingTotal: string;
-    creditCardTotal: string;
-    savingsTotal: string;
+    checkingTotal: num;
+    creditCardTotal: number;
+    savingsTotal: number;
+	invoicesTotal: number,
 	allLiquidAssets: number,
 	allLiquidDebt: number,
 	allAreasBucketInfo: AllAreasBucketInfoT
@@ -54,16 +59,17 @@ const ATTRIBUTES:AttributesT = { propa: "" }
 class VPFinanceBalances extends HTMLElement {
 
 	a:AttributesT = { ...ATTRIBUTES }
-    m: ModelT = { prop: "" }
+    m: ModelT = { areas: [], cats: [], transactions: [], sources: [], balances: [] }
     s: StateT = {
 		checkingAccounts: [],
 		creditCardAccounts: [],
 		savingsAccounts: [],
-		otherAssets: [],
+		invoicesAccounts: [],
 		sourceBucketAccount: { name: 'Bucket', balance: 0 },
-		checkingTotal: "0",
-		creditCardTotal: "0",
-		savingsTotal: "0",
+		checkingTotal: 0,
+		creditCardTotal: 0,
+		savingsTotal: 0,
+		invoicesTotal: 0,
 		allLiquidAssets: 0,
 		allLiquidDebt: 0,
 		allAreasBucketInfo: { spentAgainstBucketsTotal: 0 , remaingAgainstBucketsTotal: 0, bucketsTotal: 0 },
@@ -110,27 +116,49 @@ class VPFinanceBalances extends HTMLElement {
 
 
 
+    sc(state_changes = {}) {   
+        this.s = Object.assign(this.s, state_changes)
+        render(this.template(this.s, this.m), this.shadow);   
+    }
 
-    Show(areas:AreaT[], cats:CatT[], transactions:TransactionT[], sources:SourceT[], ynab_accounts: any[]) {
-        const checkingAccounts    = ynab_accounts.filter(acc             => acc.type === 'checking').map(acc   => this.processAccount(acc));
-        const savingsAccounts     = ynab_accounts.filter(acc             => acc.type === 'savings').map(acc    => this.processAccount(acc));
-		const otherAssets         = [] as AccountT[]
-        const creditCardAccounts  = ynab_accounts.filter(acc             => acc.type === 'creditCard').map(acc => this.processAccount(acc));
 
-		const visa36k             = sources.find(s                       =>s.name    === 'visa36k') as SourceT // cause ynab wont let me add it for some dumb reason
-		creditCardAccounts.push({ name: 'Visa 36K', balance: visa36k.balance||0 })
 
-		const invoicesAccount     = sources.find(s                       =>s.name    === 'invoices') as SourceT // 
-		otherAssets.push({ name: 'Invoices', balance: invoicesAccount.balance||0 })
 
-		let   sourceBucketAccount = savingsAccounts.find(s               =>s.name    === "Main Bucket Savings") as AccountT
+    Show(areas:AreaT[], cats:CatT[], transactions:TransactionT[], sources:SourceT[], balances: any[]) {
 
-        const checkingTotal       = checkingAccounts.reduce((sum, acc)   => sum + acc.balance, 0);
-        const creditCardTotal     = creditCardAccounts.reduce((sum, acc) => sum + acc.balance, 0);
-        const savingsTotal        = savingsAccounts.reduce((sum, acc)    => sum + acc.balance, 0);
-		const otherAssetsTotal    = otherAssets.reduce((sum, acc)        => sum + acc.balance, 0);
+		this.m.areas        = areas
+		this.m.cats         = cats
+		this.m.transactions = transactions
+		this.m.sources      = sources
+		this.m.balances     = balances
 
-		let   allLiquidAssets     = checkingTotal + savingsTotal + otherAssetsTotal
+		this.fleshit()
+    }
+
+
+
+
+    fleshit() {
+
+		this.m.balances.forEach((b:any) => {
+			const s = this.m.sources.find((s:SourceT) => s.id === b.source_id)!
+			s.balance = b.balance
+		})
+
+        const checkingAccounts    = this.m.sources.filter(acc             => acc.type === 'checking')
+        const savingsAccounts     = this.m.sources.filter(acc             => acc.type === 'savings')
+        const creditCardAccounts  = this.m.sources.filter(acc             => acc.type === 'creditcard')
+
+		const invoicesAccounts    = this.m.sources.filter(acc             => acc.type === 'receivables') 
+
+		let   sourceBucketAccount = savingsAccounts.find(s               =>s.name    === "bucket") as AccountT
+
+        const checkingTotal       = checkingAccounts.reduce((sum, acc)   => sum + acc.balance!, 0);
+        const creditCardTotal     = creditCardAccounts.reduce((sum, acc) => sum + acc.balance!, 0);
+        const savingsTotal        = savingsAccounts.reduce((sum, acc)    => sum + acc.balance!, 0);
+		const invoicesTotal       = invoicesAccounts.reduce((sum, acc)   => sum + acc.balance!, 0);
+
+		let   allLiquidAssets     = checkingTotal + savingsTotal + invoicesTotal
 		let   allLiquidDebt       = creditCardTotal
 
 		/*
@@ -138,8 +166,7 @@ class VPFinanceBalances extends HTMLElement {
 		allLiquidDebt             = 3000
 		*/
 
-		const allAreasBucketInfo  = this.getAllAreasAndCatBucketInfo(areas, cats, transactions);
-
+		const allAreasBucketInfo  = this.getAllAreasAndCatBucketInfo(this.m.areas, this.m.cats, this.m.transactions);
 
 		const net_taking_into_account_bucket_spending:number     = allLiquidAssets + allAreasBucketInfo.spentAgainstBucketsTotal - allLiquidDebt
 
@@ -150,26 +177,17 @@ class VPFinanceBalances extends HTMLElement {
 			creditCardAccounts,
 			sourceBucketAccount,
 			savingsAccounts,
-			otherAssets,
+			invoicesAccounts,
             checkingTotal,
             creditCardTotal,
             savingsTotal,
+			invoicesTotal,
 			allLiquidAssets,
 			allLiquidDebt,
 			allAreasBucketInfo,
 			net_taking_into_account_bucket_spending,
 			unspoken_for
         });
-    }
-
-
-
-
-    processAccount(account: any): AccountT {
-        return {
-            name: account.name,
-            balance: Math.abs(Number((account.balance / 1000).toFixed(0)))
-        };
     }
 
 
@@ -197,10 +215,49 @@ class VPFinanceBalances extends HTMLElement {
 		}
     }
 
-    sc(state_changes = {}) {   
-        this.s = Object.assign(this.s, state_changes)
-        render(this.template(this.s, this.m), this.shadow);   
-    }
+
+
+
+	set_apple_balance(e:Event) {
+
+		const target              = e.currentTarget as HTMLInputElement
+		const id                  = target.dataset.id
+		const balance             = target.dataset.balance
+		
+		const inputField          = document.createElement('input');
+		inputField.type           = 'number';
+		inputField.placeholder    = 'Enter balance';
+		inputField.style.padding  = '4px';
+		inputField.style.margin   = '2px';
+		inputField.style.width    = '120px';
+		inputField.style.fontSize = '14px';
+		
+		target.parentNode?.insertBefore(inputField, target.nextSibling);
+		
+		inputField.focus();
+
+		inputField.addEventListener('keyup', async (e) => {
+			e.stopPropagation();
+			
+			if (e.key === 'Enter') {
+				const value = (e.target as HTMLInputElement).value;
+				
+				inputField.remove();
+
+				const httpopts = { method: 'POST', body: JSON.stringify([{ source_id:id, balance: Number( value ) }]) }
+				const r = await $N.FetchLassie('/api/xen/finance/set_account_balances', httpopts) as any
+				if (!r.ok) { alert("couldnt get grabems. throwing up"); window.location.href = "/index.html"; return; }
+
+				// this is a hack because CMech is not updating sub els on SSE events
+				this.m.sources.find(s => s.id === id)!.balance = Number(value)
+
+				this.fleshit()
+			}
+		})
+	}
+
+
+
 
     template = (_s:StateT, _m:ModelT) => { return html`{--css--}{--html--}`; } 
 }

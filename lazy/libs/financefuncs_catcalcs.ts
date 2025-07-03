@@ -6,7 +6,7 @@ import { AreaT, CatT, TransactionT, CatCalcsT, CatCalcsTotalsT, FilterT  } from 
 
 
 
-function catcalcs(transactions:TransactionT[], filter_area:AreaT, filter_cattags:number[], cats:CatT[], months:Date[]) : CatCalcsT[] {
+function CatCalcs(transactions:TransactionT[], filter_area:AreaT, filter_cattags:number[], cats:CatT[], months:Date[]) : CatCalcsT[] {
 
     const all_catcalcs:CatCalcsT[] = []
 
@@ -102,7 +102,7 @@ function catcalcs(transactions:TransactionT[], filter_area:AreaT, filter_cattags
 
 
 
-function catcalc_totals(catcalcs:CatCalcsT[], filter:FilterT) : CatCalcsTotalsT {
+function CatCalcTotals(catcalcs:CatCalcsT[], filter:FilterT) : CatCalcsTotalsT {
 
     const catcalcs_f = catcalcs.filter((cc:CatCalcsT) => { 
         const a = cc.catref.arearef === filter.arearef
@@ -131,6 +131,6 @@ function catcalc_totals(catcalcs:CatCalcsT[], filter:FilterT) : CatCalcsTotalsT 
 }
 
 
-export { catcalcs, catcalc_totals }
+export { CatCalcs, CatCalcTotals }
 
 

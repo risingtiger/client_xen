@@ -79,8 +79,8 @@ class VPCats extends HTMLElement {
 	kd = (loadeddata: CMechLoadedDataT, loadstate:string) => {
 
 		if (loadstate === 'initial' || loadstate === 'datachanged') {
-			this.m.areas          = loadeddata.get("areas")! as AreaT[]
-			this.m.cats           = knit_cats(this.m.areas, loadeddata.get('cats')!) as CatT[]
+			this.m.areas          = loadeddata.get("1:areas")! as AreaT[]
+			this.m.cats           = knit_cats(this.m.areas, loadeddata.get('1:cats')!) as CatT[]
 
 			this.s.filter.arearef = this.m.areas.find((a:AreaT) => a.id === this.a.area_id)!
 		}
@@ -107,6 +107,9 @@ class VPCats extends HTMLElement {
 			this.s.mode = 'edit';
 			this.sc();
 		}
+		else {
+			alert (`Category with ID ${subcatid} not found.`);
+		}
 	}
 
 	cancelEdit() {
@@ -118,7 +121,7 @@ class VPCats extends HTMLElement {
 	async prop_updated(e:any) {
 
 		let changed:any = {}
-
+		
 		if (!this.s.editing_cat) return;
 
 		if (e.detail.name === "name") {
@@ -126,13 +129,25 @@ class VPCats extends HTMLElement {
 		}
 
 		else if (e.detail.name === "budget") {
-			this.s.editing_cat.budget = parseFloat(e.detail.newval);
+			changed.budget = parseFloat(e.detail.newval);
+		}
+
+		else if (e.detail.name === "quadrant") {
+			changed.tags = JSON.parse(JSON.stringify(this.s.editing_cat!.tags));
+
+			changed.tags[0] = parseInt(e.detail.newval);
+			/*
+			const r = await $N.FetchLassie("/api/xen/finance/cats/"+this.s.editing_cat.id+"/update_quadrant", { method: "POST", body: JSON.stringify({ quadrant: e.detail.newval }) })
+			if (!r.ok) {   alert ("Error: " + r.statusText); return;   }
+			*/
 		}
 
 		if (Object.keys(changed).length) {
 			try   { await $N.LocalDBSync.Patch("cats/"+this.s.editing_cat!.id, changed); }
 			catch {}
 		}
+
+		e.detail.done()
 	}
 
 

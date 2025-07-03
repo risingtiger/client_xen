@@ -1,5 +1,5 @@
 
-<div class="content">
+<div class="wrapper">
 
     <div id="toparea">
 
@@ -16,7 +16,7 @@
 				<input id="input-merchant" type="text" placeholder="merchant"
 					   class="editprop ${_s.inputmode === 'merchant' ? 'highlight' : ''}"
 					   @keyup="${(e)=>this.handle_input_keyup(e, 'merchant')}"
-					   .value="${_s.infocus.merchant || '--'}"
+					   .value="${_s.infocus.simplified_merchant || '--'}"
 					   tabindex="5">
 			</div>
 
@@ -154,6 +154,10 @@
         <a class="syncgetter" @click="${()=> window.location.reload()}">sync latest</a>
 		&nbsp; | &nbsp;
         <a class="addnew" @click="${()=> this.addnew()}">add new</a>
+		&nbsp; | &nbsp;
+        <a class="parseapple" @click="${()=> this.parseapplescreenshot()}">apple screen</a>
+		&nbsp; | &nbsp;
+        <a class="parseapplecsv" @click="${()=> this.parseapplecsv()}">apple csv</a>
     </footer>
 
 </div>

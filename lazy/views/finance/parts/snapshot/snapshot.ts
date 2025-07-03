@@ -276,11 +276,12 @@ class VPFinanceSnapShot extends HTMLElement {
 
 		const payload = { monthSnapshot };
 
-		await $N.FetchLassie("/api/xen/finance/add_monthsnapshot", {
+		const r = await $N.FetchLassie("/api/xen/finance/add_monthsnapshot", {
 			method: "POST", 
 			body: JSON.stringify(payload),
 			headers: { 'Content-Type': 'application/json' }
 		});
+		if (!r.ok) {   alert("Error saving month snapshot:" + r.statusText); return;   }
 
 		monthSnapshot!.issaved = true;
 		this.sc();

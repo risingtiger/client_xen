@@ -6,15 +6,14 @@ import { $NT } from "../../defs_client_symlink.js"
 declare var $N: $NT;
 
 
-export const ParseApple = async (sources:SourceT[]) => new Promise<NewTransactionT[]>(async (res, rej) => {
-
+export const ParseAppleScreenShot = async (sources:SourceT[]) => new Promise<NewTransactionT[]>(async (res, rej) => {
 
 	const clipboardImg = await navigator.clipboard.read();
 
 	const imgclip = clipboardImg.find(item => item.types.includes('image/png'));
 
 	if (!imgclip) {
-		rej('Clipboard text must contain both "Done" and "123"'); 
+		rej(); 
 		return;
 	}
 
@@ -41,12 +40,11 @@ export const ParseApple = async (sources:SourceT[]) => new Promise<NewTransactio
 	
 	// Create FormData for multipart form submission
 	const formData = new FormData();
-	formData.append('image', blob, 'apple_receipt.png');
+	formData.append('image_screenshot', blob, 'image_screenshot.png');
 	formData.append('localnow', localnow);
-	formData.append('timezone_offset', timezone_offset.toString());
 
 	const transactions:NewTransactionT[] = []
-	const response = await fetch("/api/xen/finance/ai/parse_apple", {
+	const response = await fetch("/api/xen/finance/parse_apple_screenshot", {
 		method: "POST",
 		body: formData
 	});

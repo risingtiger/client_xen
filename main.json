@@ -1,0 +1,70 @@
+{
+  "INFO": {
+    "name": "INSTANCE_NAME",
+	"shortname": "xen",
+    "firebase": {
+      "project": "xenition",
+      "identity_platform_key": "AIzaSyDfXcwqyiRGGO6pMBsG8CvNEtDIhdspKRI",
+      "dbversion": 18
+    },
+    "localdb_objectstores": [
+		{"name": "areas"}, 
+		{"name": "cats"}, 
+		{"name": "sources"}, 
+		{"name": "tags"}, 
+		{"name": "payments"}, 
+		{"name": "transactions", "indexes": ["cat", "source"]}, 
+		{"name": "monthsnapshots"} 
+    ]
+  },
+  "LAZYLOADS": [
+    {
+      "type":	  "view",
+      "urlmatch": "home",
+      "name":	  "home",
+      "is_instance": true,
+      "dependencies": [
+        {"type": "component", "name": "btn"},
+        {"type": "component", "name": "toast"}
+      ],
+      "auth": []
+    },
+    {
+      "type": "view",
+      "urlmatch": "^finance$",
+      "name": "finance",
+      "is_instance": true,
+      "dependencies": [
+        {"type": "component", "name": "ol"},
+        {"type": "component", "name": "ol2"},
+        {"type": "component", "name": "reveal"},
+        {"type": "component", "name": "in"},
+        {"type": "component", "name": "in2"},
+        {"type": "component", "name": "btn"},
+        {"type": "component", "name": "toast"}
+      ],
+      "auth": [],
+      "localdb_preload": ["areas", "cats", "sources", "tags", "payments", "transactions", "monthsnapshots"]
+    },
+    {
+      "type": "view",
+      "urlmatch": "^addtr$",
+      "name": "addtr",
+      "is_instance": true,
+      "dependencies": [
+        {"type": "component", "name": "btn"},
+        {"type": "component", "name": "toast"}
+      ],
+      "auth": ["admin"],
+      "localdb_preload": ["areas", "cats", "sources", "tags"]
+    },
+    {
+      "type": "component",
+      "name": "placeholder_component",
+      "is_instance": true,
+      "dependencies": [
+      ],
+      "auth": []
+    }
+  ]
+}

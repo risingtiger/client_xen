@@ -269,7 +269,8 @@ class VPFinanceBucket extends HTMLElement {
 
 		// if between holder bin, there is NO holder bin in the database. just add to or subtract cat's bucket and the 'hldr' is deduced as difference from area's bucket
 
-		await $N.FetchLassie("/api/xen/finance/patch_buckets", { method: "PATCH", body: JSON.stringify(sendobj) });
+		const r = await $N.FetchLassie("/api/xen/finance/patch_buckets", { method: "PATCH", body: JSON.stringify(sendobj) });
+		if (!r.ok) {   alert ("Error: " + r.statusText);   window.location.href = "/index.html";  return; }
 
 		this.sc();
 

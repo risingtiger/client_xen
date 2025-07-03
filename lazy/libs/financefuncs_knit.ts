@@ -58,7 +58,7 @@ function knit_cats(areas:AreaT[], raw_cats:any) : CatT[] {
             parentref:null,
             tags: raw_cat.tags,
             subsref: [],
-            ts: raw_cat.date,
+            ts: raw_cat.ts,
             transfer_state: 0
         } as CatT
     })

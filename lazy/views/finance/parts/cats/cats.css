@@ -1,0 +1,54 @@
+
+#catsview {
+    position: relative;
+    padding: var(--padding-container);
+    box-sizing: border-box;
+    height: 90%;
+    margin-bottom: var(--padding-section-vert);
+    overflow-y: scroll;
+    border-bottom: 1px solid #d8d8d8;
+
+    & h3 {
+        margin: 0 0 20px 0;
+        padding: 3px 0 5px 0;
+        font-size: 16px;
+        border-bottom: 1px solid #e2e2e2;
+    }
+
+    & .parent {
+		padding: 0px 0 var(--padding-section-vert) 0;
+
+        & h4 {
+            margin: 0;
+			padding: 0 0 var(--padding-minipad) 0;
+
+            & a {
+                color: var(--actioncolor);
+				text-decoration: none;
+				display: inline-block;
+            }
+        }
+
+
+        & .sub {
+			padding: 0 0 0 0;
+			display: flex;
+			flex-wrap: wrap;
+
+            & h6 {
+                width: 110px;
+				padding-bottom: 7px;
+				font-weight: 400;
+				box-sizing: border-box;
+				background: #bde5f1;
+				margin: 0 5px 5px 0;
+				padding: 3px 6px 5px 7px;
+				border-radius: 5px;
+            }
+        }
+    }
+
+    & button {
+        margin: 0 0 0 var(--padding-container);
+    }
+}

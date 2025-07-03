@@ -1,102 +1,77 @@
 
-import { bool, num, str } from "./defs_server_symlink.js"
+import { str, GenericRowT } from "./defs_server_symlink.js";
 import { INSTANCE_T } from "./defs_client_symlink.js"
 
+import { $NT } from "./defs_client_symlink.js";
 
 
-const INSTANCE_NAME = "xen";
-
-
-const INSTANCE:INSTANCE_T = {
-
-	INFO: {
-
-		name: INSTANCE_NAME,
-		firebase: {
-			project: 'xenition',
-			identity_platform_key: 'AIzaSyDfXcwqyiRGGO6pMBsG8CvNEtDIhdspKRI',
-			dbversion: 9
-		},
-		localdb_objectstores: [ 
-			{name: "areas"}, 
-			{name: "cats"}, 
-			{name: "sources"}, 
-			{name: "tags"}, 
-			{name: "payments"}, 
-			{name: "transactions", indexes: ["cat", "source"]}, 
-			{name: "quick_notes"}, 
-			{name: "monthsnapshots"} 
-		],
-	},
+declare var $N: $NT;
 
 
 
 
-	LAZYLOADS: [
+const INSTANCE_LAZYLOAD_DATA_FUNCS = {
 
-		// VIEWS
-		{
-			type: "view",
-			urlmatch: "home",
-			name: "home",
-			is_instance: true,
-			dependencies:[
-				{type:"component", name: "btn"},
-			],
-			auth: [],
-		},
+	home_indexeddb: (_pathparams:GenericRowT, _searchparams: URLSearchParams) => new Promise<null|Map<str,GenericRowT[]>>(async (res, _rej) => {
+		const a = new Map<str,GenericRowT[]>()
+		res(a)	
+	}),
 
-		{
-			type: "view",
-			urlmatch: "^finance$",
-			name: "finance",
-			is_instance: true,
-			dependencies:[
-				{type:"component", name: "ol"},
-				{type:"component", name: "reveal"},
-				{type:"component", name: "form"},
-				{type:"component", name: "in"},
-				{type:"component", name: "btn"},
-				{type:"component", name: "toast"},
-			],
-			auth: [],
-			localdb_preload: ['areas', 'cats', 'sources', 'tags', 'payments', 'transactions', 'monthsnapshots']
-		},
-
-		{
-			type: "view",
-			urlmatch: "^addtr$",
-			name: "addtr",
-			is_instance: true,
-			dependencies:[
-				{type:"component", name: "btn"},
-			],
-			auth: ["admin"],
-			localdb_preload: ['areas', 'cats', 'sources', 'tags','quick_notes']
-		},
-
-
-		// COMPONENTS
-
-		{
-			type: "component",
-			name: "placeholder_component",
-			is_instance: true,
-			dependencies:[],
-			auth: []
-		},
+	home_other: (_pathparams:GenericRowT, _old_searchparams: URLSearchParams, _new_searchparams: URLSearchParams) => new Promise<Map<str,GenericRowT[]>|null>(async (res, _rej) => {
+		const a = new Map<str,GenericRowT[]>()
+		res(a)
+	}),
 
 
 
-		// THIRDPARTY
+
+	finance_indexeddb: (_pathparams:GenericRowT, _searchparams: URLSearchParams) => new Promise<null|Map<str,GenericRowT[]>>(async (res, rej) => {
+
+		const d = new Map<str,GenericRowT[]>()
+
+		try   { 
+			let m   = await $N.IDB.GetAll(["areas","cats","sources","tags", "payments", "transactions", "monthsnapshots"])
+			d.set( "1:areas", m.get("areas")! )
+			d.set( "1:cats", m.get("cats")! )
+			d.set( "1:sources", m.get("sources")! )
+			d.set( "1:tags", m.get("tags")! )
+			d.set( "1:payments", m.get("payments")! )
+			d.set( "1:transactions", m.get("transactions")! )
+			d.set( "1:monthsnapshots", m.get("monthsnapshots")! )
+		}
+		catch { rej(); }
+
+		res(d)
+
+	}),
+
+	finance_other: (_pathparams:GenericRowT, _old_searchparams: URLSearchParams, _new_searchparams: URLSearchParams) => new Promise<Map<str,GenericRowT[]>|null>(async (res, _rej) => {
+		const a = new Map<str,GenericRowT[]>()
+		res(a)
+	}),
 
 
-		// LIBS
-	]
+
+
+	addtr_indexeddb: (_pathparams:GenericRowT, _searchparams: URLSearchParams) => new Promise<null|Map<str,GenericRowT[]>>(async (res, rej) => {
+
+		const d = new Map<str,GenericRowT[]>()
+
+		try   { 
+			let m   = await $N.IDB.GetAll(["areas","cats","sources","tags"])
+			d.set( "1:areas", m.get("areas")! )
+			d.set( "1:cats", m.get("cats")! )
+			d.set( "1:sources", m.get("sources")! )
+			d.set( "1:tags", m.get("tags")! )
+		}
+		catch { rej(); }
+
+		res(d)
+	}),
+
+	addtr_other: (_pathparams:GenericRowT, _old_searchparams: URLSearchParams, _new_searchparams: URLSearchParams) => new Promise<Map<str,GenericRowT[]>|null>(async (res, _rej) => {
+		const a = new Map<str,GenericRowT[]>()
+		res(a)
+		//TODO: I could be trying to get object stores that dont exist. A scenario is that a previous view could, by chance, have preloaded the object stores so in testing its all hunky dory and then shit itself in production. indexeddb_graball needs to be passed this views localdb_preload to check and make sure I don't shoot myself
+	})
 }
-
-
-
-
-export default INSTANCE;
-
