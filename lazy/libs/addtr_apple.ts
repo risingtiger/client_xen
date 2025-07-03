@@ -19,8 +19,12 @@ export const ParseApple = async (sources:SourceT[]) => new Promise<NewTransactio
 	}
 
 	const blob = await imgclip.getType('image/png');
-	const imgUrl = URL.createObjectURL(blob);
 	
+	// Convert blob to base64
+	const arrayBuffer = await blob.arrayBuffer();
+	const uint8Array = new Uint8Array(arrayBuffer);
+	const binaryString = Array.from(uint8Array, byte => String.fromCharCode(byte)).join('');
+	const base64Image = btoa(binaryString);
 
 	const now = new Date();
 	const timezone_offset = -(now.getTimezoneOffset() / 60);
@@ -42,7 +46,7 @@ export const ParseApple = async (sources:SourceT[]) => new Promise<NewTransactio
 	const localnow = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}${offset_sign}${offset_hours}:${offset_minutes}`;
 	
 	
-	const body = {localnow, timezone_offset}
+	const body = {localnow, timezone_offset, image: base64Image}
 	const httpopts = {method: "POST", body: JSON.stringify(body)}
 
 	const transactions:NewTransactionT[] = []
