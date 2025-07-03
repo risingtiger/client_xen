@@ -19,12 +19,6 @@ export const ParseApple = async (sources:SourceT[]) => new Promise<NewTransactio
 	}
 
 	const blob = await imgclip.getType('image/png');
-	
-	// Convert blob to base64
-	const arrayBuffer = await blob.arrayBuffer();
-	const uint8Array = new Uint8Array(arrayBuffer);
-	const binaryString = Array.from(uint8Array, byte => String.fromCharCode(byte)).join('');
-	const base64Image = btoa(binaryString);
 
 	const now = new Date();
 	const timezone_offset = -(now.getTimezoneOffset() / 60);
@@ -45,20 +39,32 @@ export const ParseApple = async (sources:SourceT[]) => new Promise<NewTransactio
 	
 	const localnow = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}${offset_sign}${offset_hours}:${offset_minutes}`;
 	
-	
-	const body = {localnow, timezone_offset, image: base64Image}
-	const httpopts = {method: "POST", body: JSON.stringify(body)}
+	// Create FormData for multipart form submission
+	const formData = new FormData();
+	formData.append('image', blob, 'apple_receipt.png');
+	formData.append('localnow', localnow);
+	formData.append('timezone_offset', timezone_offset.toString());
 
 	const transactions:NewTransactionT[] = []
-	const r = await $N.FetchLassie("/api/xen/finance/ai/parse_apple", httpopts )
-	if (!r.ok || ( r.data as any ).length === 0) {
+	const response = await fetch("/api/xen/finance/ai/parse_apple", {
+		method: "POST",
+		body: formData
+	});
+	
+	if (!response.ok) {
+		rej();
+		return;
+	}
+	
+	const data = await response.json();
+	if (!data || data.length === 0) {
 		rej();
 		return;
 	}
 
 
-	for (let i = 0; i < (r.data as any[]).length; i++) { 
-		const nt = (r.data as any[])[i];
+	for (let i = 0; i < data.length; i++) { 
+		const nt = data[i];
 		
 		const transaction:NewTransactionT = {
 			amount: nt.amount,
