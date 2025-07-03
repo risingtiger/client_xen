@@ -22,7 +22,7 @@ export const ParseApple = async (sources:SourceT[]) => new Promise<NewTransactio
 	const splitText = clipboardText.split("123");
 	const apple_data_str = splitText[1];
 	
-	const body = {apple_data: apple_data_str}
+	const body = {apple_data: apple_data_str, relative_date, timezone_offset}
 	const httpopts = {method: "POST", body: JSON.stringify(body)}
 
 	const transactions:NewTransactionT[] = []
