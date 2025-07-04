@@ -40,87 +40,90 @@
     <div id="calc_transactions_wrapper">
 
 		<div id="calcs" class="${_s.calcs_view_size === 'large' ? 'full' : ''}">
-            <div id="tablewrap">
-                <table>
-                    <thead>
-                        <tr>
-                            <th class="cat">
+            <div class="calcs-grid">
+                <!-- Header -->
+                <div class="grid-header">
+                    <div class="grid-row header-row">
+                        <div class="col-cat">
+                            <a class="${_s.filter.cattags[0] === 1 && _s.filter.cattags[1] === 2 && _s.filter.cattags[2] === 3 && !_s.filter.cattags[3] ? 'active' : ''}" @click="${()=>this.filter_by_cattag([1,2,3])}" data-cattags='1,2,3'>&nbsp;○&nbsp;</a>
 
-                                <a class="${_s.filter.cattags[0] === 1 && _s.filter.cattags[1] === 2 && _s.filter.cattags[2] === 3 && !_s.filter.cattags[3] ? 'active' : ''}" @click="${()=>this.filter_by_cattag([1,2,3])}" data-cattags='1,2,3'>&nbsp;○&nbsp;</a>
+                            <a class="${_s.filter.cattags[0] === 1 && !_s.filter.cattags[1] ? 'active' : ''}" @click="${()=>this.filter_by_cattag([1])}" data-cattags='1'>&nbsp;1&nbsp;</a>
+                            <a class="${_s.filter.cattags[0] === 2 && !_s.filter.cattags[1] ? 'active' : ''}" @click="${()=>this.filter_by_cattag([2])}" data-cattags='2'>&nbsp;2&nbsp;</a>
+                            <a class="${_s.filter.cattags[0] === 3 && !_s.filter.cattags[1] ? 'active' : ''}" @click="${()=>this.filter_by_cattag([3])}" data-cattags='3'>&nbsp;3&nbsp;</a>
+                            <a class="${_s.filter.cattags[0] === 4 && !_s.filter.cattags[1] ? 'active' : ''}" @click="${()=>this.filter_by_cattag([4])}" data-cattags='4'>&nbsp;4&nbsp;</a>
 
-                                <a class="${_s.filter.cattags[0] === 1 && !_s.filter.cattags[1] ? 'active' : ''}" @click="${()=>this.filter_by_cattag([1])}" data-cattags='1'>&nbsp;1&nbsp;</a>
-                                <a class="${_s.filter.cattags[0] === 2 && !_s.filter.cattags[1] ? 'active' : ''}" @click="${()=>this.filter_by_cattag([2])}" data-cattags='2'>&nbsp;2&nbsp;</a>
-                                <a class="${_s.filter.cattags[0] === 3 && !_s.filter.cattags[1] ? 'active' : ''}" @click="${()=>this.filter_by_cattag([3])}" data-cattags='3'>&nbsp;3&nbsp;</a>
-                                <a class="${_s.filter.cattags[0] === 4 && !_s.filter.cattags[1] ? 'active' : ''}" @click="${()=>this.filter_by_cattag([4])}" data-cattags='4'>&nbsp;4&nbsp;</a>
+                            <a class="${_s.filter.cattags[0] === 1 && _s.filter.cattags[1] === 2 && _s.filter.cattags[2] === 3 && _s.filter.cattags[3] === 4 ? 'active' : ''}" @click="${()=>this.filter_by_cattag([1,2,3,4])}" data-cattags='1,2,3,4'>&nbsp;●&nbsp;</a>
+                        </div>
 
-                                <a class="${_s.filter.cattags[0] === 1 && _s.filter.cattags[1] === 2 && _s.filter.cattags[2] === 3 && _s.filter.cattags[3] === 4 ? 'active' : ''}" @click="${()=>this.filter_by_cattag([1,2,3,4])}" data-cattags='1,2,3,4'>&nbsp;●&nbsp;</a>
-
-                            </th>
-
-                            ${_s.months_display_str.map((m,i) => html`
-                                <th class="monthname ${i === _s.months.length-1 ? 'current' : ''}" @click="${(e)=>this.calcmonth_clicked(e)}" data-month_i="${i}">${m}</th>
-                            `)}
-
-                            <th class="avgmed" @click="${()=>this.avgormed_clicked()}">${_s.prefs.avgormed === 1 ? 'A' : 'M'} </th>
-                            <th class="budget">B</th>
-                            <th class="bucket"><i class="icon-bucket"  @click="${()=>{ this.ShowAddMachineUI(); }}" style="font-size: 11px;position: relative;top: 2px;"></i></th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-                        ${_m.catcalcs.map((c,i) => html`
-                            <tr class="topcatrow">
-                                <td class="touch_catquad cat" @click="${(e)=>this.calccat_clicked(e)}" data-i="${i}">${c.catref.name}</td>
-
-                                ${_s.months.map((m,i) => html`
-                                <td class="touch_month sum ${i === _s.months.length-1 ? 'current' : ''}">${Math.round(c.sums[i])}</td>
-                                `)}
-
-                                <td class="touch_avgmed avgmed">${Math.round(c.avg)}</td>
-								<td class="budget">${c.budget}</td>
-                                <td class="bucket">&nbsp;</td>
-                            </tr>
-
-                            ${c.subsref.map((cs,ii) => html`
-                                <tr class="subcatrow ${ii === c.subsref.length-1 ? 'lastsubcat' : ''}" data-catcalc_index="${i}" data-catcalc_sub_index="${ii}">
-								<td class="touch_catquad cat sub" @click="${(e)=>this.calccat_clicked(e)}" data-i="${i}" data-ii="${ii}">${cs.catref.tags[0]} ${cs.catref.name}</td>
-
-                                    ${_s.months.map((m,iii) => html`
-                                        <td class="touch_month sum sub ${iii === _s.months.length-1 ? 'current' : ''}">${Math.round(cs.sums[iii])}</td>
-                                    `)}
-
-                                    <td class="touch_avgmed avgmed">${Math.floor(   (_s.prefs.avgormed === 1 ? cs.avg : cs.med)   )}</td>
-                                    <td class="budget">${cs.catref.budget}</td>
-									<td class="bucket transferable" data-cat_id="${cs.catref.id}" @click="${(e)=> this.bucket_select(e)}">${_s.cat_buckets.find(cbr=>cbr.catref === cs.catref)?.remainder??''}</td>
-                                </tr>
-                            `)}
+                        ${_s.months_display_str.map((m,i) => html`
+                            <div class="col-month ${i === _s.months.length-1 ? 'col-current' : ''}" @click="${(e)=>this.calcmonth_clicked(e)}" data-month_i="${i}">${m}</div>
                         `)}
-                    </tbody>
 
-                    <tfoot>
-                        <tr class="totals">
-                            <th class="cat">Totals</th>
+                        <div class="col-avgmed" @click="${()=>this.avgormed_clicked()}">${_s.prefs.avgormed === 1 ? 'A' : 'M'}</div>
+                        <div class="col-budget">B</div>
+                        <div class="col-bucket"><i class="icon-bucket" @click="${()=>{ this.ShowAddMachineUI(); }}" style="font-size: 11px;position: relative;top: 2px;"></i></div>
+                    </div>
+                </div>
 
-                            ${_s.months.map((m,i) => html`
-                            <th class="sum ${i === _s.months.length-1 ? 'current' : ''}">${Math.round(_m.catcalcstotals.sums[i])}</th>
+                <!-- Content -->
+                <div class="grid-content">
+                    ${_m.catcalcs.map((c,i) => html`
+                        <!-- Parent cat row -->
+                        <div class="grid-row cat-row parent-cat">
+                            <div class="col-cat touch_catquad" @click="${(e)=>this.calccat_clicked(e)}" data-i="${i}">${c.catref.name}</div>
+                            
+                            ${_s.months.map((m,mi) => html`
+                                <div class="col-month touch_month ${mi === _s.months.length-1 ? 'col-current' : ''}">${Math.round(c.sums[mi])}</div>
                             `)}
+                            
+                            <div class="col-avgmed touch_avgmed">${Math.round(c.avg)}</div>
+                            <div class="col-budget">${c.budget}</div>
+                            <div class="col-bucket">&nbsp;</div>
+                        </div>
 
-                            <th class="avgmed">${Math.round(_m.catcalcstotals.avg)}</th>
-                            <th class="budget">${Math.round(_m.catcalcstotals.budget)}</th>
-							<th class="bucket">
-								<div id="remainder_total">
-									${(_s.filter.cattags[0] === 3 || _s.filter.cattags[0] === 4) ? _s.area_quad_bucket_totals.remainder : ''}
-								</div>
-								<div id="unassigned" @click="${(e)=> this.bucket_select(e)}">
-									${(_s.filter.cattags[0] === 3 || _s.filter.cattags[0] === 4) ? _s.area_quad_bucket_totals.unassigned : ''}
-								</div>
-								<div id="bucket_amount" @click="${()=>this.bucket_manage()}">
-									${ (_s.filter.cattags[0] === 3 || _s.filter.cattags[0] === 4) ? _m.areas.find(m=>_s.filter.arearef===m)['bucketquad'+_s.filter.cattags[0]] : ''}
-								</div>
-							</th>
-                        </tr>
-                    </tfoot>
-                </table>
+                        <!-- Sub cat rows -->
+                        ${c.subsref.map((cs,ii) => html`
+                            <div class="grid-row cat-row sub-cat ${ii === c.subsref.length-1 ? 'last-subcat' : ''}" data-catcalc_index="${i}" data-catcalc_sub_index="${ii}">
+                                <div class="col-cat touch_catquad sub" @click="${(e)=>this.calccat_clicked(e)}" data-i="${i}" data-ii="${ii}">${cs.catref.tags[0]} ${cs.catref.name}</div>
+                                
+                                ${_s.months.map((m,mi) => html`
+                                    <div class="col-month touch_month ${mi === _s.months.length-1 ? 'col-current' : ''}">${Math.round(cs.sums[mi])}</div>
+                                `)}
+                                
+                                <div class="col-avgmed touch_avgmed">${Math.floor((_s.prefs.avgormed === 1 ? cs.avg : cs.med))}</div>
+                                <div class="col-budget">${cs.catref.budget}</div>
+                                <div class="col-bucket transferable" data-cat_id="${cs.catref.id}" @click="${(e)=> this.bucket_select(e)}">${_s.cat_buckets.find(cbr=>cbr.catref === cs.catref)?.remainder??''}</div>
+                            </div>
+                        `)}
+                    `)}
+                </div>
+
+                <!-- Footer -->
+                <div class="grid-footer">
+                    <div class="grid-row totals-row">
+                        <div class="col-cat">Totals</div>
+                        
+                        ${_s.months.map((m,i) => html`
+                            <div class="col-month ${i === _s.months.length-1 ? 'col-current' : ''}">${Math.round(_m.catcalcstotals.sums[i])}</div>
+                        `)}
+                        
+                        <div class="col-avgmed">${Math.round(_m.catcalcstotals.avg)}</div>
+                        <div class="col-budget">${Math.round(_m.catcalcstotals.budget)}</div>
+                        <div class="col-bucket">
+                            <div class="bucket-totals">
+                                <div class="remainder-total">
+                                    ${(_s.filter.cattags[0] === 3 || _s.filter.cattags[0] === 4) ? _s.area_quad_bucket_totals.remainder : ''}
+                                </div>
+                                <div class="unassigned" @click="${(e)=> this.bucket_select(e)}">
+                                    ${(_s.filter.cattags[0] === 3 || _s.filter.cattags[0] === 4) ? _s.area_quad_bucket_totals.unassigned : ''}
+                                </div>
+                                <div class="bucket-amount" @click="${()=>this.bucket_manage()}">
+                                    ${(_s.filter.cattags[0] === 3 || _s.filter.cattags[0] === 4) ? _m.areas.find(m=>_s.filter.arearef===m)['bucketquad'+_s.filter.cattags[0]] : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 

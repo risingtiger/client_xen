@@ -14,7 +14,166 @@ div.wrapper {
     overflow: hidden;
 }
 
-#calcs, #transactions {
+#calcs {
+    width: 43%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.calcs-grid {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    height: 100%;
+    width: 100%;
+}
+
+.grid-header {
+    grid-row: 1;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: white;
+    box-shadow: inset 0 -5px 0px 0px rgb(134 220 239);
+}
+
+.grid-content {
+    grid-row: 2;
+    overflow-y: auto;
+}
+
+.grid-footer {
+    grid-row: 3;
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    background: #f5f5f5;
+}
+
+.grid-row {
+    display: grid;
+    grid-template-columns: 
+        1fr 
+        repeat(7, 42px) 
+        47px 
+        47px 
+        47px;
+    align-items: center;
+    min-height: 32px;
+    border: 0;
+}
+
+.grid-row > div {
+    padding: 3px 4px;
+    white-space: nowrap;
+    height: 100%;
+    display: flex;
+    align-items: center;
+}
+
+/* Column backgrounds */
+.col-avgmed {
+    background-color: #abf1ff;
+}
+
+.col-budget {
+    background-color: #e5fff4;
+}
+
+.col-bucket {
+    background-color: #feffe5;
+}
+
+.col-current {
+    border-left: 1px solid #f6f6f6;
+}
+
+/* Row styling */
+.parent-cat {
+    font-weight: bold;
+}
+
+.sub-cat {
+    font-weight: normal;
+}
+
+.last-subcat {
+    margin-bottom: 17px;
+}
+
+.col-cat {
+    padding-left: 10px;
+}
+
+.col-cat a.active {
+    background: #86dcef;
+}
+
+.transferable {
+    border-right: 1px solid #f6f6f6;
+}
+
+.transferable.selected {
+    border-right: 3px solid green;
+}
+
+/* Touch and interaction states */
+.col-avgmed {
+    -webkit-tap-highlight-color: rgba(255, 255, 255, 0);
+    transition-duration: 0.7s;
+    transition-property: background-color, color;
+}
+
+.col-avgmed.transfer_state_1 {
+    background-color: #00a3c3;
+    color: white;
+}
+
+.col-avgmed.transfer_state_2 {
+    background-color: #00a3c3;
+    color: white;
+}
+
+/* Footer specific styling */
+.bucket-totals {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.bucket-totals > div {
+    position: absolute;
+    width: 150px;
+    height: 16px;
+    overflow: visible;
+}
+
+.remainder-total {
+    top: -20px;
+}
+
+.unassigned {
+    top: 0px;
+}
+
+.bucket-amount {
+    top: 20px;
+}
+
+/* Header row styling */
+.header-row {
+    text-align: left;
+    padding-bottom: 4px;
+    padding-top: 3px;
+}
+
+/* Totals row styling */
+.totals-row {
+    text-align: left;
+    padding-top: 9px;
+    padding-bottom: 7px;
+}
+
+#transactions {
 
     & table {
         border-collapse: collapse;
@@ -23,13 +182,11 @@ div.wrapper {
         overflow: hidden;
     }
 
-
     & td {
         border: 0;
         padding: 3px 4px;
         white-space: nowrap;
     }
-
 
     & thead th {
         background-color: white;
@@ -42,143 +199,42 @@ div.wrapper {
         box-shadow: inset 0 -5px 0px 0px rgb(134 220 239);
     }
 }
-
-
-#calcs {width: 43%;height: 100%;overflow: hidden;
-
-    & #tablewrap {
-        overflow-x: hidden;
-        width: 100%;
-        height: 100%;
-    }
-
-    & table thead, & table tfoot {
-        z-index: 1;
-        position: sticky;
-    }
-    & table thead {
-        top: 0;
-    }
-    & table tfoot {
-        bottom: 0;
-    }
-
-    & p.tempe {
-        position: absolute;
-        top: 100px;
-        left: 200px;
-        margin: 0;
-        padding: 30px;
-        background-color: #f0f0f0;
-        box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.2);
-    }
-
-
-    & th.monthname {
-        width: 42px;
-        max-width: 42px;
-    }
-
-    & th.avgmed, & th.budget, & th.bucket {
-        width: 47px;
-        max-width: 47px;
-    }
-
-	& td.bucket.transferable {
-		border-right: 1px solid #f6f6f6;
-	}
-	& td.bucket.transferable.selected {
-		border-right: 3px solid green;
-	}
-
-    & th.cat, & td.cat {
-        padding-left: 10px;
-    }
-
-    & th.cat a.active {
-    background: #86dcef;
-    }
-
-    & th.current, & td.current  {
-		border-left: 1px solid #f6f6f6;
-
-		/*
-        background-color: #e5fff4;
-		*/
-	}
-
-    & th.avgmed, & td.avgmed {
-        background-color: #abf1ff;
-    }
-
-    & th.budget, & td.budget {
-        background-color: #e5fff4;
-    }
-
-	& th.bucket, & td.bucket {
-        background-color: #feffe5;
-    }
-
-    & tr.topcatrow td {
-        font-weight: bold;
-    }
-
-    & tr.subcatrow td {
-        font-weight: normal;
-    }
-
-
-    & td.avgmed {
-        -webkit-tap-highlight-color: rgba(255, 255, 255, 0);
-        transition-duration: 0.7s;
-        transition-property: background-color, color;
-    }
-
-    & td.avgmed.transfer_state_1 {
-        background-color: #00a3c3;
-        color: white;
-    }
-    & td.avgmed.transfer_state_2 {
-        background-color: #00a3c3;
-        color: white;
-    }
-
-    & tr.lastsubcat td {
-        padding-bottom: 17px;
-    }
-
-	& tfoot th {
-        text-align: left;
-        padding-top: 9px;
-        padding-bottom: 7px;
-        background: #f5f5f5;
-        padding-left: 4px;
-	}
-
-	& tfoot th.bucket {
-		position: relative;
-
-		& > div {
-			position: absolute;
-			left: 0;
-			top: 0;
-			width: 150px;
-			height: 16px;
-			overflow:visible;
-		}
-		& > div#remainder_total {
-			top: -20px;
-		}
-		& > div#unassigned {
-			top: 0px;
-		}
-		& > div#bucket_amount {
-			top: 20px;
-		}
-	}
-}
 #calcs.full {
 	width: 100%;
+}
+
+/* Responsive grid columns based on months count */
+@media only screen and (max-device-width: 767px) {
+    .grid-row {
+        grid-template-columns: 
+            1fr 
+            repeat(2, 42px) 
+            47px 
+            47px 
+            47px;
+    }
+}
+
+@media only screen and (min-device-width: 768px) and (max-device-width: 1023px) {
+    .grid-row {
+        grid-template-columns: 
+            1fr 
+            repeat(7, 42px) 
+            47px 
+            47px 
+            47px;
+    }
+}
+
+@media only screen and (min-device-width: 1024px) {
+    .grid-row {
+        grid-template-columns: 
+            1fr 
+            repeat(12, 42px) 
+            47px 
+            47px 
+            47px;
+    }
 }
 
 
