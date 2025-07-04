@@ -1,6 +1,6 @@
 
 
-import { $NT, CMechLoadedDataT, CMechLoadStateE } from "../../../../../defs_client_symlink.js"
+import { $NT, CMechLoadedDataT } from "../../../../../defs_client_symlink.js"
 import { str } from "../../../../../defs_server_symlink.js"
 import { TransactionT, AreaT, CatT, TagT, SourceT } from '../../../../../defs.js'
 import { knit_cats, knit_transactions, knit_tags  } from '../../../../libs/financefuncs_knit.js'
@@ -82,15 +82,15 @@ class VPFinanceEditTransaction extends HTMLElement {
 
 
 
-	kd = (loadeddata: CMechLoadedDataT, _loadstate:CMechLoadStateE) => {
+	kd = (loadeddata: CMechLoadedDataT, _loadstate:string) => {
 
-		const trs             = loadeddata.get("transactions") as TransactionT[]
+		const trs             = loadeddata.get("1:transactions") as TransactionT[]
 
-		this.m.areas          = loadeddata.get("areas")! as AreaT[]
-		this.m.cats           = knit_cats(this.m.areas, loadeddata.get('cats')!) as CatT[]
-		this.m.tags           = $N.Utils.resolve_object_references(loadeddata.get("tags")!, loadeddata) as TagT[]
+		this.m.areas          = loadeddata.get("1:areas")! as AreaT[]
+		this.m.cats           = knit_cats(this.m.areas, loadeddata.get('1:cats')!) as CatT[]
+		this.m.tags           = $N.Utils.resolve_object_references(loadeddata.get("1:tags")!, loadeddata) as TagT[]
 
-		const sources         = loadeddata.get("sources") as SourceT[]
+		const sources         = loadeddata.get("1:sources") as SourceT[]
 		const transaction     = trs.find(t=>t.id === this.a.transaction)! as any
 
 		this.m.transaction    = ( knit_transactions(this.m.cats, sources, this.m.tags, [transaction]) as TransactionT[] )[0]
@@ -117,9 +117,9 @@ class VPFinanceEditTransaction extends HTMLElement {
 
 		let areas:AreaT[] = []
 		if (localStorage.getItem("user_email") !== 'accounts@risingtiger.com') {
-			areas = ( loadeddata.get("areas")! as AreaT[]).filter(a=>a.name === "fam")
+			areas = ( loadeddata.get("1:areas")! as AreaT[]).filter(a=>a.name === "fam")
 		} else {
-			areas = loadeddata.get("areas")! as AreaT[]
+			areas = loadeddata.get("1:areas")! as AreaT[]
 		}
 
 		this.s.cat_options = get_cat_options()
@@ -174,11 +174,14 @@ class VPFinanceEditTransaction extends HTMLElement {
 		}
 
 		else if (e.detail.name === "date") {
+			// change all to be UTC (e.detail.value is a UTC date string).
+			// then, set the UTC time to 12:00:00 to avoid timezone issues. AI!
 			const dateObj = new Date(e.detail.newval);
 			changed.date = Math.floor(dateObj.getTime() / 1000); // Convert to seconds
 		}
 
 		else if (e.detail.name === "tag") {
+
 			const r = await $N.FetchLassie("/api/xen/finance/update_transaction_tag", { method: "POST", body: JSON.stringify({ docid: this.m.transaction!.id, tagid: e.detail.newval }) })
 			if (!r.ok) {   alert ("Error: " + r.statusText); return;   }
 		}
@@ -193,6 +196,8 @@ class VPFinanceEditTransaction extends HTMLElement {
 			try   { await $N.LocalDBSync.Patch("transactions/"+this.m.transaction!.id, changed); }
 			catch {}
 		}
+
+		e.detail.done()
 	}
 
 
