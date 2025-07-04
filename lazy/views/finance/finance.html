@@ -214,20 +214,20 @@
 	` : '' }
 
 	${ _s.editview.show_ui !== 0 ? html`
-		<c-ol shape="1" title="Transaction Details" @close="${()=> { this.s.editview.show_ui = 0; this.sc(); } }">
+		<c-ol2 title="Transaction Details" @close="${()=> { this.s.editview.show_ui = 0; this.sc(); } }">
 			<vp-finance-edittransaction transaction="${_s.editview.transaction_id}"></vp-finance-edittransaction>
-		</c-ol>
+		</c-ol2>
 	` : '' }
 
 
 	${ _s.catsview.show_ui !== 0 ? html`
-	<c-ol2 title="${_s.filter.arearef.longname} Cats" @close="${()=> { this.s.catsview.show_ui = 0; this.sc(); } }">
+		<c-ol2 title="${_s.filter.arearef.longname} Cats" ?close="${this.s.catsview.show_ui === 2}" @close="${()=> { this.s.catsview.show_ui = 0; this.sc(); } }">
 			<vp-cats area_id="${_s.filter.arearef.id}"></vp-cats>
 		</c-ol2>
 	` : ''}
 
 	${ _s.paymentsview.show_ui !== 0 ? html`
-		<c-ol shape="1" title="Payments" ?close="${this.s.paymentsview.show_ui === 2}" @close="${()=> { this.s.paymentsview.show_ui = 0; this.sc(); } }">
+		<c-ol2 title="Payments" ?close="${this.s.paymentsview.show_ui === 2}" @close="${()=> { this.s.paymentsview.show_ui = 0; this.sc(); } }">
 
 		<div id="paymentsview">
 
@@ -298,11 +298,11 @@
 	-->
 		</div>
 
-		</c-ol>
+		</c-ol2>
 	` : ''}
 
 	${ _s.tagsview.show_ui !== 0 ? html`
-		<c-ol shape="1" title="Tags"  ?close="${this.s.tagsview.show_ui === 2}" @close="${()=> { this.s.tagsview.show_ui = 0; this.sc(); } }">
+		<c-ol2 title="Tags"  ?close="${this.s.tagsview.show_ui === 2}" @close="${()=> { this.s.tagsview.show_ui = 0; this.sc(); } }">
 
 			<div id="tagsview">
 
@@ -319,7 +319,7 @@
 
 			</div>
 
-		</c-ol>
+		</c-ol2>
 	` : ''}
 
 </div>
