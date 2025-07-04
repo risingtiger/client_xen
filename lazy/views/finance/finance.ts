@@ -707,8 +707,10 @@ async handle_touch_move(_e:TouchEvent) {
 
 async handle_keydown(e:KeyboardEvent) {
 
-		// test if option key is pressed AI!
-
+	// Only process shortcuts when Option key is pressed (on macOS)
+	if (!e.altKey) {
+		return
+	}
 
     if ( this.s.key.listen_for === KeyE.NONE) {
 
