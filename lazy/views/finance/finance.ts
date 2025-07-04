@@ -150,7 +150,7 @@ class VFinance extends HTMLElement {
 			eltoattach.addEventListener("touchcancel", this.handle_touch_cancel.bind(this));
 			eltoattach.addEventListener("touchmove", this.handle_touch_move.bind(this));
 
-			//document.addEventListener('keydown', this.handle_keydown.bind(this))
+			document.addEventListener('keydown', this.handle_keydown.bind(this))
 
 			this.s.touch_attached = true
 		}
