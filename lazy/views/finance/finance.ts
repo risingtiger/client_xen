@@ -707,16 +707,10 @@ async handle_touch_move(_e:TouchEvent) {
 
 async handle_keydown(e:KeyboardEvent) {
 
-	if (this.shadow.querySelector('.content + c-ol[title="Transaction Details"]')) {
-		return
-	}
+		// test if option key is pressed AI!
+
 
     if ( this.s.key.listen_for === KeyE.NONE) {
-
-		// Navigation shortcuts require Command key
-		if (['h', 'l', 'j', 'k'].includes(e.key) && !e.metaKey) {
-			return
-		}
 
         if (e.key === 'h') {
             const clonedate = this.s.months[this.s.months.length-1]
