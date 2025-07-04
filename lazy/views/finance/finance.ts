@@ -711,8 +711,12 @@ async handle_keydown(e:KeyboardEvent) {
 		return
 	}
 
-
     if ( this.s.key.listen_for === KeyE.NONE) {
+
+		// Navigation shortcuts require Command key
+		if (['h', 'l', 'j', 'k'].includes(e.key) && !e.metaKey) {
+			return
+		}
 
         if (e.key === 'h') {
             const clonedate = this.s.months[this.s.months.length-1]
