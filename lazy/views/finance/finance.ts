@@ -707,8 +707,7 @@ async handle_touch_move(_e:TouchEvent) {
 
 async handle_keydown(e:KeyboardEvent) {
 
-	// Only process shortcuts when Option key is pressed (on macOS)
-	if (!e.altKey) {
+	if (!e.altKey) { // change to the control key AI!
 		return
 	}
 
