@@ -707,7 +707,7 @@ async handle_touch_move(_e:TouchEvent) {
 
 async handle_keydown(e:KeyboardEvent) {
 
-	if (!e.altKey) { // change to the control key AI!
+	if (!e.ctrlKey) {
 		return
 	}
 
