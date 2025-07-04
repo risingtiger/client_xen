@@ -21,14 +21,13 @@ div.wrapper {
 }
 
 .calcs-grid {
-    display: grid;
-    grid-template-rows: auto 1fr auto;
+    display: flex;
+    flex-direction: column;
     height: 100%;
     width: 100%;
 }
 
 .grid-header {
-    grid-row: 1;
     position: sticky;
     top: 0;
     z-index: 2;
@@ -38,12 +37,12 @@ div.wrapper {
 
 
 .grid-content {
-    grid-row: 2;
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
 }
 
 .grid-footer {
-    grid-row: 3;
     position: sticky;
     bottom: 0;
     z-index: 2;
