@@ -175,8 +175,9 @@ class VPFinanceEditTransaction extends HTMLElement {
 
 		else if (e.detail.name === "date") {
 			// change all to be UTC (e.detail.value is a UTC date string).
-			// then, set the UTC time to 12:00:00 to avoid timezone issues. AI!
+			// then, set the UTC time to 12:00:00 to avoid timezone issues.
 			const dateObj = new Date(e.detail.newval);
+			dateObj.setUTCHours(12, 0, 0, 0);
 			changed.date = Math.floor(dateObj.getTime() / 1000); // Convert to seconds
 		}
 
