@@ -141,7 +141,6 @@ class VFinance extends HTMLElement {
 		this.m.ynab_accounts = r.data.ynab_accounts
 		this.dispatchEvent(new Event('lateloaded'));
 
-
 		const eltoattach = this.shadow.querySelector('.touchroot') as HTMLElement
 
 		if (!this.s.touch_attached) {
@@ -183,7 +182,6 @@ class VFinance extends HTMLElement {
 
 
 	kd = (loadeddata: CMechLoadedDataT, loadstate:string) =>  {
-
 
 		if (loadstate === 'initial' || loadstate === 'datachanged') {
 			this.m.areas          = loadeddata.get("1:areas")! as AreaT[]
@@ -580,11 +578,7 @@ class VFinance extends HTMLElement {
 
 async handle_touch_start(e:TouchEvent) {
 
-    console.log("start")
-
     const target = e.touches[0].target as HTMLElement
-
-    console.log(target)
 
     if (target.classList.contains('touch_month')) {
         this.s.touch.isactive = true
@@ -642,7 +636,7 @@ async handle_touch_end(e:TouchEvent) {
 
             else if (this.s.touch.origin_action === 'catquad') {
 
-                const cat_a_els = Array.from(this.shadow.querySelectorAll('th.cat > a')) as HTMLElement[]
+                const cat_a_els = Array.from(this.shadow.querySelectorAll('#calcs .grid-header .col-cat > a')) as HTMLElement[]
                 const cat_a_active_index = cat_a_els.findIndex(el => el.classList.contains('active'))
 
                 if (is_direction_right && cat_a_active_index > 0 && cat_a_active_index < cat_a_els.length) {
@@ -707,6 +701,7 @@ async handle_touch_move(_e:TouchEvent) {
 
 async handle_keydown(e:KeyboardEvent) {
 
+		console.log(e.key)
 	if (!e.ctrlKey) {
 		return
 	}
@@ -792,9 +787,6 @@ async handle_keydown(e:KeyboardEvent) {
             this.set_area('rtm')
         }
 
-        if (e.key === '`') {
-            this.filter_by_cattag([1,2,3])
-        }
         if (e.key === '1') {
             this.filter_by_cattag([1])
         }

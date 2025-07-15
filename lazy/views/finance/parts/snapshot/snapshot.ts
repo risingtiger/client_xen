@@ -1,6 +1,6 @@
 
 
-import { $NT, CMechLoadedDataT, CMechLoadStateE } from "../../../../../defs_client_symlink.js"
+import { $NT, CMechLoadedDataT } from "../../../../../defs_client_symlink.js"
 import { str } from "../../../../../defs_server_symlink.js"
 import { TransactionT, AreaT, CatT, SnapShotsT, SourceT, TagT, MonthSnapShotT } from '../../../../../defs.js'
 import { snapshots } from '../../../../libs/financefuncs_snapshot.js'
@@ -111,15 +111,18 @@ class VPFinanceSnapShot extends HTMLElement {
 
 
 
-	kd = (loadeddata: CMechLoadedDataT) =>  {
-		this.m.areas          = loadeddata.get("areas")! as AreaT[]
-		this.m.cats           = knit_cats(this.m.areas, loadeddata.get('cats')!) as CatT[]
-		this.m.sources        = loadeddata.get("sources") as SourceT[]
-		this.m.monthsnapshots = knit_monthsnapshots(loadeddata.get("monthsnapshots")!, this.m.areas) as MonthSnapShotT[]
-		this.m.tags           = $N.Utils.resolve_object_references(loadeddata.get("tags")!, loadeddata) as TagT[]
-		this.m.transactions   = knit_transactions(this.m.cats, this.m.sources, this.m.tags, loadeddata.get("transactions")!) as TransactionT[]
+	kd = (loadeddata: CMechLoadedDataT, loadstate:string) =>  {
 
-        //this.s.snapshots = snapshots(this.m.areas, this.m.cats, this.m.transactions, this.m.monthsnapshots, months_minus_last_one);
+		if (loadstate === 'initial' || loadstate === 'datachanged') {
+			this.m.areas          = loadeddata.get("1:areas")! as AreaT[]
+			this.m.cats           = knit_cats(this.m.areas, loadeddata.get('1:cats')!) as CatT[]
+			this.m.sources        = loadeddata.get("1:sources") as SourceT[]
+			this.m.monthsnapshots = knit_monthsnapshots(loadeddata.get("1:monthsnapshots")!, this.m.areas) as MonthSnapShotT[]
+			this.m.tags           = $N.Utils.resolve_object_references(loadeddata.get("1:tags")!, loadeddata) as TagT[]
+			this.m.transactions   = knit_transactions(this.m.cats, this.m.sources, this.m.tags, loadeddata.get("1:transactions")!) as TransactionT[]
+
+			//this.s.snapshots = snapshots(this.m.areas, this.m.cats, this.m.transactions, this.m.monthsnapshots, months_minus_last_one);
+		}
 	}
 
 

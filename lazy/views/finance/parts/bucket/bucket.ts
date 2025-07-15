@@ -1,6 +1,6 @@
 
 
-import { $NT, CMechLoadedDataT, CMechLoadStateE } from "../../../../../defs_client_symlink.js"
+import { $NT, CMechLoadedDataT } from "../../../../../defs_client_symlink.js"
 import { TransactionT, AreaT, CatT, AreaQuadBucketTotalsT, CatBucketsInfoT } from '../../../../../defs.js'
 import { cat_bucket_remainder } from '../../../../libs/financefuncs_bucket.js'
 
@@ -159,15 +159,15 @@ class VPFinanceBucket extends HTMLElement {
     twoStepClicks(catId:string, elId:string, area: AreaT, cats: CatT[], transactions: TransactionT[], catTags: number[], area_quad_bucket_totals:AreaQuadBucketTotalsT) {
 
         const flatCats           = cats.flatMap(c => c.subsref || []);
-        const cat                = catId ? flatCats.find(c => c.id === catId) : null;
+        const cat                = flatCats.find(c => c.id === catId) as CatT
         const isUnassignedBucket = elId === "unassigned";
 
 		let error = ""
 
-		if      (this.s.error)												   error = "Please close before continuing";
+		if      (this.s.error)												    error = "Please close before continuing";
 		else if (!cat && !isUnassignedBucket)                                   error = "No cat or bucket found";
-		else if (catTags[0] < 3 || catTags[0] > 4)                              error = "Not a quad 3 or 4 category";
-		else if (this.s.clicks.fromCatId === catId)                             error = "Cannot move to same category";
+		else if (cat!.tags[0] < 3 || cat!.tags[0] > 4)                          error = "Not a quad 3 or 4 category";
+		else if (this.s.clicks.fromCatId === cat.id)                            error = "Cannot move to same category";
 		else if (this.s.clicks.fromType === 'unassigned' && isUnassignedBucket) error = "Cannot move from unassigned to unassigned";
 
 		if (error) {

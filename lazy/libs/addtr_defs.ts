@@ -34,7 +34,6 @@ export type NewTransactionT = {
     amount: number,
     merchant: string,
     merchant_long: string,
-	simplified_merchant: string,
 	tags: TagT[],
     source: SourceT,
 	date: number,

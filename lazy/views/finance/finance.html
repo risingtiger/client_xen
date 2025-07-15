@@ -98,6 +98,22 @@
                     `)}
                 </div>
 
+				<div class="grid-content-spacer">
+                    ${_m.catcalcs.map((c,i) => html`
+                        <div class="grid-row cat-row parent-cat">
+                            <div class="col-cat touch_catquad">&nbsp;</div>
+                            
+                            ${_s.months.map((m,mi) => html`
+                                <div class="col-month touch_month ${mi === _s.months.length-1 ? 'col-current' : ''}">&nbsp;</div>
+                            `)}
+                            
+                            <div class="col-avgmed touch_avgmed">&nbsp;</div>
+                            <div class="col-budget">&nbsp;</div>
+                            <div class="col-bucket">&nbsp;</div>
+                        </div>
+                    `)}
+				</div>
+
                 <!-- Footer -->
                 <div class="grid-footer">
                     <div class="grid-row totals-row">
@@ -138,7 +154,6 @@
                             <th class="merchant" @click="${()=>this.sort_transactions_by('merchant', 'asc')}">merchant</i></th>
                             <th class="category" @click="${()=>this.sort_transactions_by('cat', 'asc')}">category</th>
                             <th class="amount" @click="${()=>this.sort_transactions_by('amount', 'asc')}">$</th>
-                            <th class="source" @click="${()=>this.sort_transactions_by('source', 'asc')}">source</th>
                             <th class="notes" @click="${()=>this.sort_transactions_by('notes', 'asc')}">notes &nbsp;  
                             </th>
                         </tr>
@@ -151,7 +166,6 @@
                             <td class="merchant">${t.merchant.toLowerCase().slice(0,18)}</td>
                             <td class="category">${t.catref.name.slice(0,9)}</td>
                             <td class="amount">${Math.round(t.amount)}</td>
-                            <td class="source">${t.sourceref.name}</td>
                             <td class="notes">${t.tagsref.map(tg=>html`<span class='tag' @click="${(e)=>this.transaction_tag_clicked(e)}" data-id="${tg.id}">#${tg.name} </span>`)} ${t.notes}</td>
                         </tr>
                     `)}

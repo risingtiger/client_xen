@@ -20,7 +20,7 @@
 			<c-in2 label="Category Name" name="name" type="text" val="${_s.editing_cat?.name || ''}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
 			<c-in2 label="Budget" name="budget" type="number" val="${_s.editing_cat?.budget || 0}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
 			<c-in2 label="Quadrant" name="quadrant" type="dselect" val="${_s.editing_cat.tags[0]}" options="Hard:1,SemiHard:2,Soft:3,High:4" @update="${(e)=>this.prop_updated(e)}"></c-in2>
-			<c-in2 label="Parent Category" name="parent_category" type="dselect" val="${_s.editing_cat?.parentref?.id || ''}" options="${_m.all_parent_cats_options_str}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
+			<c-in2 label="Parent Category" name="parent_category" type="dselect" val="${_s.editing_cat?.parentref?.id}" options="${_m.all_parent_cats_options_str}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
 			<button type="button" @click="${()=>this.cancelEdit()}">Cancel</button>
 		</c-form>
 	` : ''}

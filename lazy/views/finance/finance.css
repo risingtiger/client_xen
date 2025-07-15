@@ -9,67 +9,66 @@ div.wrapper {
 #calc_transactions_wrapper {
     display: flex;
     justify-content: space-between;
-    height: calc(100vh - 40px);
+    height: calc(100svh - 40px);
     width: 100vw;
     overflow: hidden;
 }
 
 #calcs {
-    width: 43%;
+    width: 48vw;
     height: 100%;
     overflow: hidden;
 }
 
 .calcs-grid {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-rows: 24px auto 1fr 40px;
     height: 100%;
     width: 100%;
 }
 
 .grid-header {
-    position: sticky;
-    top: 0;
-    z-index: 2;
     background: white;
     box-shadow: inset 0 -5px 0px 0px rgb(134 220 239);
+    
+    
+
+	& .grid-row {
+		max-height: 19px;
+		min-height: 19px;
+		height: 19px;
+
+		& > div {
+		    padding-top: 2px;
+		}
+	}
 }
 
-
 .grid-content {
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
+    overflow-y: scroll;
+}
+
+.grid-content-spacer {
+	overflow-y:  hidden;
 }
 
 .grid-footer {
-    position: sticky;
-    bottom: 0;
-    z-index: 2;
     background: #f5f5f5;
 }
 
-
 .grid-row {
     display: grid;
-    grid-template-columns: 
-        1fr 
-        repeat(7, 42px) 
-        47px 
-        47px 
-        47px;
-    align-items: stretch;
-    min-height: 32px;
+    grid-template-columns: 134px repeat(10, 1fr);
+    max-height: 30px;
+    min-height: 30px;
+    height: 30px;
     border: 0;
     margin: 0;
 }
 
-
 .grid-row > div {
-    padding: 3px 4px;
     white-space: nowrap;
-    display: flex;
-    align-items: center;
+    padding: 0 0 0 4px;
 }
 
 /* Column backgrounds */
@@ -93,6 +92,7 @@ div.wrapper {
 .parent-cat {
     font-weight: bold;
 }
+
 
 .parent-cat:first-child {
     margin-top: 0;
@@ -169,14 +169,20 @@ div.wrapper {
 .header-row {
     text-align: left;
     padding-bottom: 4px;
-    padding-top: 3px;
+    padding-top: 0px;
 }
 
 /* Totals row styling */
 .totals-row {
     text-align: left;
-    padding-top: 9px;
-    padding-bottom: 7px;
+
+	& > div {
+		padding-top: 7px;
+		padding-bottom: 7px;
+		box-sizing: border-box;
+		height: 40px;
+		font-weight: bold;
+	}
 }
 
 #transactions {
@@ -209,49 +215,19 @@ div.wrapper {
 	width: 100%;
 }
 
-/* Responsive grid columns based on months count */
-@media only screen and (max-device-width: 767px) {
-    .grid-row {
-        grid-template-columns: 
-            1fr 
-            repeat(2, 42px) 
-            47px 
-            47px 
-            47px;
-    }
-}
-
-@media only screen and (min-device-width: 768px) and (max-device-width: 1023px) {
-    .grid-row {
-        grid-template-columns: 
-            1fr 
-            repeat(7, 42px) 
-            47px 
-            47px 
-            47px;
-    }
-}
-
-@media only screen and (min-device-width: 1024px) {
-    .grid-row {
-        grid-template-columns: 
-            1fr 
-            repeat(12, 42px) 
-            47px 
-            47px 
-            47px;
-    }
-}
-
-
 #transactions {
     position: relative;
-    width: 57%;
+    width: 52vw;
+    
+    
+    
+    
 
     & #tablewrap {
         overflow-y: scroll;
         height: calc(100% - 87px);
     }
+
 
     & table {
         border-collapse: collapse;
@@ -495,17 +471,12 @@ footer {
     }
 }
 
-
-
-
-
 #tagsview {
     
     & h3 {
         padding: var(--padding-container);
     }
 }
-
 
 @media only screen and (max-device-width: 767px) {
 
@@ -516,9 +487,11 @@ footer {
     #transactions {
         display: none;
     }
+
+	.grid-row {
+		grid-template-columns: 134px repeat(5, 1fr);
+	}
 }
-
-
 
 
 @media only screen and (min-device-width: 768px) {

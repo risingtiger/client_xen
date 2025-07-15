@@ -82,76 +82,78 @@ class VPFinanceEditTransaction extends HTMLElement {
 
 
 
-	kd = (loadeddata: CMechLoadedDataT, _loadstate:string) => {
+	kd = (loadeddata: CMechLoadedDataT, loadstate:string) => {
 
-		const trs             = loadeddata.get("1:transactions") as TransactionT[]
+		if (loadstate === 'initial' || loadstate === 'datachanged') {
+			const trs             = loadeddata.get("1:transactions") as TransactionT[]
 
-		this.m.areas          = loadeddata.get("1:areas")! as AreaT[]
-		this.m.cats           = knit_cats(this.m.areas, loadeddata.get('1:cats')!) as CatT[]
-		this.m.tags           = $N.Utils.resolve_object_references(loadeddata.get("1:tags")!, loadeddata) as TagT[]
+			this.m.areas          = loadeddata.get("1:areas")! as AreaT[]
+			this.m.cats           = knit_cats(this.m.areas, loadeddata.get('1:cats')!) as CatT[]
+			this.m.tags           = $N.Utils.resolve_object_references(loadeddata.get("1:tags")!, loadeddata) as TagT[]
 
-		const sources         = loadeddata.get("1:sources") as SourceT[]
-		const transaction     = trs.find(t=>t.id === this.a.transaction)! as any
+			const sources         = loadeddata.get("1:sources") as SourceT[]
+			const transaction     = trs.find(t=>t.id === this.a.transaction)! as any
 
-		this.m.transaction    = ( knit_transactions(this.m.cats, sources, this.m.tags, [transaction]) as TransactionT[] )[0]
+			this.m.transaction    = ( knit_transactions(this.m.cats, sources, this.m.tags, [transaction]) as TransactionT[] )[0]
 
-		const get_cat_options = () => {
-			let s = ""
+			const get_cat_options = () => {
+				let s = ""
 
-			for (let cparent of this.m.cats) {
-				for (let sub of cparent.subsref!) {
-					s += `${sub.name}:${sub.id},`
+				for (let cparent of this.m.cats) {
+					for (let sub of cparent.subsref!) {
+						s += `${sub.name}:${sub.id},`
+					}
 				}
+
+				return s.slice(0, -1)
+			} 
+
+			const get_tag_options = () => {
+				let s = "None:none,"
+				for (let tag of this.m.tags) {
+					s += `${tag.name}:${tag.id},`
+				}
+				return s.slice(0, -1)
+			} 
+
+			let areas:AreaT[] = []
+			if (localStorage.getItem("user_email") !== 'accounts@risingtiger.com') {
+				areas = ( loadeddata.get("1:areas")! as AreaT[]).filter(a=>a.name === "fam")
+			} else {
+				areas = loadeddata.get("1:areas")! as AreaT[]
 			}
 
-			return s.slice(0, -1)
-		} 
+			this.s.cat_options = get_cat_options()
+			this.s.tag_options = get_tag_options()
 
-		const get_tag_options = () => {
-			let s = "None:none,"
-			for (let tag of this.m.tags) {
-				s += `${tag.name}:${tag.id},`
+			this.m.transaction_tag_id = this.m.transaction.tagsref.length ? (this.m.transaction.tagsref[0] as any).id : ""
+
+			/*
+			const transaction = await $N.Firestore.Retrieve(`transactions/${this.getAttribute("transaction")}`)
+
+			this.m.transaction = transaction[0];
+			this.m.transaction_tag_id = this.m.transaction!.tags.length ? (this.m.transaction!.tags[0] as any)._path.segments[1] : ""
+
+			const idata = await $N.IndexedDB.GetAll(["areas","cats", "tags"])
+
+			let areas:AreaT[] = []
+			if (localStorage.getItem("user_email") !== 'accounts@risingtiger.com') {
+				areas = idata.get("areas")!.filter(a=>a.name === "fam")
+			} else {
+				areas = idata.get("areas")!
 			}
-			return s.slice(0, -1)
-		} 
 
-		let areas:AreaT[] = []
-		if (localStorage.getItem("user_email") !== 'accounts@risingtiger.com') {
-			areas = ( loadeddata.get("1:areas")! as AreaT[]).filter(a=>a.name === "fam")
-		} else {
-			areas = loadeddata.get("1:areas")! as AreaT[]
+			this.m.cats = knit_cats(areas, idata.get("cats")!) as CatT[]
+			this.m.tags = knit_tags(idata.get("tags")!) as TagT[]
+
+			this.s.cat_options = get_cat_options()
+			this.s.tag_options = get_tag_options()
+
+			this.sc()
+
+			this.dispatchEvent(new Event('hydrated'))
+			*/
 		}
-
-		this.s.cat_options = get_cat_options()
-		this.s.tag_options = get_tag_options()
-
-		this.m.transaction_tag_id = this.m.transaction.tagsref.length ? (this.m.transaction.tagsref[0] as any).id : ""
-
-		/*
-		const transaction = await $N.Firestore.Retrieve(`transactions/${this.getAttribute("transaction")}`)
-
-		this.m.transaction = transaction[0];
-		this.m.transaction_tag_id = this.m.transaction!.tags.length ? (this.m.transaction!.tags[0] as any)._path.segments[1] : ""
-
-		const idata = await $N.IndexedDB.GetAll(["areas","cats", "tags"])
-
-		let areas:AreaT[] = []
-		if (localStorage.getItem("user_email") !== 'accounts@risingtiger.com') {
-			areas = idata.get("areas")!.filter(a=>a.name === "fam")
-		} else {
-			areas = idata.get("areas")!
-		}
-
-		this.m.cats = knit_cats(areas, idata.get("cats")!) as CatT[]
-		this.m.tags = knit_tags(idata.get("tags")!) as TagT[]
-
-		this.s.cat_options = get_cat_options()
-		this.s.tag_options = get_tag_options()
-
-		this.sc()
-
-		this.dispatchEvent(new Event('hydrated'))
-		*/
 	}
 
 
@@ -174,11 +176,9 @@ class VPFinanceEditTransaction extends HTMLElement {
 		}
 
 		else if (e.detail.name === "date") {
-			// change all to be UTC (e.detail.value is a UTC date string).
-			// then, set the UTC time to 12:00:00 to avoid timezone issues.
 			const dateObj = new Date(e.detail.newval);
 			dateObj.setUTCHours(12, 0, 0, 0);
-			changed.date = Math.floor(dateObj.getTime() / 1000); // Convert to seconds
+			changed.date = Math.floor(dateObj.getTime() / 1000); 
 		}
 
 		else if (e.detail.name === "tag") {

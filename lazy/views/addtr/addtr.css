@@ -28,7 +28,7 @@
 }
 #fullmerchant {
 	position: absolute;
-	top: 201px;
+	top: 184px;
 	left: 0;
 	width: 100%;
 	height: 53px;
@@ -57,10 +57,10 @@
 	width: 60%;
 }
 #wrap-split {
-	width: 20%;
+	width: 60%;
 }
 #wrap-cat {
-	width: 60%;
+	width: 20%;
 }
 #wrap-source {
 	width: 20%;

@@ -15,18 +15,18 @@
 
 	<h4>Invoices</h4>
 	${_s.invoicesAccounts.map(account => html`
-	<p>${account.name}: ${Math.round( account.balance ) || 0}</p>
+	<p data-id="${account.id}"  data-balance="${Math.round( account.balance )}" @click="${(e)=>this.set_source_amount(e)}">${account.name}: ${Math.round( account.balance ) || 0}</p>
 	`)}
-	
-	<h4>Cycling Credit Total: ${Math.round( _s.creditCardTotal )}</h4>
-	${_s.creditCardAccounts.map(account => html`
+
+	<h4>Credit Cycle Total: ${Math.round( _s.creditCardCycleTotal )}</h4>
+	${_s.creditCardCycleAccounts.map(account => html`
 		${account.name === 'apple' ? html`
-			<p data-id="${account.id}" data-balance="${Math.round( account.balance )}" @click="${(e)=>this.set_apple_balance(e)}">${account.name}: ${Math.round( account.balance ) || 0}</p>
+			<p data-id="${account.id}" data-balance="${Math.round( account.balance )}" @click="${(e)=>this.set_source_amount(e)}">${account.name}: ${Math.round( account.balance ) || 0}</p>
 		` : html`
 			<p>${account.name}: ${Math.round( account.balance ) || 0}</p>
 		`}
 	`)}
-
+	
 	<p>&nbsp;</p>
 
 	<h3>Spent Against Buckets: ${Math.round( _s.allAreasBucketInfo.spentAgainstBucketsTotal )}</h3>

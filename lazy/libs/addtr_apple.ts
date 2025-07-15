@@ -70,7 +70,6 @@ export const ParseAppleScreenShot = async (sources:SourceT[]) => new Promise<New
 			catref: null,
 			merchant: nt.merchant,
 			merchant_long: nt.merchant,
-			simplified_merchant: nt.merchant,
 			notes: nt.notes || '',
 			source: sources.find(s=>s.id==='7688adbc-13ef-469f-81d7-1e02098d2d06')!, 
 			tags: [],

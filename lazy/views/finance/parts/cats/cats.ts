@@ -86,7 +86,6 @@ class VPCats extends HTMLElement {
 
 			this.s.filter.arearef = this.m.areas.find((a:AreaT) => a.id === this.a.area_id)!
 			
-			// Build parent cats options string for the current area
 			const parent_cats_in_area = this.m.cats.filter(c => c.arearef === this.s.filter.arearef);
 			this.m.all_parent_cats_options_str = parent_cats_in_area.map(cat => `${cat.name}:${cat.id}`).join(',');
 		}
@@ -151,7 +150,7 @@ class VPCats extends HTMLElement {
 		else if (e.detail.name === "parent_category") {
 			const new_parent_cat = this.m.cats.find(cat => cat.id === e.detail.newval);
 			if (new_parent_cat) {
-				changed.parentref = new_parent_cat;
+				changed.parent = { __path:['cats',new_parent_cat.id]  };
 			}
 		}
 

@@ -1,8 +1,8 @@
 
-## 1.0.0 -- UNRELEASED
+## 1.3.4 -- UNRELEASED
 
 ### FEATURES
-- First version of Finance complete. 
+- keeping pace with niftyclient refresh on sse and sub data load functions
 
 ### ENHANCEMENTS
 - ...

@@ -107,7 +107,6 @@ class VAddTr extends HTMLElement {
 					amount: tr.amount,
 					merchant: tr.merchant,
 					merchant_long: tr.merchant_long,
-					simplified_merchant: "", // to be filled in later upon focus
 					tags: [],
 					source: this.m.sources.find(s => s.id === tr.source_id) as SourceT,
 					date: tr.date,
@@ -188,7 +187,7 @@ class VAddTr extends HTMLElement {
 
 		this.s.activetransactions = [this.copynewtr(this.m.newtransactions[0])]
 		this.s.infocus = this.s.activetransactions[0]
-		this.s.infocus.simplified_merchant = simplify_merchant_name(this.s.infocus.merchant)
+		this.s.infocus.merchant = simplify_merchant_name(this.s.infocus.merchant)
 		this.s.infocusindex = 0
 		this.s.index = 0
 	}
@@ -208,7 +207,7 @@ class VAddTr extends HTMLElement {
 		else if (mode === 'standard') { // there is a split and not at last split
 			this.s.infocusindex++
 			this.s.infocus = this.s.activetransactions[this.s.infocusindex]
-			this.s.infocus.simplified_merchant = simplify_merchant_name(this.s.infocus.merchant)
+			this.s.infocus.merchant = simplify_merchant_name(this.s.infocus.merchant)
 		} 
 		else if (mode === 'skip' || mode === 'delete') {
 			next_of_newtransactions.call(this, this.s, this.m)
@@ -231,7 +230,7 @@ class VAddTr extends HTMLElement {
 				s.activetransactions = [this.copynewtr(m.newtransactions[s.index])]
 				s.infocusindex = 0
 				s.infocus = s.activetransactions[0]
-				s.infocus.simplified_merchant = simplify_merchant_name(s.infocus.merchant)
+				s.infocus.merchant = simplify_merchant_name(s.infocus.merchant)
 			}
 
 		}
@@ -303,7 +302,7 @@ class VAddTr extends HTMLElement {
 			sheets_id: tr?.sheets_id,
 		}; })
 
-		const r = await $N.FetchLassie( `/api/xen/finance/save_transaction`, { 
+		const r = await $N.FetchLassie( `/api/xen/finance/save_transactions`, { 
 			method:"POST", 
 			body:JSON.stringify(transactions_to_server) 
 		})
@@ -361,7 +360,6 @@ class VAddTr extends HTMLElement {
 			amount: 0,
 			merchant: "",
 			merchant_long: "",
-			simplified_merchant: "",
 			tags: [],
 			source: this.m.sources.find(s => s.id === "61771fdb-4121-4442-bd4f-057290a64b2e") as SourceT, //cashpers
 		}
@@ -373,7 +371,7 @@ class VAddTr extends HTMLElement {
 		this.focus_inputmode()
 
 		this.s.infocus = this.s.activetransactions[0]
-		this.s.infocus.simplified_merchant = simplify_merchant_name(this.s.infocus.merchant)
+		this.s.infocus.merchant = simplify_merchant_name(this.s.infocus.merchant)
 		this.s.infocusindex = 0
 		this.s.index = 0
 
@@ -409,7 +407,6 @@ class VAddTr extends HTMLElement {
 			notes: nt.notes,
 			amount: nt.amount,
 			merchant: nt.merchant,
-			simplified_merchant: "",
 			merchant_long: nt.merchant_long,
 			tags: nt.tags.map(tag => tag),
 			source: nt.source,
@@ -457,11 +454,22 @@ class VAddTr extends HTMLElement {
 
 	parseapplecsv = () => new Promise<void>(async (_res) => {   
 		
-		debugger
 		try   { 
 			const r = await $N.FetchLassie("/api/xen/finance/parse_apple_csv_month")  
 			if (!r.ok) { alert("error parsing csv"); return; }  
-			this.m.newtransactions = r.data as NewTransactionT[];
+			this.m.newtransactions = ( r.data as SheetsTransactionT[] ).map( tr => {
+				return {
+					sheets_id: tr.id,
+					catref: null,
+					notes: tr.notes || "",
+					amount: tr.amount,
+					merchant: tr.merchant,
+					merchant_long: tr.merchant_long,
+					tags: [],
+					source: this.m.sources.find(s => s.id === tr.source_id) as SourceT,
+					date: tr.date,
+				}
+			}).sort((a, b) => a.date - b.date);
 		}
 		catch { alert ("no transactions back"); return; }
 

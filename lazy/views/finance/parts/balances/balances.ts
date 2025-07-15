@@ -37,12 +37,12 @@ type ModelT = {
 
 type StateT = {
 	checkingAccounts:AccountT[]
-	creditCardAccounts:AccountT[]
+	creditCardCycleAccounts:AccountT[]
 	savingsAccounts:AccountT[]
 	invoicesAccounts:AccountT[]
 	sourceBucketAccount: AccountT
     checkingTotal: num;
-    creditCardTotal: number;
+    creditCardCycleTotal: number;
     savingsTotal: number;
 	invoicesTotal: number,
 	allLiquidAssets: number,
@@ -62,12 +62,12 @@ class VPFinanceBalances extends HTMLElement {
     m: ModelT = { areas: [], cats: [], transactions: [], sources: [], balances: [] }
     s: StateT = {
 		checkingAccounts: [],
-		creditCardAccounts: [],
+		creditCardCycleAccounts: [],
 		savingsAccounts: [],
 		invoicesAccounts: [],
 		sourceBucketAccount: { name: 'Bucket', balance: 0 },
 		checkingTotal: 0,
-		creditCardTotal: 0,
+		creditCardCycleTotal: 0,
 		savingsTotal: 0,
 		invoicesTotal: 0,
 		allLiquidAssets: 0,
@@ -141,25 +141,25 @@ class VPFinanceBalances extends HTMLElement {
     fleshit() {
 
 		this.m.balances.forEach((b:any) => {
-			const s = this.m.sources.find((s:SourceT) => s.id === b.source_id)!
+			const s = this.m.sources.find((s:SourceT) => s.id === b.id)!
 			s.balance = b.balance
 		})
 
-        const checkingAccounts    = this.m.sources.filter(acc             => acc.type === 'checking')
-        const savingsAccounts     = this.m.sources.filter(acc             => acc.type === 'savings')
-        const creditCardAccounts  = this.m.sources.filter(acc             => acc.type === 'creditcard')
+        const checkingAccounts        = this.m.sources.filter(acc            => acc.type === 'checking')
+        const savingsAccounts         = this.m.sources.filter(acc            => acc.type === 'savings')
+        const creditCardCycleAccounts = this.m.sources.filter(acc            => acc.type === 'creditcardcycle')
 
-		const invoicesAccounts    = this.m.sources.filter(acc             => acc.type === 'receivables') 
+		const invoicesAccounts        = this.m.sources.filter(acc            => acc.type === 'receivables')
 
-		let   sourceBucketAccount = savingsAccounts.find(s               =>s.name    === "bucket") as AccountT
+		let   sourceBucketAccount     = savingsAccounts.find(s               => s.name   === "bucket") as AccountT
 
-        const checkingTotal       = checkingAccounts.reduce((sum, acc)   => sum + acc.balance!, 0);
-        const creditCardTotal     = creditCardAccounts.reduce((sum, acc) => sum + acc.balance!, 0);
-        const savingsTotal        = savingsAccounts.reduce((sum, acc)    => sum + acc.balance!, 0);
-		const invoicesTotal       = invoicesAccounts.reduce((sum, acc)   => sum + acc.balance!, 0);
+        const checkingTotal           = checkingAccounts.reduce((sum, acc)   => sum + acc.balance!, 0);
+        const creditCardCycleTotal    = creditCardCycleAccounts.reduce((sum, acc) => sum + acc.balance!, 0);
+        const savingsTotal            = savingsAccounts.reduce((sum, acc)    => sum + acc.balance!, 0);
+		const invoicesTotal           = invoicesAccounts.reduce((sum, acc)   => sum + acc.balance!, 0);
 
-		let   allLiquidAssets     = checkingTotal + savingsTotal + invoicesTotal
-		let   allLiquidDebt       = creditCardTotal
+		let   allLiquidAssets         = checkingTotal + savingsTotal + invoicesTotal
+		let   allLiquidDebt           = creditCardCycleTotal
 
 		/*
 		allLiquidAssets           = 10000
@@ -174,12 +174,12 @@ class VPFinanceBalances extends HTMLElement {
 
         this.sc({
 			checkingAccounts,
-			creditCardAccounts,
+			creditCardCycleAccounts,
 			sourceBucketAccount,
 			savingsAccounts,
 			invoicesAccounts,
             checkingTotal,
-            creditCardTotal,
+            creditCardCycleTotal,
             savingsTotal,
 			invoicesTotal,
 			allLiquidAssets,
@@ -218,7 +218,7 @@ class VPFinanceBalances extends HTMLElement {
 
 
 
-	set_apple_balance(e:Event) {
+	set_source_amount(e:Event) {
 
 		const target              = e.currentTarget as HTMLInputElement
 		const id                  = target.dataset.id
@@ -244,8 +244,8 @@ class VPFinanceBalances extends HTMLElement {
 				
 				inputField.remove();
 
-				const httpopts = { method: 'POST', body: JSON.stringify([{ source_id:id, balance: Number( value ) }]) }
-				const r = await $N.FetchLassie('/api/xen/finance/set_account_balances', httpopts) as any
+				const httpopts = { method: 'POST', body: JSON.stringify([{ id:id, balance: Number( value ) }]) }
+				const r = await $N.FetchLassie('/api/xen/finance/set_source_balances', httpopts) as any
 				if (!r.ok) { alert("couldnt get grabems. throwing up"); window.location.href = "/index.html"; return; }
 
 				// this is a hack because CMech is not updating sub els on SSE events
