@@ -132,14 +132,8 @@ class VFinance extends HTMLElement {
 
 
 	async connectedCallback() {
-		await $N.CMech.ViewConnectedCallback(this, {kdonvisibled:true, kdonlateloaded:true})
+		await $N.CMech.ViewConnectedCallback(this)
 		this.dispatchEvent(new Event('hydrated'));
-
-		const r = await $N.FetchLassie('/api/xen/finance/grab_em', {}) as any
-		if (!r.ok) { alert("couldnt get grabems. throwing up"); window.location.href = "/index.html"; return; }
-
-		this.m.ynab_accounts = r.data.ynab_accounts
-		this.dispatchEvent(new Event('lateloaded'));
 
 		const eltoattach = this.shadow.querySelector('.touchroot') as HTMLElement
 
@@ -148,9 +142,7 @@ class VFinance extends HTMLElement {
 			eltoattach.addEventListener("touchend", this.handle_touch_end.bind(this));
 			eltoattach.addEventListener("touchcancel", this.handle_touch_cancel.bind(this));
 			eltoattach.addEventListener("touchmove", this.handle_touch_move.bind(this));
-
 			document.addEventListener('keydown', this.handle_keydown.bind(this))
-
 			this.s.touch_attached = true
 		}
 	}
@@ -183,41 +175,30 @@ class VFinance extends HTMLElement {
 
 	kd = (loadeddata: CMechLoadedDataT, loadstate:string) =>  {
 
-		if (loadstate === 'initial' || loadstate === 'datachanged') {
-			this.m.areas          = loadeddata.get("1:areas")! as AreaT[]
-			this.m.cats           = knit_cats(this.m.areas, loadeddata.get('1:cats')!) as CatT[]
-			this.m.sources        = loadeddata.get("1:sources") as SourceT[]
-			this.m.tags           = $N.Utils.resolve_object_references(loadeddata.get("1:tags")!, loadeddata) as TagT[]
-			this.m.payments       = $N.Utils.resolve_object_references(loadeddata.get("1:payments")!, loadeddata) as PaymentT[]
-			this.m.monthsnapshots = knit_monthsnapshots(loadeddata.get("1:monthsnapshots")!, this.m.areas) as MonthSnapShotT[]
-			this.m.transactions   = knit_transactions(this.m.cats, this.m.sources, this.m.tags, loadeddata.get("1:transactions")!) as TransactionT[]
+		this.m.areas          = loadeddata.get("1:areas")! as AreaT[]
+		this.m.cats           = knit_cats(this.m.areas, loadeddata.get('1:cats')!) as CatT[]
+		this.m.sources        = loadeddata.get("1:sources") as SourceT[]
+		this.m.tags           = $N.Utils.resolve_object_references(loadeddata.get("1:tags")!, loadeddata) as TagT[]
+		this.m.payments       = $N.Utils.resolve_object_references(loadeddata.get("1:payments")!, loadeddata) as PaymentT[]
+		this.m.monthsnapshots = knit_monthsnapshots(loadeddata.get("1:monthsnapshots")!, this.m.areas) as MonthSnapShotT[]
+		this.m.transactions   = knit_transactions(this.m.cats, this.m.sources, this.m.tags, loadeddata.get("1:transactions")!) as TransactionT[]
 
-			this.m.previous_static_monthsnapshots = knit_monthsnapshots(loadeddata.get("1:monthsnapshots")!, this.m.areas) as MonthSnapShotT[]
+		this.m.previous_static_monthsnapshots = knit_monthsnapshots(loadeddata.get("1:monthsnapshots")!, this.m.areas) as MonthSnapShotT[]
 
-			if (loadstate === 'initial') {
-				this.s.filter.arearef = this.m.areas.find(area => area.name === 'fam') as AreaT
-				this.set_default_cattags()
-				this.set_calcs_view_size('medium') // keep in mind, will be downgraded to small if window screen is small (aka phone)
+		if (loadstate === 'initial') {
+			this.s.filter.arearef = this.m.areas.find(area => area.name === 'fam') as AreaT
+			this.set_default_cattags()
+			this.set_calcs_view_size('medium') // keep in mind, will be downgraded to small if window screen is small (aka phone)
 
-				const thismonth = new Date()
-				thismonth.setUTCDate(1)
-				thismonth.setUTCHours(0, 0, 0, 0)
+			const thismonth = new Date()
+			thismonth.setUTCDate(1)
+			thismonth.setUTCHours(0, 0, 0, 0)
 
-				this.set_active_month(thismonth)
-				this.set_default_except_area_and_date_and_cattags()
-			}
-
-			this.parse_new_state()
+			this.set_active_month(thismonth)
+			this.set_default_except_area_and_date_and_cattags()
 		}
 
-
-		else if (loadstate === 'visibled') {
-			//
-		}
-
-		else if (loadstate === 'lateloaded') {
-			//
-		}
+		this.parse_new_state()
 	}
 
 

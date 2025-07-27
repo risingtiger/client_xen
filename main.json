@@ -31,33 +31,38 @@
     },
     {
       "type": "view",
-      "urlmatch": "^finance$",
+      "urlmatch": "finance",
       "name": "finance",
       "is_instance": true,
       "dependencies": [
         {"type": "component", "name": "ol"},
         {"type": "component", "name": "ol2"},
         {"type": "component", "name": "reveal"},
-        {"type": "component", "name": "in"},
         {"type": "component", "name": "in2"},
+        {"type": "component", "name": "in"},
         {"type": "component", "name": "btn"},
         {"type": "component", "name": "toast"}
       ],
       "auth": [],
       "localdb_preload": ["areas", "cats", "sources", "tags", "payments", "transactions", "monthsnapshots"]
     },
-    {
-      "type": "view",
-      "urlmatch": "^addtr$",
-      "name": "addtr",
-      "is_instance": true,
-      "dependencies": [
-        {"type": "component", "name": "btn"},
-        {"type": "component", "name": "toast"}
-      ],
-      "auth": ["admin"],
-      "localdb_preload": ["areas", "cats", "sources", "tags"]
-    },
+	{
+		"type": "view",
+		"urlmatch": "addtr",
+		"subs": [
+			{
+			"urlmatch": "?sometin=string&another=number",
+			"loadfunc": "placeholder"
+			}
+		],
+		"name": "addtr",
+		"is_instance": true,
+		"dependencies": [
+			{"type": "component", "name": "btn"},
+			{"type": "component", "name": "toast"}
+		],
+		"auth": ["admin"]
+	},
     {
       "type": "component",
       "name": "placeholder_component",

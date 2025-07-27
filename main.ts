@@ -12,7 +12,7 @@ declare var $N: $NT;
 
 const INSTANCE_LAZYLOAD_DATA_FUNCS = {
 
-	home_main: (_pathparams:GenericRowT, _searchparams: URLSearchParams, _localdb_preload?:str[]) => new Promise<LazyLoadFuncReturnT>(async (res, _rej) => {
+	home_main: (_pathparams:GenericRowT, _searchparams: GenericRowT, _localdb_preload:str[]|null, _fetchlassieopts:GenericRowT) => new Promise<LazyLoadFuncReturnT>(async (res, _rej) => {
 		const d = new Map<str,GenericRowT[]>()
 		res({ d, refreshspecs:[]})
 	}),
@@ -20,21 +20,24 @@ const INSTANCE_LAZYLOAD_DATA_FUNCS = {
 
 
 
-	finance_main: (_pathparams:GenericRowT, _searchparams: URLSearchParams, localdb_preload?:str[]) => new Promise<LazyLoadFuncReturnT>(async (res, rej) => {
+	finance_main: (_pathparams:GenericRowT, _searchparams: GenericRowT, localdb_preload:str[]|null, _fetchlassieopts:GenericRowT) => new Promise<LazyLoadFuncReturnT>(async (res, rej) => {
 
-		const d                        = new Map<str,GenericRowT[]>()
 		let   r:any;
+		const d                        = new Map<str,GenericRowT[]>()
+		const promises:Promise<any>[] = []
 
-		try   { r = await $N.IDB.GetAll(["areas","cats","sources","tags", "payments", "transactions", "monthsnapshots"], localdb_preload); }
+		const ri:any = $N.IDB.GetAll(["areas","cats","sources","tags", "payments", "transactions", "monthsnapshots"], localdb_preload); 
+		promises.push(ri)
+		try   { r = await Promise.all(promises); }
 		catch { rej(); return; }
 
-		d.set( "1:areas", r.get("areas")! )
-		d.set( "1:cats", r.get("cats")! )
-		d.set( "1:sources", r.get("sources")! )
-		d.set( "1:tags", r.get("tags")! )
-		d.set( "1:payments", r.get("payments")! )
-		d.set( "1:transactions", r.get("transactions")! )
-		d.set( "1:monthsnapshots", r.get("monthsnapshots")! )
+		d.set( "1:areas", r[0].get("areas")! )
+		d.set( "1:cats", r[0].get("cats")! )
+		d.set( "1:sources", r[0].get("sources")! )
+		d.set( "1:tags", r[0].get("tags")! )
+		d.set( "1:payments", r[0].get("payments")! )
+		d.set( "1:transactions", r[0].get("transactions")! )
+		d.set( "1:monthsnapshots", r[0].get("monthsnapshots")! )
 
 		res({ d, refreshspecs:[]})
 	}),
@@ -42,18 +45,24 @@ const INSTANCE_LAZYLOAD_DATA_FUNCS = {
 
 
 
-	addtr_main: (_pathparams:GenericRowT, _searchparams: URLSearchParams, localdb_preload?:str[]) => new Promise<LazyLoadFuncReturnT>(async (res, rej) => {
+	addtr_main: (_pathparams:GenericRowT, _searchparams: GenericRowT, _localdb_preload:str[]|null, fetchlassieopts:GenericRowT) => new Promise<LazyLoadFuncReturnT>(async (res, rej) => {
 
-		let   m:any;
 		const d = new Map<str,GenericRowT[]>()
+		const promises:Promise<any>[] = []
 
-		try   { m = await $N.IDB.GetAll(["areas","cats","sources","tags"], localdb_preload); } 
-		catch { rej(); return; }
+		const paths = ["areas", "cats", "sources", "tags"]
+		const httpopts = { method: "POST", body: JSON.stringify({ paths }) }
+		const rp:any = $N.FetchLassie('/api/firestore_retrieve', httpopts, fetchlassieopts) 
+		const rt:any = $N.FetchLassie('/api/xen/finance/sheets/get_transactions', {}) 
+		promises.push(rp, rt)
+		const r = await Promise.all(promises)
+		if (!r[0].ok || !r[1].ok) {   rej(); return;   }
 
-		d.set( "1:areas", m.get("areas")! )
-		d.set( "1:cats", m.get("cats")! )
-		d.set( "1:sources", m.get("sources")! )
-		d.set( "1:tags", m.get("tags")! )
+		d.set( "2:areas", r[0].data[0])
+		d.set( "2:cats", r[0].data[1])
+		d.set( "2:sources", r[0].data[2])
+		d.set( "2:tags", r[0].data[3])
+		d.set( "2:sheet_transactions", r[1].data)
 
 		res({ d, refreshspecs:[]})
 	}),

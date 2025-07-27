@@ -55,17 +55,8 @@ class VAddTr extends HTMLElement {
 
 
 	async connectedCallback() {
-		await $N.CMech.ViewConnectedCallback(this, {kdonvisibled:true, kdonlateloaded:true})
+		await $N.CMech.ViewConnectedCallback(this)
 		this.dispatchEvent(new Event('hydrated'));
-
-		const r = await $N.FetchLassie('/api/xen/finance/sheets/get_transactions', {}) 
-		if (!r.ok) { 
-			$N.Unrecoverable("Error", "Unable to Retreive New Transactions", "Reset", "swe", "err on get_sheets_transactions", null);
-			return; 
-		}
-
-		this.m.sheet_transactions = r.data as SheetsTransactionT[]
-		this.dispatchEvent(new Event('lateloaded'));
 	}
 
 
@@ -83,42 +74,17 @@ class VAddTr extends HTMLElement {
 
 
 
-	kd = (loadeddata: CMechLoadedDataT, loadstate:string) => {
+	kd = (loadeddata: CMechLoadedDataT, _loadstate:string) => {
 
-		if (loadstate === 'initial' || loadstate === 'datachanged') {
-			this.m.areas   = $N.Utils.resolve_object_references(loadeddata.get("1:areas")!, loadeddata) as AreaT[]
-			this.m.cats    = knit_cats(this.m.areas, loadeddata.get('1:cats')!) as CatT[]
-			this.m.sources = $N.Utils.resolve_object_references(loadeddata.get("1:sources")!, loadeddata) as SourceT[]
-			this.m.tags    = $N.Utils.resolve_object_references(loadeddata.get("1:tags")!, loadeddata) as any[]
+		this.m.areas   = loadeddata.get("2:areas") as AreaT[]
+		this.m.cats    = knit_cats(this.m.areas, loadeddata.get('2:cats')!) as CatT[]
+		this.m.sources = $N.Utils.resolve_object_references(loadeddata.get("2:sources")!, loadeddata) as SourceT[]
+		this.m.tags    = $N.Utils.resolve_object_references(loadeddata.get("2:tags")!, loadeddata) as any[]
 
-			this.s.filteredcats = this.m.cats
-			this.s.filteredtags = this.m.tags
-		}
+		this.m.sheet_transactions = loadeddata.get("sheet_transactions") as SheetsTransactionT[]
 
-
-		else if (loadstate === 'lateloaded') {
-
-			this.m.newtransactions = this.m.sheet_transactions.map((tr) => {
-
-				return {
-					sheets_id: tr.id,
-					catref: null,
-					notes: tr.notes || "",
-					amount: tr.amount,
-					merchant: tr.merchant,
-					merchant_long: tr.merchant_long,
-					tags: [],
-					source: this.m.sources.find(s => s.id === tr.source_id) as SourceT,
-					date: tr.date,
-				}
-			}).sort((a, b) => a.date - b.date)
-
-			this.m.tags = this.m.tags.sort((a, b) => b.ts - a.ts)
-
-			this.handle_initing_newtransactions()
-
-			return
-		}
+		this.s.filteredcats = this.m.cats
+		this.s.filteredtags = this.m.tags
 	}
 
 
