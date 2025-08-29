@@ -1,53 +1,55 @@
 
 
 <div id="wrap">
-	<h3>Balances  <span class="allasset">asset: ${Math.round(_s.allLiquidAssets)}</span> | <span class="alldebt">debt: ${Math.round( _s.allLiquidDebt )}</span></h3>
-    
-    <h4>Checking Accounts Total: ${Math.round( _s.checkingTotal )}</h4>
-	${_s.checkingAccounts.map(account => html`
-	<p>${account.name}: ${Math.round( account.balance ) || 0}</p>
-	`)}
-	
-	<h4>Savings Accounts Total: ${Math.round( _s.savingsTotal )}</h4>
-	${_s.savingsAccounts.map(account => html`
-	<p>${account.name}: ${Math.round( account.balance ) || 0}</p>
-	`)}
 
-	<h4>Invoices</h4>
-	${_s.invoicesAccounts.map(account => html`
-	<p data-id="${account.id}"  data-balance="${Math.round( account.balance )}" @click="${(e)=>this.set_source_amount(e)}">${account.name}: ${Math.round( account.balance ) || 0}</p>
+	<p>Available This Month: ${Math.round(_m.available_this_month)}</p>
+	<p>&nbsp;</p>
+	<p>BurnRate Left: ${_m.allarea_stats.burnrateleft}</p>
+	<p>Liabilities: ${Math.round(_m.creditcardcyclebalance)}</p>
+	<p>Assets: ${Math.round(_m.assets)}</p>
+
+
+
+	<h4>Checking Accounts</h4>
+	${_m.sources_checking.map(s=> html`
+		<p>${s.name}: ${s.deduced_balance}</p>
 	`)}
 
-	<h4>Credit Cycle Total: ${Math.round( _s.creditCardCycleTotal )}</h4>
-	${_s.creditCardCycleAccounts.map(account => html`
-		${account.name === 'apple' ? html`
-			<p data-id="${account.id}" data-balance="${Math.round( account.balance )}" @click="${(e)=>this.set_source_amount(e)}">${account.name}: ${Math.round( account.balance ) || 0}</p>
-		` : html`
-			<p>${account.name}: ${Math.round( account.balance ) || 0}</p>
-		`}
+	<h4>Savings Accounts</h4>
+	${_m.sources_savings.map(s=> html`
+		<p>${s.name}: ${s.deduced_balance}</p>
 	`)}
-	
-	<p>&nbsp;</p>
 
-	<h3>Spent Against Buckets: ${Math.round( _s.allAreasBucketInfo.spentAgainstBucketsTotal )}</h3>
+	<h4>Credit Card Cycles</h4>
+	${_m.sources_creditcardcycle.map(s=> html`
+		<p>${s.name}: ${s.deduced_balance}</p>
+	`)}
 
-	<p>&nbsp;</p>
+	<h4>Receivables</h4>
+	${_m.sources_receivables.map(s=> html`
+		<p>${s.name}: ${s.deduced_balance}</p>
+	`)}
 
-	<h3>All ↑ + BucketSpents - All ↓: ${Math.round( _s.net_taking_into_account_bucket_spending )}</h3>
+	<h4>Area Stats</h4>
+	${_m.area_stats.map(a => html`
+		<div>
+			<p>Area: ${a.arearef.name}</p>
+			<p>Sum12: ${a.sumtotal_12combined}</p>
+			<p>Sum123: ${a.sumtotal_123combined}</p>
+			<p>BurnRate: ${a.burnrate}</p>
+			<p>BurnRateLeft: ${a.burnrateleft}</p>
+		</div>
+	`)}
 
-	<p>&nbsp;</p>
+	<h4>All Areas Totals</h4>
+	<div>
+		<p>Sum12 Total: ${_m.allarea_stats.sumtotal_12combined}</p>
+		<p>Sum123 Total: ${_m.allarea_stats.sumtotal_123combined}</p>
+		<p>BurnRate Total: ${_m.allarea_stats.burnrate}</p>
+		<p>BurnRateLeft Total: ${_m.allarea_stats.burnrateleft}</p>
+	</div>
 
-	<h3>Unspoken For: ${Math.round( _s.unspoken_for )}</h3>
-
-	<p>&nbsp;</p>
-
-	<h3>All Buckets</h3>
-	<h4>Buckets Totals: ${Math.round( _s.allAreasBucketInfo.bucketsTotal )}</h4>
-	<h4>Buckets Spent: ${Math.round( _s.allAreasBucketInfo.spentAgainstBucketsTotal )}</h4>
-	<h4>Buckets Remaining: ${Math.round( _s.allAreasBucketInfo.remaingAgainstBucketsTotal )}</h4>
-
-	<p>&nbsp;</p>
-	<button @click="${() => this.dispatchEvent(new Event('close'))}">Close</button>
 </div>
+
 
 
