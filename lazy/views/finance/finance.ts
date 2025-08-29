@@ -1,12 +1,12 @@
 
 
 
-import { str, num } from "../../../defs_server_symlink.js"
+import { str, num, GenericRowT } from "../../../defs_server_symlink.js"
 import { $NT, CMechLoadedDataT } from "../../../defs_client_symlink.js"
-import { AreaT, CatT, SourceT, TagT, PaymentT, TransactionT, CatCalcsT, CatCalcsTotalsT, MonthSnapShotT, FilterT, CatBucketsInfoT, AreaQuadBucketTotalsT } from '../../../defs.js'
+import { AreaT, CatT, SourceT, TagT, PaymentT, TransactionT, CatCalcsT, CatCalcsTotalsT, MonthSnapShotT, FilterT, CatBucketsInfoT, AreaQuadBucketTotalsT } from '../../../defs_instance_server_symlink.js'
+
 
 import { get_months  } from '../../libs/financefuncs_gen.js'
-import { knit_cats, knit_transactions, knit_monthsnapshots } from '../../libs/financefuncs_knit.js'
 import { filter_transactions, sort_transactions, current_month_of_filtered_transactions  } from '../../libs/financefuncs_sortfilter.js'
 import { CatCalcs, CatCalcTotals  } from '../../libs/financefuncs_catcalcs.js'
 import { cat_buckets_info, area_quad_bucket_totals  } from '../../libs/financefuncs_bucket.js'
@@ -16,6 +16,10 @@ import './parts/edit_transaction/edit_transaction.js'
 import './parts/snapshot/snapshot.js'
 import './parts/bucket/bucket.js'
 import './parts/balances/balances.js'
+import './parts/payments/payments.js'
+import './parts/sources/sources.js'
+import './parts/cats/cats.js'
+import './parts/overview/overview.js'
 
 declare var render: any;
 declare var html: any;
@@ -43,6 +47,8 @@ type ModelT = {
     current_month_transactions:TransactionT[], 
     catcalcs:CatCalcsT[],
     catcalcstotals: CatCalcsTotalsT,
+	catcalcstotals_12combined: CatCalcsTotalsT,
+	catcalcstotals_123combined: CatCalcsTotalsT,
 	data_to_sync: string[]
 }
 
@@ -53,19 +59,21 @@ type StateT = {
     transactiondetails: { show_ui: 0|1|2, t: TransactionT|null },
 	cat_buckets: CatBucketsInfoT[],
 	area_quad_bucket_totals: AreaQuadBucketTotalsT,
-    catsview: { show_ui: 0|1|2, cats_with_deleteflag: {id:str, name:string}[] },
-    paymentsview: { show_ui: 0|1|2, detailsview:boolean },
-    tagsview: { show_ui: 0|1|2, tagtotals: {id:str, name:str, sort:num, total:number}[] },
+    catsview: { show_ui: 0|1|2, mode:'view'|'edit', editing_cat_id:str|null, cats_with_deleteflag: {id:str, name:string}[] },
+    sourcesview: { show_ui: 0|1|2, mode:'view'|'edit', editing_source_id:str|null },
+	paymentsview: { show_ui: 0|1|2 },
+	tagsview: { show_ui: 0|1|2, tagtotals: {id:str, name:str, sort:num, total:number}[] },
 	editview: { show_ui: 0|1|2, transaction_id: str },
 	snapshotview_showui: 0|1|2,
 	bucketview_showui: 0|1|2,
-	balancesview_showui: 0|1|2,
+	balancesview: { show_ui: 0|1|2 },
     months_display_str: string[],
     touch: { isactive:boolean, beginx: number, beginy: number, origin_action:'month'|'catquad'|'area'|'switch_calcs_transactions_view'},
     key: { listen_for: KeyE  },
     prefs: { avgormed: 1|2 },
-	calcs_view_size: 'small'|'medium'|'large'
-	howmany_months_toshow: number,
+	calcs_month_columns_count: number,
+	split_mode:'catcalcs'|'transactions'|'both'
+	burnamountleft:number
 }
 
 
@@ -86,19 +94,21 @@ class VFinance extends HTMLElement {
 		transactiondetails: { show_ui: 0, t: null },
 		cat_buckets: [],
 		area_quad_bucket_totals: { remainder: 0, spent: 0, assigned: 0, unassigned: 0 },
-		catsview: { show_ui: 0, cats_with_deleteflag: [] },
-		paymentsview: { show_ui: 0, detailsview: false },
+		catsview: { show_ui: 0, mode:'view', editing_cat_id:null, cats_with_deleteflag: [] },
+		paymentsview: { show_ui: 0 },
+		sourcesview: { show_ui: 0, mode:'view', editing_source_id:null },
 		tagsview: { show_ui: 0, tagtotals: []},
 		editview: { show_ui: 0, transaction_id: '' },
 		bucketview_showui: 0,
-		balancesview_showui: 0,
+		balancesview: { show_ui: 0 },
 		snapshotview_showui: 0,
 		months_display_str: [],
 		touch: { isactive: false, beginx: 0, beginy: 0, origin_action: 'month'},
 		key: { listen_for: KeyE.NONE },
 		prefs: { avgormed: 1 },
-		calcs_view_size: 'small',
-		howmany_months_toshow: 0, // will be set later
+		calcs_month_columns_count: 0, // will be set later
+		split_mode: 'both',
+		burnamountleft: 0
 	}
 	m:ModelT = {
 		ynab_accounts: [],
@@ -112,7 +122,9 @@ class VFinance extends HTMLElement {
 		filtered_transactions: [],
 		current_month_transactions: [],
 		catcalcs: [],
-		catcalcstotals: { sums: [], budget: 0, med: 0, avg: 0 },
+		catcalcstotals: { sums: [], costs: 0, med: 0, avg: 0, goal: 0, goal_diff_total: 0 },
+		catcalcstotals_12combined: { sums: [], costs: 0, med: 0, avg: 0, goal: 0, goal_diff_total: 0 },
+		catcalcstotals_123combined: { sums: [], costs: 0, med: 0, avg: 0, goal: 0, goal_diff_total: 0 },
 		payments: [], 
 		data_to_sync: ["areas", "cats", "sources", "tags", "payments", "transactions", "monthsnapshots"]
 	}
@@ -173,24 +185,31 @@ class VFinance extends HTMLElement {
 
 
 
-	kd = (loadeddata: CMechLoadedDataT, loadstate:string) =>  {
+	kd = (loadeddata: CMechLoadedDataT, loadstate:string, _pathparams:GenericRowT, searchparams:GenericRowT) =>  {
+		console.log(loadstate)
+
 
 		this.m.areas          = loadeddata.get("1:areas")! as AreaT[]
-		this.m.cats           = knit_cats(this.m.areas, loadeddata.get('1:cats')!) as CatT[]
+		this.m.cats           = loadeddata.get('1:cats') as CatT[]
 		this.m.sources        = loadeddata.get("1:sources") as SourceT[]
-		this.m.tags           = $N.Utils.resolve_object_references(loadeddata.get("1:tags")!, loadeddata) as TagT[]
-		this.m.payments       = $N.Utils.resolve_object_references(loadeddata.get("1:payments")!, loadeddata) as PaymentT[]
-		this.m.monthsnapshots = knit_monthsnapshots(loadeddata.get("1:monthsnapshots")!, this.m.areas) as MonthSnapShotT[]
-		this.m.transactions   = knit_transactions(this.m.cats, this.m.sources, this.m.tags, loadeddata.get("1:transactions")!) as TransactionT[]
-
-		this.m.previous_static_monthsnapshots = knit_monthsnapshots(loadeddata.get("1:monthsnapshots")!, this.m.areas) as MonthSnapShotT[]
+		this.m.tags           = loadeddata.get("1:tags") as TagT[]
+		this.m.payments       = loadeddata.get("1:payments") as PaymentT[]
+		this.m.transactions   = loadeddata.get("1:transactions") as TransactionT[]
 
 		if (loadstate === 'initial') {
-			this.s.filter.arearef = this.m.areas.find(area => area.name === 'fam') as AreaT
-			this.set_default_cattags()
-			this.set_calcs_view_size('medium') // keep in mind, will be downgraded to small if window screen is small (aka phone)
 
-			const thismonth = new Date()
+			this.s.filter.arearef = this.m.areas.find(a=>a.name === searchparams.areaname) || null
+
+			this.set_default_cattags()
+			this.s.calcs_month_columns_count = ( searchparams.monthcount === 'default' ) ? ( window.innerWidth < 768 ? 3 : 6 ) : Number(searchparams.monthcount);
+			this.set_split_mode(false)
+
+			const enddate       = searchparams.enddate.split("-")
+			let   enddate_year  = Number(enddate[0])
+			let   enddate_month = Number(enddate[1])
+			const thismonth     = new Date()
+			thismonth.setUTCFullYear(enddate_year)
+			thismonth.setUTCMonth(enddate_month-1)
 			thismonth.setUTCDate(1)
 			thismonth.setUTCHours(0, 0, 0, 0)
 
@@ -205,9 +224,7 @@ class VFinance extends HTMLElement {
 
 
 	sc(state_changes = {}) {   
-
 		this.s = Object.assign(this.s, state_changes);
-
 		render(this.template(this.s, this.m), this.shadow);
 	}
 
@@ -222,20 +239,34 @@ class VFinance extends HTMLElement {
 
 
 	parse_new_state() {
-		this.s.filter.daterange             = [this.s.months[0], this.s.months[this.s.months.length-1]];
-		this.m.filtered_transactions        = filter_transactions(this.m.transactions, this.s.filter);
-		this.m.current_month_transactions   = current_month_of_filtered_transactions(this.m.filtered_transactions, this.s.months[this.s.months.length-1]);
-		this.m.catcalcs                     = CatCalcs(this.m.filtered_transactions, this.s.filter.arearef as AreaT, this.s.filter.cattags, this.m.cats, this.s.months);
-		this.m.catcalcstotals               = CatCalcTotals(this.m.catcalcs, this.s.filter);
-		this.s.cat_buckets                  = cat_buckets_info((this.m.areas.find(a=>a === this.s.filter.arearef) as AreaT), this.m.cats, this.m.transactions); // wlll only contain cats of quad3 or 4
-		this.s.area_quad_bucket_totals      = area_quad_bucket_totals((this.m.areas.find(a=>a === this.s.filter.arearef) as AreaT), this.s.cat_buckets, this.s.filter.cattags[0]) // will all be 0 unless we are specifically viewing quad 3 or 4
-		this.m.current_month_transactions   = sort_transactions(this.m.current_month_transactions, "date", "asc")
+		this.s.filter.daterange                 = [this.s.months[0], this.s.months[this.s.months.length-1]];
+
+		// probably can take this out, since main.js dataload func already filters by daterange
+		this.m.filtered_transactions            = filter_transactions(this.m.transactions, this.s.filter);
+
+		const filter_12combined:FilterT         = Object.assign({}, this.s.filter, { cattags: [1,2] })
+		const filter_123combined:FilterT        = Object.assign({}, this.s.filter, { cattags: [1,2,3] })
+		const filtered_transactions_12combined  = filter_transactions(this.m.transactions, filter_12combined);
+		const filtered_transactions_123combined = filter_transactions(this.m.transactions, filter_123combined);
+		const catcalcs_12combined               = CatCalcs(filtered_transactions_12combined, this.s.filter.arearef as AreaT, [1,2], this.m.cats, this.s.months);
+		const catcalcs_123combined              = CatCalcs(filtered_transactions_123combined, this.s.filter.arearef as AreaT, [1,2,3], this.m.cats, this.s.months);
+
+		this.m.current_month_transactions       = current_month_of_filtered_transactions(this.m.filtered_transactions, this.s.months[this.s.months.length-1]);
+		this.m.catcalcs                         = CatCalcs(this.m.filtered_transactions, this.s.filter.arearef as AreaT, this.s.filter.cattags, this.m.cats, this.s.months);
+		this.m.catcalcstotals                   = CatCalcTotals(this.m.catcalcs, this.s.filter.arearef!, this.s.filter.cattags);
+		this.m.catcalcstotals_12combined        = CatCalcTotals(catcalcs_12combined, this.s.filter.arearef!, [1,2]);
+		this.m.catcalcstotals_123combined       = CatCalcTotals(catcalcs_123combined, this.s.filter.arearef!, [1,2,3]);
+		this.s.cat_buckets                      = cat_buckets_info((this.m.areas.find(a        => a === this.s.filter.arearef) as AreaT), this.m.cats, this.m.transactions); // wlll only contain cats of quad3 or 4
+		this.s.area_quad_bucket_totals          = area_quad_bucket_totals((this.m.areas.find(a => a === this.s.filter.arearef) as AreaT), this.s.cat_buckets, this.s.filter.cattags[0]) // will all be 0 unless we are specifically viewing quad 3 or 4
+		this.m.current_month_transactions       = sort_transactions(this.m.current_month_transactions, "date", "asc")
+
+		this.s.burnamountleft = (this.m.catcalcstotals_12combined.costs + this.s.filter.arearef!.unfixedcosts) - this.m.catcalcstotals_12combined.sums[this.m.catcalcstotals_12combined.sums.length-1] 
 	}
 
 
 
 
-	set_default_cattags() {   this.s.filter.cattags = [1,2,3,4]   }
+	set_default_cattags() {   this.s.filter.cattags = [2]   }
 
 
 
@@ -257,6 +288,12 @@ class VFinance extends HTMLElement {
 			this.set_default_except_area_and_date_and_cattags()
 			this.parse_new_state()
 			this.sc()
+
+			// http://localhost:3008/v/finance?enddate=2025-08&monthcount=default&areaname=rtm
+			const lastMonth = this.s.months[this.s.months.length - 1];
+			const enddate = `${lastMonth.getUTCFullYear()}-${String(lastMonth.getUTCMonth() + 1).padStart(2, '0')}`;
+			const monthcount = String(this.s.calcs_month_columns_count);
+			$N.SwitchStation.GoTo(`finance?enddate=${enddate}&monthcount=${monthcount}&areaname=${areaname}`)
 		} else {
 			console.log("not allowed")
 		}
@@ -267,12 +304,44 @@ class VFinance extends HTMLElement {
 
 	set_active_month(date:Date) {
 
-		this.s.months = get_months(date, this.s.howmany_months_toshow )
+		this.s.months = get_months(date, this.s.calcs_month_columns_count )
 		this.s.months_display_str = this.s.months.map(m=> {
 			let d = new Date(m)
 			d.setUTCDate(d.getUTCDate()+2)
 			return d.toLocaleString('default', { month: 'short' })
 		})
+	}
+
+
+
+
+	set_active_month_from_offset(offset:number) {
+
+		if (offset === this.s.months.length-1) {return}
+
+		const num = this.s.months.length - 1 - offset
+		const clonedate = this.s.months[this.s.months.length-1]
+		clonedate.setUTCMonth(clonedate.getUTCMonth() - num)
+		this.set_active_month(clonedate)
+	}
+
+
+
+	async set_split_mode(toggle:boolean, desired_split?:'catcalcs'|'transactions'|'both', fallback_if_both_cant_fit?:'catcalcs'|'transactions') {
+
+		let split = desired_split || this.s.split_mode || 'both'
+
+		if (toggle) {
+			if (split === 'both') {
+				split = 'catcalcs'
+			} else if (split === 'catcalcs') {
+				split = 'transactions'
+			} else if (split === 'transactions') {
+				split = 'both'
+			}
+		}
+
+		this.s.split_mode = window.innerWidth < 768 && split === 'both' ? fallback_if_both_cant_fit || 'catcalcs' : split
 	}
 
 
@@ -324,21 +393,9 @@ class VFinance extends HTMLElement {
 
 
 	calcmonth_clicked(e:MouseEvent) {
-
 		const el = e.currentTarget as HTMLElement
 		const month_i = Number(el.dataset.month_i)
-
-		if (month_i === 2) {
-			return
-		}
-
-		const offset = this.s.months.length - 1 - month_i
-
-		const clonedate = this.s.months[this.s.months.length-1]
-		clonedate.setUTCMonth(clonedate.getUTCMonth() - offset)
-
-		this.set_active_month(clonedate)
-
+		this.set_active_month_from_offset(month_i)
 		this.parse_new_state()
 		this.sc()
 	}
@@ -346,11 +403,12 @@ class VFinance extends HTMLElement {
 
 
 
-	calccat_clicked(e:MouseEvent) {
+	calcamount__clicked(e:MouseEvent) {
 
 		const el = e.currentTarget as HTMLElement
-		const i = Number(el.dataset.i)
+		const i  = Number(el.dataset.i)
 		const ii = Number(el.dataset.ii || -1)
+		const mi = Number( el.dataset.mi)
 
 		let parentcat:CatT|null = null
 		let cat:CatT|null       = null
@@ -377,7 +435,26 @@ class VFinance extends HTMLElement {
 		this.s.filter.parentcatref = parentcat
 		this.s.filter.catref = cat
 
+		this.set_active_month_from_offset(mi)
+		this.set_split_mode(false, 'both', 'transactions')
 		this.parse_new_state()
+		this.sc()
+	}
+
+
+
+
+	calccatname_clicked(e:MouseEvent) {
+
+		const el = e.currentTarget as HTMLElement
+		const i = Number(el.dataset.i)
+		const ii = Number(el.dataset.ii || -1)
+
+		const cat = this.m.catcalcs[i].subsref![ii].catref
+
+		this.s.catsview.show_ui = 1
+		this.s.catsview.mode = 'edit'
+		this.s.catsview.editing_cat_id = cat.id
 
 		this.sc()
 	}
@@ -419,20 +496,10 @@ class VFinance extends HTMLElement {
 
 
 
-	show_balances = () => new Promise <void>(async (res, _rej) => { 
-
-		const balances = await $N.FetchLassie("/api/xen/finance/sheets/get_balances")
-		if (!balances.ok) {   alert ("could not get balances"); return; }
-
-		this.s.balancesview_showui = 1
+	show_balances = () => { 
+		this.s.balancesview.show_ui = 1
 		this.sc()
-		setTimeout(()=> {
-			const el = (this.shadow.querySelector('vp-finance-balances') as any)
-			el.Show(this.m.areas, this.m.cats, this.m.transactions, this.m.sources, balances.data)
-			el.addEventListener('close', ()=> this.sc({ balancesview_showui: 0 }))
-			res()
-		}, 30)
-	})
+	}
 
 
 
@@ -526,24 +593,18 @@ class VFinance extends HTMLElement {
 
 
 
-	async set_calcs_view_size(size:'small'|'medium'|'large') {
 
-		if (window.innerWidth < 768)
-			size = 'small'
 
-		if (window.innerWidth < 1024) {
-			size = size === 'small' ? 'small' : 'medium'
+
+	async set_calcs_month_columns_count(desired_count:number) {
+
+		let count = desired_count;
+
+		if (window.innerWidth < 768) {
+			count = 3;
 		}
 
-		this.s.howmany_months_toshow = size === 'small' ? 2 : size === 'medium' ? 7 : 12
-		this.s.calcs_view_size = size	
-	}
-
-
-
-
-	async set_calcs_view_size_from_ui(size:'small'|'medium'|'large') {
-		this.set_calcs_view_size(size)
+		this.s.calcs_month_columns_count = count
 
 		const thismonth = new Date()
 		thismonth.setUTCDate(1)
@@ -682,7 +743,6 @@ async handle_touch_move(_e:TouchEvent) {
 
 async handle_keydown(e:KeyboardEvent) {
 
-		console.log(e.key)
 	if (!e.ctrlKey) {
 		return
 	}
@@ -731,22 +791,24 @@ async handle_keydown(e:KeyboardEvent) {
             this.sc()
         }
 
-        else if (e.key === 'b') {
-			if (this.s.balancesview_showui === 0) {
+		else if (e.key === 'b') {
+			if (this.s.balancesview.show_ui === 0) {
 				this.show_balances()
 			} else {
-				this.s.balancesview_showui = 0
+				this.s.balancesview.show_ui = 0
 				this.sc()
 			}
-        }
+		}
+
 
         else if (e.key === 's') {
-			if (this.s.snapshotview_showui === 0) {
-				this.show_snapshot()
-			} else {
-				this.s.snapshotview_showui = 0
-				this.sc()
-			}
+            this.s.sourcesview.show_ui = this.s.sourcesview.show_ui === 1 ? 2 : 1
+            this.sc()
+        }
+
+        else if (e.key === 'v') {
+            this.set_split_mode(true)
+            this.sc()
         }
 
         else if (e.key === 'd') {
@@ -777,14 +839,8 @@ async handle_keydown(e:KeyboardEvent) {
         if (e.key === '3') {
             this.filter_by_cattag([3])
         }
-        if (e.key === '4') {
-            this.filter_by_cattag([4])
-        }
         if (e.key === '`') {
-            this.filter_by_cattag([1,2,3])
-        }
-        if (e.key === '5') {
-            this.filter_by_cattag([1,2,3,4])
+            this.filter_by_cattag([1,2])
         }
     } 
 
@@ -793,13 +849,10 @@ async handle_keydown(e:KeyboardEvent) {
     else if ( this.s.key.listen_for === KeyE.MONTHS_COUNT) {
 		if (e.key === 's') {
 			this.s.key.listen_for = KeyE.NONE
-			this.set_calcs_view_size_from_ui('small')
-		} else if (e.key === 'm') {
-			this.s.key.listen_for = KeyE.NONE
-			this.set_calcs_view_size_from_ui('medium')
+			this.set_calcs_month_columns_count(3)
 		} else if (e.key === 'l') {
 			this.s.key.listen_for = KeyE.NONE
-			this.set_calcs_view_size_from_ui('large')
+			this.set_calcs_month_columns_count(12)
 		}
     } 
 
@@ -825,21 +878,23 @@ async handle_keydown(e:KeyboardEvent) {
 
 		const months = this.s.months.map(m=> m.getUTCFullYear() + "-" + (Number(m.getUTCMonth() + 1).toString().padStart(2,"0")) + "-01").join(",")
 		
-		s += "area,parent,cat," + months + ",budget," + "\n"
+		s += "area,parent,cat," + months + ",costs,goal," + "\n"
 
 		for (const c of this.m.catcalcs) {
-			s += c.catref.arearef.name + ","
+			s += c.catref.arearef!.name + ","
 			s += "1,",
 			s += c.catref.name + ","
 			s += c.sums.map(s=> Math.round(s)).join(",") + ","
-			s += c.budget + "\n"
+			s += c.costs,
+			s += c.goal + "\n"
 
 			for (const cs of c.subsref!) {
-				s += c.catref.arearef.name + ","
+				s += c.catref.arearef!.name + ","
 				s += "0,",
 				s += cs.catref.name + ","
 				s += cs.sums.map(s=> Math.round(s)).join(",") + ","
-				s += cs.budget + "\n"
+				s += cs.costs,
+				s += cs.costs + "\n"
 			}
 		}
 
@@ -872,38 +927,7 @@ async handle_keydown(e:KeyboardEvent) {
 
 
 
-	payments_r(p:PaymentT) {
 
-		let daypostfix = p.day.toString().endsWith('0') ? 'th' : p.day.toString().endsWith('1') ? 'st' : p.day.toString().endsWith('2') ? 'nd' : 'th'
-
-		let breakdown = p.breakdown.map(b=> {
-			let s = b.split(":")
-			return {name:s[0], amount:s[1], date:s[2]}
-		})
-
-		return html`
-			<div class="payment ${p.breakdown.length ? 'hasbreakdown' : ''}">
-				<h4 @click="${()=> {this.s.paymentsview.detailsview=this.s.paymentsview.detailsview ? false : true; this.sc(); } }">
-					<span class="payee">${p.payee}</span>
-					<span class="amount">${p.amount ? "$"+p.amount : ''}</span>
-					<span class="day">${p.day}${daypostfix} &nbsp;</span>
-					${ p.is_auto ? html`<span class="isauto">A</span>&nbsp;` : '' }</span>
-					${ p.is_auto && p.payment_sourceref && p.payment_sourceref.name === 'checkpers' ? html`<span class="isauto_ischecking">B</span>&nbsp;` : '' }
-				</h4>
-				<p class="notes ${this.s.paymentsview.detailsview ? 'active' : ''}">${p.notes || '-'}</p>
-				${breakdown ? html`
-					<div class="breakdown">
-					   ${breakdown.map(b=> html`
-							<div class="item">
-								<h6>${b.name}</h6>
-								<p class="notes ${this.s.paymentsview.detailsview ? 'active' : ''}">$${b.amount} - ${b.date}</p>
-							</div>
-					   `)}
-					</div>
-				` : ''}
-			</div>
-		`
-	}
 
 
 

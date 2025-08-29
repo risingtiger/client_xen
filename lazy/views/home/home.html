@@ -17,21 +17,22 @@
 
             <h5 @click="${()=>this.adminetc('firestore_misc_update')}">firestore_misc_update</h5>
             <h5 @click="${()=>this.adminetc('firestore_misc_get')}">firestore_misc_get</h5>
+            <h5 @click="${()=>this.adminetc('sanity_run')}">Sanity Run</h5>
         ` : ''}
         
         <div style="height: 200px; overflow-y:scroll;">
             ${Array.isArray(_s.admin_return_str) ? _s.admin_return_str.map((item, index) => html`
                 <p>${item}</p>
             `) : html`
-                <p>${_s.admin_return_str}</p>
+				${_s.admin_return_str.split('\n').map(str=>html`<p>${str}</p>`)}
             `}
         </div>
 
-		<c-btn noanime='true' @btnclick="${()=>$N.SwitchStation.NavigateTo('finance')}">Finance</c-btn>
+		<c-btn noanime='true' @btnclick="${()=>$N.SwitchStation.GoTo('finance')}">Finance</c-btn>
 
         ${localStorage.getItem("auth_group") === 'admin' ? html`
             <br><br>
-            <c-btn noanime='true' @click="${()=>$N.SwitchStation.NavigateTo('addtr')}">AddTr</c-btn>
+            <c-btn noanime='true' @click="${()=>$N.SwitchStation.GoTo('addtr')}">AddTr</c-btn>
         ` : ''}
 
         <br><br>
