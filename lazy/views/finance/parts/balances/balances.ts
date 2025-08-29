@@ -39,7 +39,13 @@ type AreaStatT = {
 }
 
 
-type AllAreaStatsT = { sumtotal_12combined: number, sumtotal_123combined: number, burnrate: number, burnrateleft: number }
+type AllAreaStatsT = {
+	sumtotal_12combined: number,
+	sumtotal_123combined: number,
+	burnrate: number,
+	burnrateleft: number,
+	available_for_all_trisection_3s: number
+}
 
 type ModelT = {
     areas: AreaT[],
@@ -101,7 +107,7 @@ class VPFinanceBalances extends HTMLElement {
 		availablefunds: 0,
 		creditcardcyclebalance: 0,
 		area_stats: [],
-		allarea_stats: { sumtotal_12combined: 0, sumtotal_123combined: 0, burnrate: 0, burnrateleft: 0 }
+		allarea_stats: { sumtotal_12combined: 0, sumtotal_123combined: 0, burnrate: 0, burnrateleft: 0, available_for_all_trisection_3s: 0 }
     }
     s: StateT = {
 		checkingAccounts: [],
@@ -196,7 +202,7 @@ class VPFinanceBalances extends HTMLElement {
 		const filter_template:FilterT = { arearef: null, parentcatref: null, catref: null, sourceref: null, tagsref: null, daterange: null, merchant: null, note: null, amountrange: null, cattags: [] };
 
 		this.m.area_stats = []
-		this.m.allarea_stats = { sumtotal_12combined: 0, sumtotal_123combined: 0, burnrate: 0, burnrateleft: 0 }
+		this.m.allarea_stats = { sumtotal_12combined: 0, sumtotal_123combined: 0, burnrate: 0, burnrateleft: 0, available_for_all_trisection_3s: 0 }
 
 		this.m.areas.forEach(area => {
 			const filter_area:FilterT = { ...filter_template, daterange: [daterange_thismonth[0], daterange_thismonth[1]], arearef: area }
@@ -242,6 +248,7 @@ class VPFinanceBalances extends HTMLElement {
 		this.m.burnrateleft         = Number(this.a.burnrateleft)
 		this.m.creditcardcyclebalance = this.m.sources_creditcardcycle.reduce((acc, s) => acc + s.deduced_balance, 0)
 		this.m.available_this_month = this.m.availablefunds - this.m.creditcardcyclebalance - this.m.burnrateleft
+		this.m.allarea_stats.available_for_all_trisection_3s = this.m.availablefunds - this.m.creditcardcyclebalance - this.m.burnrateleft
 
 	}
 
