@@ -54,7 +54,7 @@ type ModelT = {
 	balances: {id:string, balance:number}[]
 	available_this_month: number,
 	burnrateleft:number,
-	assets:number,
+	availablefunds:number,
 	creditcardcyclebalance:number,
 	area_stats: AreaStatT[],
 	allarea_stats: AllAreaStatsT
@@ -98,7 +98,7 @@ class VPFinanceBalances extends HTMLElement {
 		sources_checking:[],
 		sources_receivables:[],
 		balances:[],
-		assets: 0,
+		availablefunds: 0,
 		creditcardcyclebalance: 0,
 		area_stats: [],
 		allarea_stats: { sumtotal_12combined: 0, sumtotal_123combined: 0, burnrate: 0, burnrateleft: 0 }
@@ -235,13 +235,13 @@ class VPFinanceBalances extends HTMLElement {
 		this.m.sources_checking = add_live_balance(this.m.sources.filter(s => s.type === 'checking'))
 		this.m.sources_receivables = add_live_balance(this.m.sources.filter(s => s.type === 'receivables'))
 
-		this.m.assets = this.m.sources_checking.reduce((acc, s)    => acc + s.deduced_balance, 0) + 
+		this.m.availablefunds = this.m.sources_checking.reduce((acc, s)    => acc + s.deduced_balance, 0) + 
 						this.m.sources_savings.reduce((acc, s)     => acc + s.deduced_balance, 0) + 
 						this.m.sources_receivables.reduce((acc, s) => acc + s.deduced_balance, 0)
 
 		this.m.burnrateleft         = Number(this.a.burnrateleft)
 		this.m.creditcardcyclebalance = this.m.sources_creditcardcycle.reduce((acc, s) => acc + s.deduced_balance, 0)
-		this.m.available_this_month = this.m.assets - this.m.creditcardcyclebalance - this.m.burnrateleft
+		this.m.available_this_month = this.m.availablefunds - this.m.creditcardcyclebalance - this.m.burnrateleft
 
 	}
 
