@@ -1,7 +1,8 @@
 
 
 //import { num } from "../../../defs_server_symlink.js";
-import { AreaT, CatT, TransactionT, CatCalcsT, CatCalcsTotalsT, FilterT  } from '../../defs.js'
+import { AreaT, CatT, TransactionT, CatCalcsT, CatCalcsTotalsT, FilterT  } from '../../defs_instance_server_symlink'
+import { filter_transactions  } from '../libs/financefuncs_sortfilter.js'
 
 
 
@@ -37,7 +38,7 @@ function CatCalcs(transactions:TransactionT[], filter_area:AreaT, filter_cattags
 
     for (const cat of filteredcats) {
 
-        const catcalc:CatCalcsT = { catref:cat, subsref: [], sums: [], budget:0, med:0, avg:0 }
+        const catcalc:CatCalcsT = { catref:cat, subsref: [], sums: [], costs:0, goal:0, med:0, avg:0 }
 
         const filtered_sub_cats = cat.subsref!.filter((cat:CatT) => { 
             if (filter_cattags.length === 0) { return true }
@@ -47,7 +48,7 @@ function CatCalcs(transactions:TransactionT[], filter_area:AreaT, filter_cattags
         for (const subcat of filtered_sub_cats) {
 
 
-            const subcatcalc:CatCalcsT = { catref: subcat, subsref: null, sums: [], budget:subcat.budget!, med:0, avg:0}
+            const subcatcalc:CatCalcsT = { catref: subcat, subsref: null, sums: [], costs:subcat.costs_total!, goal:subcat.goal!, med:0, avg:0}
 
             for (let m = 0; m < months_ts.length; m++) {
 
@@ -70,7 +71,8 @@ function CatCalcs(transactions:TransactionT[], filter_area:AreaT, filter_cattags
             catcalc.subsref!.push(subcatcalc)
         }
 
-        catcalc.budget = catcalc.subsref!.reduce((acc:number, subcatcalc:CatCalcsT) => { return acc + subcatcalc.budget }, 0)
+        catcalc.costs = catcalc.subsref!.reduce((acc:number, subcatcalc:CatCalcsT) => { return acc + subcatcalc.costs }, 0)
+        catcalc.goal  = catcalc.subsref!.reduce((acc:number, subcatcalc:CatCalcsT) => { return acc + subcatcalc.goal }, 0)
 
         all_catcalcs.push(catcalc)
     }
@@ -102,21 +104,66 @@ function CatCalcs(transactions:TransactionT[], filter_area:AreaT, filter_cattags
 
 
 
-function CatCalcTotals(catcalcs:CatCalcsT[], filter:FilterT) : CatCalcsTotalsT {
+function CatCalcTotalsOfFilter(transactions:TransactionT[], cats:CatT[], months:Date[], filter:FilterT) : CatCalcsTotalsT {
 
+	const filtered_transactions = filter_transactions(transactions, filter);
+	const catcalcs              = CatCalcs(filtered_transactions, filter.arearef!, filter.cattags, cats, months);
+	return CatCalcTotals(catcalcs, filter.arearef!.unfixedcosts, filter.cattags[0])
+}
+
+
+
+
+function CatCalcTotalsOfCatTag(transactions:TransactionT[], cats:CatT[], months:Date[], filter_area:AreaT, filter_daterange:[Date, Date], cattag:number) : CatCalcsTotalsT {
+	const filter:FilterT        = { arearef: filter_area, parentcatref: null, catref: null, sourceref: null, tagsref: null, daterange:filter_daterange, merchant: null, note: null, amountrange: null, cattags:[cattag] }
+	const filtered_transactions = filter_transactions(transactions, filter);
+	const catcalcs              = CatCalcs(filtered_transactions, filter_area, [ cattag ], cats, months);
+	return CatCalcTotals(catcalcs, filter_area.unfixedcosts, cattag)
+
+}
+
+
+
+
+function CatCalcTotals(catcalcs:CatCalcsT[], unfixedcosts:number, cattag:number) : CatCalcsTotalsT {
+
+
+	/*
     const catcalcs_f = catcalcs.filter((cc:CatCalcsT) => { 
-        const a = cc.catref.arearef === filter.arearef
 
-        const t = cc.catref.subsref!.some((subcat:CatT) => subcat.tags.some((t:number) => filter.cattags.includes(t)))
+        const a = cc.catref.arearef === filter_area
+
+        const t = cc.catref.subsref!.some((subcat:CatT) => subcat.tags.some((t:number) => filter_cattags.includes(t)))
 
         return a && t
     })
+	*/
 
-    let budget = catcalcs_f.reduce((acc:number, catcalc:CatCalcsT) => { return acc + catcalc.budget }, 0)
+	let allotment = 0;
+	let allotment_left = 0;
+	if (cattag === 1) {
 
-    const sums:number[] = catcalcs_f[0] ? catcalcs[0].sums.map(_ => { return 0 }) : []
+		for(let i = 0; i < catcalcs.length; i++) {
+			for(let ii = 0; ii < catcalcs[i].subsref!.length; ii++) {
+				const sc = catcalcs[i].subsref![ii];
+				const sum = sc.sums[sc.sums.length - 1];
+				const l = sc.costs - sum;
+				if (l > 0) allotment_left += l;
+			}
+		}
+		allotment = catcalcs.reduce((acc:number, catcalc:CatCalcsT) => { return acc + catcalc.costs }, 0)
 
-    for (const catcalc of catcalcs_f) {
+	} else if (cattag === 2) {
+		allotment = unfixedcosts
+		allotment_left = allotment - catcalcs.reduce((acc:number, catcalc:CatCalcsT) => { return acc + catcalc.sums[ catcalc.sums.length - 1] }, 0)
+	} else {
+		allotment = 0
+		allotment_left = 0
+	}
+
+    const sums:number[] = catcalcs[0] ? catcalcs[0].sums.map(_ => { return 0 }) : []
+
+    for (const catcalc of catcalcs) {
         for (let i = 0; i < catcalc.sums.length; i++) {
             sums[i] += catcalc.sums[i]
         }
@@ -127,10 +174,32 @@ function CatCalcTotals(catcalcs:CatCalcsT[], filter:FilterT) : CatCalcsTotalsT {
     const med = sums_except_last_month.slice().sort((a:number, b:number) => b - a)[Math.floor(sums_except_last_month.length / 2)]
     const avg = sums_except_last_month.reduce((acc:number, sum:number) => { return acc + sum }, 0) / sums_except_last_month.length
 
-    return { sums, budget, med, avg }
+    return { sums, allotment, allotment_left, med, avg  }
 }
 
 
-export { CatCalcs, CatCalcTotals }
+
+
+function CatCalcTotalsCombined(catcalctotals:CatCalcsTotalsT[]) : CatCalcsTotalsT {
+
+	const sums:number[] = catcalctotals[0].sums.map(_ => { return 0 })
+	for (const cct of catcalctotals) {
+		for (let i = 0; i < cct.sums.length; i++) {
+			sums[i] += cct.sums[i]
+		}
+	}
+
+	const allotment = catcalctotals.reduce((acc:number, cct:CatCalcsTotalsT) => { return acc + cct.allotment }, 0)
+	const allotment_left = catcalctotals.reduce((acc:number, cct:CatCalcsTotalsT) => { return acc + cct.allotment_left }, 0)
+
+	const sums_except_last_month = sums.slice(0, sums.length - 1)
+	const med = sums_except_last_month.slice().sort((a:number, b:number) => b - a)[Math.floor(sums_except_last_month.length / 2)]
+	const avg = sums_except_last_month.reduce((acc:number, sum:number) => { return acc + sum }, 0) / sums_except_last_month.length
+
+	return { sums, allotment, allotment_left, med, avg  }
+}
+
+
+export { CatCalcs, CatCalcTotals, CatCalcTotalsOfFilter, CatCalcTotalsOfCatTag, CatCalcTotalsCombined }
 
 

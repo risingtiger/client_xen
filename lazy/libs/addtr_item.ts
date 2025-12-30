@@ -1,24 +1,22 @@
 
-
-import { CatT, TagT } from "../../defs.js"
-import { InputModeE, ModelT, StateT } from "./addtr_defs.js"
-
-
+import { str } from "../../defs_server_symlink.js"
+import { CatT, TagT } from "../../defs_instance_server_symlink.js"
+import { InputModeE, ModelT, StateT, NewTransactionT } from "./addtr_defs.js"
 
 
-export const HandleReset = (m:ModelT, s:StateT) => {
-	if (s.inputmode === InputModeE.cat || s.inputmode === InputModeE.tag) {
-		s.filteredcats = m.cats
-		s.highlightcat = null
-		s.filteredtags = m.tags
-		s.highlighttag = null
-	}
+
+
+export const HandleFilteredCatsTagsReset = (m:ModelT, s:StateT) => {
+	s.filteredcats = m.cats
+	s.highlightcat = null
+	s.filteredtags = m.tags
+	s.highlighttag = null
 }
 
 
 
 
-export const HandleKeyup = (m:ModelT, s:StateT, inputval:string) => {
+export const HandleInputChange = (m:ModelT, s:StateT, inputval:string) => {
 
 	if (s.inputmode === InputModeE.cat) {
 		filter_cats(m, s, inputval)
@@ -33,11 +31,56 @@ export const HandleKeyup = (m:ModelT, s:StateT, inputval:string) => {
 
 
 
+export const HandleUpdateTransactionFromCurrentInputModeInput = (
+	inputmode:InputModeE, 
+	shadowdom:any, 
+	infocus:NewTransactionT,
+	highlightcat: CatT|null,
+	highlighttag: TagT|null
+) => {
+
+	const inputel = (shadowdom.querySelector(`#input-${inputmode}`) as HTMLInputElement)!
+
+	if (inputmode === InputModeE.cat) {
+		if (highlightcat && inputel.value.length > 0) {
+			infocus.catref = highlightcat;
+		}
+	}
+	else if (inputmode === InputModeE.note) {
+		infocus.notes = inputel.value;
+	}
+	else if (inputmode === InputModeE.tag && inputel.value.length > 0) {
+		if (highlighttag) {
+			infocus!.tags = [highlighttag!];
+		} else { 
+			infocus.tags = [];
+		}
+
+	}
+	else if (inputmode === InputModeE.amount) {
+		if (inputel.value) infocus!.amount = Number(inputel.value);
+	}
+	else if (inputmode === InputModeE.merchant) {
+		if (inputel.value) infocus!.merchant = inputel.value;
+	}
+	else if (inputmode === InputModeE.date) {
+		if (inputel.value && inputel.value !== '--/--') {
+			const date = new Date(inputel.value);
+			infocus!.date = Math.floor(date.getTime() / 1000);
+		} else {
+			console.log(new Error("date is in wrong format"))
+		}
+	}
+}
+
+
+
+
 export const Set_Cat_From_Click = (m:ModelT, s:StateT, e:MouseEvent) => {
 	const catid = (e.target as HTMLElement).dataset.id as string
 	
 	for(const c of m.cats) {
-		const f = c.subsref?.find(sub => sub.id === catid)
+		const f = c.subsref?.find(( sub:any ) => sub.id === catid)
 		if (f) {
 			s.highlightcat = f
 			break
@@ -62,6 +105,7 @@ const filter_cats = (m:ModelT, s:StateT, inputval:string) => {
 	const filteredcats:CatT[] = []
 
 	for (const cat of m.cats) {
+
 		const parentCatCopy: CatT = {...cat, subsref: []};
 		let isparentcatincluded = false;
 

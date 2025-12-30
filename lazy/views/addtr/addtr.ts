@@ -1,13 +1,12 @@
 
 
 import { str } from "../../../defs_server_symlink.js"
-import { $NT, CMechLoadedDataT } from "../../../defs_client_symlink.js"
+import { $NT, CMechLoadedDataT, GenericRowT, LazyLoadFuncReturnT } from "../../../defs_client_symlink.js"
 import { SaveNewTransactionServerT, SheetsTransactionT } from "../../../defs_instance_server_symlink.js"
-import { AreaT, CatT, SourceT } from '../../../defs.js'
-import { knit_cats } from '../../libs/financefuncs_knit.js'
+import { AreaT, CatT, SourceT } from '../../../defs_instance_server_symlink.js'
 import { NewTransactionT, InputModeE, AttributesT, ModelT, StateT } from "../../libs/addtr_defs.js"
-import { HandleKeyup as ItemHandleKeyup, HandleReset as ItemHandleReset, Set_Cat_From_Click, Set_Tag_From_Click } from "../../libs/addtr_item.js"
-import { ParseAppleScreenShot } from "../../libs/addtr_apple.js"
+import { HandleInputChange as ItemHandleInputChange, HandleFilteredCatsTagsReset as ItemHandleFilteredCatsTagsReset, Set_Cat_From_Click, Set_Tag_From_Click, HandleUpdateTransactionFromCurrentInputModeInput as ItemHandleUpdateTransactionFromCurrentInputModeInput } from "../../libs/addtr_item.js"
+import KnitFuncs from "../../libs/knitfuncs.js"
 
 
 declare var render: any;
@@ -25,12 +24,11 @@ class VAddTr extends HTMLElement {
 	a:AttributesT = { ...ATTRIBUTES }
 	m:ModelT = { areas: [], cats: [], sources: [], tags: [], sheet_transactions:[], newtransactions:[],  }
 	s:StateT = {
-		newcount: 0,
-		index: 0,
+		index: -1,
 		activetransactions: [],
 		infocus: {} as NewTransactionT,
-		infocusindex: 0,
-		inputmode: InputModeE.cat,
+		infocusindex: -1,
+		inputmode: InputModeE.initial,
 		highlightcat: null,
 		highlighttag: null,
 		filteredcats: [],
@@ -54,10 +52,7 @@ class VAddTr extends HTMLElement {
 
 
 
-	async connectedCallback() {
-		await $N.CMech.ViewConnectedCallback(this)
-		this.dispatchEvent(new Event('hydrated'));
-	}
+    async connectedCallback() {$N.CMech.RegisterView(this);}
 
 
 
@@ -74,24 +69,198 @@ class VAddTr extends HTMLElement {
 
 
 
-	kd = (loadeddata: CMechLoadedDataT, _loadstate:string) => {
+	static load = (_pathparams:GenericRowT, _searchparams:GenericRowT) => new Promise<LazyLoadFuncReturnT>(async (res, rej) => {
 
-		this.m.areas   = loadeddata.get("2:areas") as AreaT[]
-		this.m.cats    = knit_cats(this.m.areas, loadeddata.get('2:cats')!) as CatT[]
-		this.m.sources = $N.Utils.resolve_object_references(loadeddata.get("2:sources")!, loadeddata) as SourceT[]
-		this.m.tags    = $N.Utils.resolve_object_references(loadeddata.get("2:tags")!, loadeddata) as any[]
+		const d = new Map<str,GenericRowT[]>()
+		const promises:Promise<any>[] = []
+
+		const user = localStorage.getItem('user_email')
+
+		const ri:any  = $N.IDB.GetAll(["areas","cats","sources","tags"]);
+		const rt:any = $N.FetchLassie('/api/xen/finance/sheets/get_transactions?user='+user, {}) 
+		promises.push(ri, rt)
+		let r:any = null
+		try { 
+			r = await Promise.all(promises); 
+			if (!r[1].ok) {   throw new Error("Fetch error");   }
+		}
+		catch {   rej(); return;   }
+
+		const areas   = KnitFuncs.knit_areas(r[0].get('areas'))
+		const cats    = KnitFuncs.knit_cats(r[0].get('cats'), areas, [])
+		const sources = KnitFuncs.knit_sources(r[0].get('sources'), areas)
+		const tags    = KnitFuncs.knit_tags(r[0].get('tags'), areas)
+
+		d.set( "areas", areas)
+		d.set( "cats", cats)
+		d.set( "sources", sources)
+		d.set( "tags", tags)
+		d.set( "sheet_transactions", r[1].data)
+
+		res({ d, refreshon:[  ]})
+	})
+
+
+
+
+	ingest = (loadeddata: CMechLoadedDataT) => {
+
+		this.m.areas   = loadeddata.get("areas") as AreaT[]
+		this.m.cats    = loadeddata.get("cats") as CatT[]
+		this.m.sources = loadeddata.get("sources") as SourceT[]
+		this.m.tags    = loadeddata.get("tags") as any[]
 
 		this.m.sheet_transactions = loadeddata.get("sheet_transactions") as SheetsTransactionT[]
+		this.m.tags = this.m.tags.sort((a, b) => b.ts - a.ts)
 
-		this.s.filteredcats = this.m.cats
-		this.s.filteredtags = this.m.tags
+		const x = this.m.sheet_transactions.filter(tr=>tr.notes)
+
+		const all_new_transactions = this.m.sheet_transactions.map((tr) => {
+			return {
+				sheets_id: tr.id,
+				catref: null,
+				notes: tr.notes || "",
+				amount: tr.amount,
+				merchant: tr.merchant,
+				merchant_long: tr.merchant_long,
+				tags: [],
+				source: this.m.sources.find(s => s.id === tr.source_id) as SourceT,
+				date: tr.date,
+			}
+		}).sort((a, b) => a.date - b.date)
+
+
+		/* ********* FILTER BASED ON USER EMAIL ********* */
+		const source = this.m.sources.find(s=>s.name === "visafam")
+
+		const user_email = localStorage.getItem("user_email") || "";
+
+		if (user_email === "rfs@risingtiger.com") {
+			this.m.newtransactions = all_new_transactions
+		} else {
+			this.m.newtransactions = all_new_transactions.filter(tr => tr.source === source);
+		}
+
+
+		if (localStorage.getItem("user_email") !== "rfs@risingtiger.com") {
+
+			const filteredcats_being_areafam:CatT[] = []
+			const areafam   = this.m.areas.find(a=>a.name === "fam")
+
+			for (const cat of this.m.cats) {
+				if (cat.arearef !== areafam) continue;
+				filteredcats_being_areafam.push(cat);
+			}
+			this.m.cats = filteredcats_being_areafam;
+			this.m.newtransactions.forEach(tr => tr.notes = '')
+		}
+		/* ********* ************************** ********* */
+
+
+		return
 	}
 
 
 
 
-	sc() {
+	async hydrated() {
+
+		if (this.m.newtransactions.length === 0) {   alert("no new transactions"); return;   }
+
+		( this.shadow.querySelector("#input-cat") as HTMLInputElement ).focus()
+
+		await this.set_next_focus('standard')
+
+		this.s.inputmode = InputModeE.cat;
+
+		ItemHandleFilteredCatsTagsReset(this.m, this.s)
+
+		this.render(true);
+
+		this.dispatchEvent(new Event('hydrated'));
+
+
+		/*
+		let   linked_cat:CatT|null = null
+		const misc_home_cat_id = "d779f0d7-3634-4210-a52a-9b93d9349f4e"
+		for(const c of this.m.cats) {
+			for(const cc of c.subsref!) {
+				if (cc.id === misc_home_cat_id) {
+					linked_cat = c
+					break;
+				}
+			}
+		}
+
+		for(const tr of this.m.newtransactions) {
+			tr.catref = linked_cat
+			tr.merchant = simplify_merchant_name(tr.merchant)
+			tr.notes = ""
+
+			this.s.activetransactions = [this.copynewtr(tr)]
+
+			await this.save_activetransactions()
+		}
+		*/
+	}
+
+
+
+	render(update_all_inputs:boolean = false) {
+
 		render(this.template(this.a, this.s, this.m), this.shadow);
+
+		if (update_all_inputs) {
+			const catel = this.shadow.querySelector("#input-cat") as HTMLInputElement
+			const notesel = this.shadow.querySelector("#input-note") as HTMLInputElement
+			const tagel = this.shadow.querySelector("#input-tag") as HTMLInputElement
+			const amountel = this.shadow.querySelector("#input-amount") as HTMLInputElement
+			const merchantel = this.shadow.querySelector("#input-merchant") as HTMLInputElement
+			const dateel = this.shadow.querySelector("#input-date") as HTMLInputElement
+
+			catel.value = this.s.infocus.catref?.name ?? ""
+			notesel.value = this.s.infocus.notes
+			tagel.value = this.s.infocus.tags && this.s.infocus.tags.length ? this.s.infocus.tags[0].name : "" 
+			amountel.value = this.s.infocus.amount.toString()
+			merchantel.value = this.s.infocus.merchant
+
+			const date = new Date(this.s.infocus.date * 1000)
+			const datestring = date.getFullYear() + '-' + 
+				String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+				String(date.getDate()).padStart(2, '0')
+			dateel.value = datestring
+		}
+	}
+
+
+
+
+
+	handle_focus = (e: FocusEvent) => {
+
+		// we focus on cat on page load. We don't want to trigger anything at that point
+		if (this.s.inputmode === InputModeE.initial) {
+			this.s.inputmode = InputModeE.cat;
+			return;
+		}
+
+		const target_id = (e.target as HTMLElement).id;
+		const mode = target_id.split('-')[1] as InputModeE;
+		this.s.inputmode = mode;
+
+		if (this.s.inputmode === InputModeE.cat || this.s.inputmode === InputModeE.tag) {
+			ItemHandleInputChange(this.m, this.s, ( e.target as HTMLInputElement ).value)
+		}
+		this.render(true);
+	}
+
+
+
+
+	handle_blur = (_e: FocusEvent) => {
+		ItemHandleUpdateTransactionFromCurrentInputModeInput(
+			this.s.inputmode, this.shadow, this.s.infocus, this.s.highlightcat, this.s.highlighttag
+		)
 	}
 
 
@@ -101,61 +270,77 @@ class VAddTr extends HTMLElement {
 
 		if (this.s.inputmode === InputModeE.saving) return;
 
-		const inputel = e.target as HTMLInputElement;
-		const newval = inputel.value;
-
-		if (e.key === "Tab") {
-			e.preventDefault();
-			this.save_step(e.shiftKey ? 'back' : 'forward')
-			this.sc();
-
-		} 
-		else if (e.key === "Backspace") {
-			ItemHandleReset(this.m, this.s);
-			this.sc();
+		if (e.key === "Enter") {
+			this.save_infocus_transaction()
 		}
-		else if (e.key === "Enter") {
-			this.save_step('neutral')
-			this.s.inputmode = InputModeE.saving
-			this.sc()
-			await this.set_next_focus('standard')
-			this.sc();
-		}
-		else if (e.key === 'ArrowUp') {
-			console.log("addsplit")
+		else if (e.ctrlKey && e.key === 's') {
 			this.addsplit()
 			e.preventDefault();
 		}
-		else if (e.key === 'ArrowDown') {
-			confirm("delete?")
+		else if (e.ctrlKey && e.key === 'd') {
 			this.delete(e)
 			e.preventDefault();
 		}
-		else if (e.key === 'ArrowRight') {
+		else if (e.ctrlKey && e.key === 'l') {
 			this.skip(e)
 			e.preventDefault();
 		}
-		else {
-			if (inputel.value.length < 2) return;
-			ItemHandleKeyup(this.m, this.s, newval)
-			this.sc();
-		} 
 	}
 
 
 
 
-	handle_initing_newtransactions = () => {
-		this.s.newcount = this.m.newtransactions.length
-		this.focus_inputmode()
+	save_infocus_transaction = async (e?:any) => {
 
-		if (this.m.newtransactions.length === 0) {   alert("no new transactions"); return;   }
+		ItemHandleUpdateTransactionFromCurrentInputModeInput(
+			this.s.inputmode, this.shadow, this.s.infocus, this.s.highlightcat, this.s.highlighttag
+		)
+		this.s.inputmode = InputModeE.saving
+		if (!this.s.infocus.catref) { 
+			alert("missing category"); 
+			( this.shadow.querySelector("#input-cat") as HTMLInputElement ).focus()
+			return; 
+		}
 
-		this.s.activetransactions = [this.copynewtr(this.m.newtransactions[0])]
-		this.s.infocus = this.s.activetransactions[0]
-		this.s.infocus.merchant = simplify_merchant_name(this.s.infocus.merchant)
-		this.s.infocusindex = 0
-		this.s.index = 0
+		const cat = this.shadow.querySelector("#input-cat") as HTMLInputElement
+		try { cat.focus({ preventScroll: true } as any); } catch { cat.focus(); }
+
+		await this.set_next_focus('standard')
+
+		this.render(true);
+		if (e?.detail) e.detail.done()
+	}
+
+
+
+
+	 handleSaveDown = (e:Event) => {
+		console.log("savedown")
+		// Needed because iPhone dismisses the keyboard on hitting Save button. This keeps it active
+		try { e.preventDefault(); } catch {}
+		const cat = this.shadow.querySelector('#input-cat') as HTMLInputElement | null
+		if (cat) { try { cat.focus({ preventScroll: true } as any); } catch { cat.focus(); } }
+	 }
+
+
+
+
+	handle_input_change = async (e: KeyboardEvent) => {
+
+		const inputel = e.target as HTMLInputElement;
+		const newval = inputel.value;
+
+		console.log("input change")
+		console.log("inputel: ", inputel)
+		console.log("newval: ", newval)
+
+		if (inputel.value.length < 1 && ( this.s.inputmode === InputModeE.cat || this.s.inputmode === InputModeE.tag )) {
+			ItemHandleFilteredCatsTagsReset(this.m, this.s);
+
+		} else {
+			ItemHandleInputChange(this.m, this.s, newval)
+		}
+		this.render(false);
 	}
 
 
@@ -163,15 +348,20 @@ class VAddTr extends HTMLElement {
 
 	set_next_focus = (mode:'standard'|'skip'|'delete') => new Promise<void>(async res => {
 
-		if (mode === 'standard' && !this.s.infocus.catref) { alert("missing category"); this.set_cleared(); res(); return; }
+		// infocusindex is -1 initially.
+		// matches if either no split or at last split (and not -1 which is the first init)
 
+		if (mode === 'standard' && this.s.infocusindex == -1) {  
+			next_of_newtransactions.call(this, this.s, this.m)
 
-		if (mode === 'standard' && this.s.infocusindex == this.s.activetransactions.length-1) {  // either no split or at last split
+		} else if (mode === 'standard' && this.s.infocusindex == this.s.activetransactions.length-1) {  
 			await this.save_activetransactions() 
 			next_of_newtransactions.call(this, this.s, this.m)
 		} 
 		else if (mode === 'standard') { // there is a split and not at last split
 			this.s.infocusindex++
+			ItemHandleFilteredCatsTagsReset(this.m, this.s);
+			this.s.inputmode = InputModeE.cat
 			this.s.infocus = this.s.activetransactions[this.s.infocusindex]
 			this.s.infocus.merchant = simplify_merchant_name(this.s.infocus.merchant)
 		} 
@@ -179,7 +369,6 @@ class VAddTr extends HTMLElement {
 			next_of_newtransactions.call(this, this.s, this.m)
 		}
 
-		this.set_cleared()
 		res()
 
 
@@ -193,64 +382,17 @@ class VAddTr extends HTMLElement {
 			}
 			else {
 				s.index++
+				ItemHandleFilteredCatsTagsReset(this.m, this.s);
+				this.s.inputmode = InputModeE.cat
 				s.activetransactions = [this.copynewtr(m.newtransactions[s.index])]
 				s.infocusindex = 0
 				s.infocus = s.activetransactions[0]
 				s.infocus.merchant = simplify_merchant_name(s.infocus.merchant)
-			}
 
+
+			}
 		}
 	})
-
-
-
-
-	set_cleared = () => {
-		this.s.inputmode = InputModeE.cat
-		this.focus_inputmode()
-		ItemHandleReset(this.m, this.s)
-		//this.reset_all_inputs()
-	}
-
-
-
-
-	save_step = (direction:'neutral'|'back'|'forward' = 'neutral') => {
-
-		const s = this.s
-		
-		if (s.inputmode === InputModeE.cat) {
-			if (s.highlightcat) s.infocus!.catref = s.highlightcat
-
-			if      (direction === 'forward') s.inputmode = InputModeE.note
-		}
-		else if (s.inputmode === InputModeE.note) {
-			const newval = (this.shadow.querySelector("#input-note") as HTMLInputElement).value
-			if (newval) s.infocus!.notes = newval
-
-			if      (direction === 'forward') s.inputmode = InputModeE.tag
-			else if (direction === 'back') s.inputmode    = InputModeE.cat
-		}
-		else if (s.inputmode === InputModeE.tag) {
-			if ( s.highlighttag ) s.infocus!.tags = [s.highlighttag!]
-
-			if      (direction === 'forward') s.inputmode = InputModeE.amount
-			else if (direction === 'back') s.inputmode    = InputModeE.note
-		}
-		else if (s.inputmode === InputModeE.amount) {
-			const newval = (this.shadow.querySelector("#input-amount") as HTMLInputElement).value
-			if (newval) s.infocus!.amount = Number(newval)
-
-			if      (direction === 'forward') s.inputmode = InputModeE.merchant
-			else if (direction === 'back') s.inputmode    = InputModeE.tag
-		}
-		else if (s.inputmode === InputModeE.merchant) {
-			const newval = (this.shadow.querySelector("#input-merchant") as HTMLInputElement).value
-			if (newval) s.infocus!.merchant = newval
-
-			if      (direction === 'back') s.inputmode    = InputModeE.amount
-		}
-	}
 
 
 
@@ -285,13 +427,15 @@ class VAddTr extends HTMLElement {
 
 	skip = (e:any) => new Promise<void>(async (_res) => {
 		this.s.inputmode = InputModeE.skipped
-		this.sc()
+		this.render()
 
 		await this.set_next_focus('skip')
 
-		this.sc()
+		this.render(true);
 
-		if (e.detail) e.detail.resolved()
+		( this.shadow.querySelector("#input-cat") as HTMLInputElement ).focus()
+
+		if (e.detail) e.detail.done()
 	})
 
 
@@ -309,14 +453,18 @@ class VAddTr extends HTMLElement {
 		}
 
 		await this.set_next_focus('delete')
-		if (e.detail) e.detail.resolved()
-		this.sc()
+		if (e.detail) e.detail.done()
+		this.render(true);
+
+		( this.shadow.querySelector("#input-cat") as HTMLInputElement ).focus()
 	})
 
 
 
 
-	addnew = () => {
+	addnew = (isapple:boolean = false) => {
+
+		const sourceid = isapple ? "7688adbc-13ef-469f-81d7-1e02098d2d06" : "61771fdb-4121-4442-bd4f-057290a64b2e"
 
 		const newtr:NewTransactionT = {
 			sheets_id: null,
@@ -327,21 +475,19 @@ class VAddTr extends HTMLElement {
 			merchant: "",
 			merchant_long: "",
 			tags: [],
-			source: this.m.sources.find(s => s.id === "61771fdb-4121-4442-bd4f-057290a64b2e") as SourceT, //cashpers
+			source: this.m.sources.find(s => s.id === sourceid) as SourceT, //apple or cashpers
 		}
 
 		this.s.activetransactions = [newtr]
-
-		this.s.newcount = this.m.newtransactions.length + 1
-
-		this.focus_inputmode()
 
 		this.s.infocus = this.s.activetransactions[0]
 		this.s.infocus.merchant = simplify_merchant_name(this.s.infocus.merchant)
 		this.s.infocusindex = 0
 		this.s.index = 0
 
-		this.sc()
+		this.render(true);
+
+		( this.shadow.querySelector("#input-cat") as HTMLInputElement ).focus()
 	}
 
 
@@ -355,9 +501,8 @@ class VAddTr extends HTMLElement {
 
 		const nt = this.m.newtransactions[this.s.index]
 		nt.amount = 0
-		const n = JSON.parse(JSON.stringify(nt))
-		this.s.activetransactions.push(n);
-		this.sc();
+		this.s.activetransactions.push(structuredClone(nt));
+		this.render(true);
 
 		( this.shadow.querySelector("#input-cat") as HTMLInputElement ).focus()
 	}
@@ -382,66 +527,20 @@ class VAddTr extends HTMLElement {
 
 
 
-	focus_inputmode = () => {
-		const inputel = this.shadow.querySelector("#input-" + this.s.inputmode) as HTMLInputElement
-		inputel.focus()
-	}
-
-
-
-
 	setcat_from_click = (e:MouseEvent) => { 
 		Set_Cat_From_Click(this.m, this.s, e); 
-		this.save_step('forward'); 
-		this.sc(); 
-		this.focus_inputmode(); 
+		this.s.infocus!.catref = this.s.highlightcat;
+		this.render(true); 
+		const inputel = this.shadow.querySelector("#input-note") as HTMLInputElement
+		inputel.focus()
 	}
 	settag_from_click = (e:MouseEvent) => { 
 		Set_Tag_From_Click(this.m, this.s, e); 
-		this.save_step('forward'); 
-		this.sc(); 
-		this.focus_inputmode(); 
+		this.s.infocus!.tags = [this.s.highlighttag!];
+		this.render(true); 
+		const inputel = this.shadow.querySelector("#input-amount") as HTMLInputElement
+		inputel.focus()
 	}
-
-
-
-
-	parseapplescreenshot = () => new Promise<void>(async (_res) => {   
-		
-		try   { this.m.newtransactions = await ParseAppleScreenShot(this.m.sources); }  
-		catch { alert ("no transactions back"); return; }
-
-		this.handle_initing_newtransactions()
-		this.sc()
-	})
-
-
-
-
-	parseapplecsv = () => new Promise<void>(async (_res) => {   
-		
-		try   { 
-			const r = await $N.FetchLassie("/api/xen/finance/parse_apple_csv_month")  
-			if (!r.ok) { alert("error parsing csv"); return; }  
-			this.m.newtransactions = ( r.data as SheetsTransactionT[] ).map( tr => {
-				return {
-					sheets_id: tr.id,
-					catref: null,
-					notes: tr.notes || "",
-					amount: tr.amount,
-					merchant: tr.merchant,
-					merchant_long: tr.merchant_long,
-					tags: [],
-					source: this.m.sources.find(s => s.id === tr.source_id) as SourceT,
-					date: tr.date,
-				}
-			}).sort((a, b) => a.date - b.date);
-		}
-		catch { alert ("no transactions back"); return; }
-
-		this.handle_initing_newtransactions()
-		this.sc()
-	})
 
 
 
@@ -473,13 +572,18 @@ function simplify_merchant_name(name:string) : string {
 			cname = cash_app_match[1] + " - cashapp";
 		}
 	}
+	else if (name.startsWith("Pending ~ ")) {
+		cname = name.slice(10).trim()
+	}
 
 	return cname
 }
 
 
 
+ 
+ 
+ 
+ export {  }
 
-
-export {  }
 

@@ -1,0 +1,30 @@
+
+#areasview {
+    position: relative;
+    padding: var(--padding-container);
+    box-sizing: border-box;
+    height: 90%;
+    margin-bottom: var(--padding-section-vert);
+    overflow-y: scroll;
+    border-bottom: 1px solid #d8d8d8;
+
+    & .item {
+        padding: 0 0 var(--padding-minipad) 0;
+
+        & h6 {
+            width: 220px;
+            padding-bottom: 7px;
+            font-weight: 400;
+            box-sizing: border-box;
+            background: #bde5f1;
+            margin: 0 5px 5px 0;
+            padding: 3px 6px 5px 7px;
+            border-radius: 5px;
+            display: inline-flex;
+            justify-content: space-between;
+            gap: 10px;
+
+            & .unfixedcosts { opacity: 0.7; }
+        }
+    }
+}

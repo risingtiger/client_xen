@@ -1,0 +1,24 @@
+
+
+<div id="sourcesview" style="display: ${_s.mode === 'view' ? 'block' : 'none'}">
+	${_m.sources.map((src,i) => html`
+		<div class="item" data-i="${i}">
+			<h6 @click="${()=>this.editSource(src.id)}">${src.name} <span class="balance">${src.balance ?? 0}</span></h6>
+		</div>
+	`)}
+</div>
+
+<div id="sourcesedit"  style="display: ${_s.mode === 'edit' ? 'block' : 'none'}">
+	${_s.editing_source ? html`
+		<c-form name="sourceform">
+			<c-in2 label="Name" name="name" type="text" val="${_s.editing_source?.name || ''}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
+			<c-in2 label="Long Name" name="longname" type="text" val="${_s.editing_source?.longname || ''}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
+			<c-in2 label="Description" name="description" type="text" val="${_s.editing_source?.description || ''}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
+			<c-in2 label="Balance" name="balance" type="number" val="${_s.editing_source?.balance ?? 0}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
+			<c-in2 label="Type" name="type" type="dselect" val="${_s.editing_source?.type || ''}" options="cash:cash,checking:checking,creditcard:creditcard,creditcardcycle:creditcardcycle,receivables:receivables,savings:savings" @update="${(e)=>this.prop_updated(e)}"></c-in2>
+			<c-in2 label="Area" name="area" type="dselect" val="${_s.editing_source?.arearef?.id || 'NULL'}" options="NULL:NULL,${_m.areas_options_str}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
+
+			<c-btn type="button" @click="${()=>this.doneEdit()}">Done</c-btn>
+		</c-form>
+	` : ''}
+</div>

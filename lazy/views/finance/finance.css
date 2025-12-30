@@ -1,28 +1,36 @@
 
 
-
 div.wrapper {
     width: 100vw;
-    height: 100vh;
+    height: 100svh;
 }
 
 #calc_transactions_wrapper {
     display: flex;
     justify-content: space-between;
-    height: calc(100svh - 40px);
+    height: calc(100svh - 26px);
     width: 100vw;
     overflow: hidden;
 }
 
 #calcs {
-    width: 48vw;
     height: 100%;
     overflow: hidden;
+}
+#calcs.split_catcalcs {
+	width: 100%;
+}
+#calcs.split_transactions {
+	width: 0%;
+	display: none;
+}
+#calcs.split_both {
+    width: 48vw;
 }
 
 .calcs-grid {
     display: grid;
-    grid-template-rows: 24px auto 1fr 40px;
+    grid-template-rows: 24px auto 1fr 86px;
     height: 100%;
     width: 100%;
 }
@@ -30,8 +38,6 @@ div.wrapper {
 .grid-header {
     background: white;
     box-shadow: inset 0 -5px 0px 0px rgb(134 220 239);
-    
-    
 
 	& .grid-row {
 		max-height: 19px;
@@ -58,7 +64,7 @@ div.wrapper {
 
 .grid-row {
     display: grid;
-    grid-template-columns: 134px repeat(10, 1fr);
+    grid-template-columns: 134px repeat(8, 1fr);
     max-height: 30px;
     min-height: 30px;
     height: 30px;
@@ -72,11 +78,19 @@ div.wrapper {
 }
 
 /* Column backgrounds */
-.col-avgmed {
-    background-color: #abf1ff;
+.col-month, .col-month .num {
+    color: #a6a6a6;
+}
+.parent-cat .col-current.col-month {
+	color: #1e7b5a;
+}
+.col-current {
+    color:#3c3c3c;
 }
 
-.col-budget {
+.col-avgmed {color: #919191;background: #f8f8f8;}
+
+.col-costs {
     background-color: #e5fff4;
 }
 
@@ -85,13 +99,45 @@ div.wrapper {
 }
 
 .col-current {
-    border-left: 1px solid #f6f6f6;
+	position:  relative;
+	border-left: 1px solid #f6f6f6;
+	background-color: #beffe8;
+	color: #618477;
+	
+	
+
+	& > .num {
+		display: block;
+		position:  absolute;
+		top: 0;
+		left: 4px;
+		height: 100%;
+		width: 100%;
+		z-index: 2;
+		color: #618477;
+		font-weight: normal;
+	}
+
+	& > .goal_bar {
+		display: block;
+		position:  absolute;
+		top: 0;
+		left: 0;
+		height: 62%;
+		background-color: #6fe4ba;
+		z-index: 1;
+		min-width: 10%;
+		max-width:  100%;
+	}
 }
+
+
 
 /* Row styling */
 .parent-cat {
     font-weight: bold;
 }
+
 
 
 .parent-cat:first-child {
@@ -128,11 +174,44 @@ div.wrapper {
     transition-duration: 0.7s;
     transition-property: background-color, color;
 }
+.col_costs_n_goal {
+    color: #919191;
+    background: #f8f8f8;
+}
+.col_goal_n_costs {
+	position:relative;
+	padding-left: 5px !important;
+	color: #919191;
+	background: #ffffff;
+	border-right: 1px solid #dfdfdf;
+}
+
+.col_costs::before, .col_goal::before {
+	content: " ";
+	display: block;
+	position:absolute;
+	top: 0;
+	left: 0;
+	width: 3px;
+	height: 17px;
+	margin-right: 5px;
+}
+.col_costs::before {
+	background-color: #7fd6ff;
+}
+.col_goal::before {
+	background-color: #9af1b1;
+}
+
+
 
 .col-avgmed.transfer_state_1 {
     background-color: #00a3c3;
     color: white;
 }
+
+
+
 
 .col-avgmed.transfer_state_2 {
     background-color: #00a3c3;
@@ -211,21 +290,14 @@ div.wrapper {
         box-shadow: inset 0 -5px 0px 0px rgb(134 220 239);
     }
 }
-#calcs.full {
-	width: 100%;
-}
 
 #transactions {
     position: relative;
-    width: 52vw;
-    
-    
-    
-    
+	height: 100%;
 
     & #tablewrap {
         overflow-y: scroll;
-        height: calc(100% - 87px);
+        height: 100%;
     }
 
 
@@ -235,15 +307,15 @@ div.wrapper {
     }
     
     & td.notes {
-        overflow-x: scroll;
+        overflow-x: none;
         text-wrap: nowrap;
 
         & .tag {
-        font-weight: bold;
+			font-weight: bold;
         }
     }
     & td.merchant {
-        overflow-x: scroll;
+        overflow-x: none;
         text-wrap: nowrap;
     }
 
@@ -251,10 +323,27 @@ div.wrapper {
         min-width: 58px;
     }
 }
-#transactions.collapsed {
+#transactions.split_catcalcs {
 	width: 0%;
 	display: none;
 }
+#transactions.split_transactions {
+	width: 100%;
+}
+#transactions.split_both {
+    width: 52vw;
+}
+
+
+vp-finance-overview {
+	display: none;
+	position: absolute;
+	bottom: 200px;
+	background-color: white;
+	padding: 0px;
+	width: 100%;
+}
+
 
 
 vp-finance-balances {
@@ -295,11 +384,11 @@ vp-finance-bucket {
 
 
 footer {
-    position: fixed;
+    position: absolute;
     bottom: 0;
     left: 0;
     width: 100%;
-    height: 40px;
+    height: 25px;
 
 	/*
     & #snapshot {
@@ -332,8 +421,14 @@ footer {
 		z-index: 1000;
 	}
 	*/
-}
 
+	& .allotments_left {
+		display: inline-block;
+		font-size: 16px;
+		font-weight: bold;
+		text-decoration: underline;
+	}
+}
 
 
 #transactiondetails {
@@ -358,119 +453,6 @@ footer {
 
 
 
-
-#paymentsview {
-    padding: var(--padding-container);
-
-    & > section {
-        display: flex;
-        flex-wrap: wrap;
-    }
-
-    & > hr {
-        border: 1px solid #ececec;
-        margin-bottom: 18px;
-    }
-    
-
-    & > section.payments {
-		display: flex;
-
-		& h3 {
-			font-weight: bold;
-			margin-top: 5px;
-			margin-right: 10px;
-			margin-bottom: 10px;
-			color: #989898;
-			font-size: 15px;
-			text-decoration: underline;
-		}
-
-
-        & .payment {
-            position: relative;
-            margin-right: 10px;
-            margin-bottom: 10px;
-            padding: 5px 8px 7px 10px;
-            border-radius: 4px;
-            background: #f9f9f9;
-
-			& h4 {
-				margin-bottom: 0;
-
-				& .isauto {
-					font-size: 11px;
-					font-weight: normal;
-					color: #c2c2c2;
-				}
-				& .isauto_ischecking {
-					font-size: 11px;
-					font-weight: bold;
-					color: #00f123;
-				}
-				& .payee {
-					color: #868686;
-					font-size: 12px;
-				}
-				& .day {
-					color: #7f7f7f;
-					font-size: 11px;
-					font-weight: normal;
-				}
-				& .amount {
-					color: #7f7f7f;
-					font-weight: normal;
-					font-size: 12px;
-				}
-			}
-
-            & .notes {
-				display: none;
-				font-size: 11px;
-            }
-			& .notes.active {
-				display: block;
-			}
-
-
-            & strong {
-                color: #18c3c5;
-            }
-            & strong.extra {
-                color: #a61b78;
-            }
-
-            & .breakdown {
-                display: flex;
-				flex-wrap: wrap;
-
-				& .item {
-					width: 30%;
-
-					& h6 {
-						font-weight: normal;
-						display: block;
-						padding: 0px 0 0px 0;
-						font-size: 12px;
-						color: gray;
-					}
-					& p.notes {
-						display: none;
-						font-weight: normal;
-						padding: 0 0 13px 0;
-					}
-					& p.notes.active {
-						display: block;
-					}
-				}
-            }
-        }
-        & .payment.hasbreakdown {
-            width: 100%;
-        }
-    }
-}
-
 #tagsview {
     
     & h3 {
@@ -480,6 +462,7 @@ footer {
 
 @media only screen and (max-device-width: 767px) {
 
+	/*
     #calcs {
         width: 100%;
     }
@@ -487,6 +470,7 @@ footer {
     #transactions {
         display: none;
     }
+	*/
 
 	.grid-row {
 		grid-template-columns: 134px repeat(5, 1fr);

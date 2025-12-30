@@ -2,13 +2,25 @@
 
 <div id="wrap">
 
-	<p>Available This Month: ${Math.round(_m.available_this_month)}</p>
-	<p>&nbsp;</p>
-	<p>BurnRate Left: ${_m.allarea_stats.burnrateleft}</p>
-	<p>Credit Card Cycle Balance: ${Math.round(_m.creditcardcyclebalance)}</p>
-	<p>Available Funds: ${Math.round(_m.availablefunds)}</p>
+	<h4>Overall</h4>
+	<div>
+		<p>Available For All Trisection 3s: ${Math.round(_m.allarea_stats.available_for_all_trisection_3s)}</p>
+		<p>&nbsp;</p>
+		<p>BurnRate Left: ${Math.round(_m.allarea_stats.burnrateleft)}</p>
+		<p>&nbsp;</p>
+		<p>Credit Card Cycle Balance: ${Math.round(_m.creditcardcyclebalance)}</p>
+		<p>&nbsp;</p>
+		<p>Money In: ${Math.round(_m.moneyin)}</p>
+		<p>&nbsp;</p>
+		<p>&nbsp;</p>
+	</div>
 
-
+	<h4>All Areas Totals</h4>
+	<div>
+		<p>Sum12 Total: ${_m.allarea_stats.sumtotal_12combined}</p>
+		<p>Sum123 Total: ${_m.allarea_stats.sumtotal_123combined}</p>
+		<p>BurnRate Total: ${_m.allarea_stats.burnrate}</p>
+	</div>
 
 	<h4>Checking Accounts</h4>
 	${_m.sources_checking.map(s=> html`
@@ -41,14 +53,6 @@
 		</div>
 	`)}
 
-	<h4>All Areas Totals</h4>
-	<div>
-		<p>Sum12 Total: ${_m.allarea_stats.sumtotal_12combined}</p>
-		<p>Sum123 Total: ${_m.allarea_stats.sumtotal_123combined}</p>
-		<p>BurnRate Total: ${_m.allarea_stats.burnrate}</p>
-		<p>BurnRateLeft Total: ${_m.allarea_stats.burnrateleft}</p>
-		<p>Available For All Trisection 3s: ${_m.allarea_stats.available_for_all_trisection_3s}</p>
-	</div>
 
 </div>
 

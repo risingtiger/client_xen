@@ -1,5 +1,8 @@
 
 
+
+
+
 <!-- FEATURES
 
 - Category Tags. Quadrant 1, 2, 3 are Fixed Bills, Fluxuating Neccessities, and Comforts. Fourth Quadrant is for wants that make a desirable life. What we get to spend after      1,2,3 are covered.
@@ -39,29 +42,25 @@
 
     <div id="calc_transactions_wrapper">
 
-		<div id="calcs" class="${_s.calcs_view_size === 'large' ? 'full' : ''}">
+		<div id="calcs" class="split_${_s.split_mode}">
             <div class="calcs-grid">
                 <!-- Header -->
                 <div class="grid-header">
                     <div class="grid-row header-row">
                         <div class="col-cat">
-                            <a class="${_s.filter.cattags[0] === 1 && _s.filter.cattags[1] === 2 && _s.filter.cattags[2] === 3 && !_s.filter.cattags[3] ? 'active' : ''}" @click="${()=>this.filter_by_cattag([1,2,3])}" data-cattags='1,2,3'>&nbsp;○&nbsp;</a>
-
                             <a class="${_s.filter.cattags[0] === 1 && !_s.filter.cattags[1] ? 'active' : ''}" @click="${()=>this.filter_by_cattag([1])}" data-cattags='1'>&nbsp;1&nbsp;</a>
                             <a class="${_s.filter.cattags[0] === 2 && !_s.filter.cattags[1] ? 'active' : ''}" @click="${()=>this.filter_by_cattag([2])}" data-cattags='2'>&nbsp;2&nbsp;</a>
                             <a class="${_s.filter.cattags[0] === 3 && !_s.filter.cattags[1] ? 'active' : ''}" @click="${()=>this.filter_by_cattag([3])}" data-cattags='3'>&nbsp;3&nbsp;</a>
-                            <a class="${_s.filter.cattags[0] === 4 && !_s.filter.cattags[1] ? 'active' : ''}" @click="${()=>this.filter_by_cattag([4])}" data-cattags='4'>&nbsp;4&nbsp;</a>
-
-                            <a class="${_s.filter.cattags[0] === 1 && _s.filter.cattags[1] === 2 && _s.filter.cattags[2] === 3 && _s.filter.cattags[3] === 4 ? 'active' : ''}" @click="${()=>this.filter_by_cattag([1,2,3,4])}" data-cattags='1,2,3,4'>&nbsp;●&nbsp;</a>
                         </div>
 
+
                         ${_s.months_display_str.map((m,i) => html`
-                            <div class="col-month ${i === _s.months.length-1 ? 'col-current' : ''}" @click="${(e)=>this.calcmonth_clicked(e)}" data-month_i="${i}">${m}</div>
+							<div class="col-month ${i === _s.months_display_str.length-1 ? 'col-current' : ''}" @click="${(e)=>this.calcmonth_clicked(e)}" data-month_i="${i}">${_s.months_display_str[i]}</div>
                         `)}
 
-                        <div class="col-avgmed" @click="${()=>this.avgormed_clicked()}">${_s.prefs.avgormed === 1 ? 'A' : 'M'}</div>
-                        <div class="col-budget">B</div>
-                        <div class="col-bucket"><i class="icon-bucket" @click="${()=>{ this.ShowAddMachineUI(); }}" style="font-size: 11px;position: relative;top: 2px;"></i></div>
+                        <div class="col-avgmed" @click="${()=>this.avgormed_clicked()}">${_s.prefs.avgormed === 1 ? 'Avg' : 'Med'}</div>
+
+						<div class="col_goal_n_costs">GC</div>
                     </div>
                 </div>
 
@@ -70,29 +69,37 @@
                     ${_m.catcalcs.map((c,i) => html`
                         <!-- Parent cat row -->
                         <div class="grid-row cat-row parent-cat">
-                            <div class="col-cat touch_catquad" @click="${(e)=>this.calccat_clicked(e)}" data-i="${i}">${c.catref.name}</div>
-                            
+                            <div class="col-cat touch_catquad">${c.catref.name}</div>
+
                             ${_s.months.map((m,mi) => html`
-                                <div class="col-month touch_month ${mi === _s.months.length-1 ? 'col-current' : ''}">${Math.round(c.sums[mi])}</div>
+                                <!-- <div class="col-month touch_month ${mi === _s.months.length-1 ? 'col-current' : ''}" @click="${(e)=>this.calcamount__clicked(e)}" data-i="${i}">${Math.round(c.sums[mi])}</div> -->
+                                <div class="col-month touch_month ${mi === _s.months.length-1 ? 'col-current' : ''}" data-i="${i}">--</div>
                             `)}
-                            
-                            <div class="col-avgmed touch_avgmed">${Math.round(c.avg)}</div>
-                            <div class="col-budget">${c.budget}</div>
-                            <div class="col-bucket">&nbsp;</div>
+
+                            <!-- <div class="col-avgmed touch_avgmed">${Math.round(c.avg)}</div> -->
+                            <div class="col-avgmed touch_avgmed">--</div>
+
+							<!-- <div class="col_${c.goal ? 'goal' : ( c.costs ? 'costs' : 'no_goal_or_costs' )}">${c.goal ? c.goal : ( c.costs ? c.costs : '' )}</div> -->
+							<div class="col_goal_n_costs"></div>
                         </div>
 
                         <!-- Sub cat rows -->
                         ${c.subsref.map((cs,ii) => html`
                             <div class="grid-row cat-row sub-cat ${ii === c.subsref.length-1 ? 'last-subcat' : ''}" data-catcalc_index="${i}" data-catcalc_sub_index="${ii}">
-                                <div class="col-cat touch_catquad sub" @click="${(e)=>this.calccat_clicked(e)}" data-i="${i}" data-ii="${ii}">${cs.catref.tags[0]} ${cs.catref.name}</div>
-                                
+                                <div class="col-cat touch_catquad sub" @click="${(e)=>this.calccatname_clicked(e)}" data-i="${i}" data-ii="${ii}">${cs.catref.name}</div>
+
                                 ${_s.months.map((m,mi) => html`
-                                    <div class="col-month touch_month ${mi === _s.months.length-1 ? 'col-current' : ''}">${Math.round(cs.sums[mi])}</div>
+									<div class="col-month touch_month ${mi === _s.months.length-1 ? 'col-current' : ''}" @click="${(e)=>this.calcamount__clicked(e)}" data-mi="${mi}" data-i="${i}" data-ii="${ii}">
+										${mi === _s.months.length-1 && cs.catref.goal ? html`<span class="goal_bar" style="width:${cs.sums[mi]/cs.catref.goal*100}%;">&nbsp;</span>` : ''}
+										<!-- <span class="num">${Math.round(cs.sums[mi])}</span> -->
+										<span class="num">${Math.round(cs.sums[mi])}</span>
+									</div>
                                 `)}
-                                
+
+
                                 <div class="col-avgmed touch_avgmed">${Math.floor((_s.prefs.avgormed === 1 ? cs.avg : cs.med))}</div>
-                                <div class="col-budget">${cs.catref.budget}</div>
-                                <div class="col-bucket transferable" data-cat_id="${cs.catref.id}" @click="${(e)=> this.bucket_select(e)}">${_s.cat_buckets.find(cbr=>cbr.catref === cs.catref)?.remainder??''}</div>
+
+								<div class="col_goal_n_costs col_${cs.catref.costs_total ? 'costs' : (cs.catref.goal ? 'goal' : 'none')}">${cs.catref.costs_total || cs.catref.goal || ''}</div>
                             </div>
                         `)}
                     `)}
@@ -102,14 +109,13 @@
                     ${_m.catcalcs.map((c,i) => html`
                         <div class="grid-row cat-row parent-cat">
                             <div class="col-cat touch_catquad">&nbsp;</div>
-                            
+
                             ${_s.months.map((m,mi) => html`
                                 <div class="col-month touch_month ${mi === _s.months.length-1 ? 'col-current' : ''}">&nbsp;</div>
                             `)}
-                            
+
                             <div class="col-avgmed touch_avgmed">&nbsp;</div>
-                            <div class="col-budget">&nbsp;</div>
-                            <div class="col-bucket">&nbsp;</div>
+							<div class="col_goal_n_costs"></div>
                         </div>
                     `)}
 				</div>
@@ -117,27 +123,45 @@
                 <!-- Footer -->
                 <div class="grid-footer">
                     <div class="grid-row totals-row">
-                        <div class="col-cat">Totals</div>
-                        
+                        <div class="col-cat">
+							Totals ${_s.filter.cattags[0]}
+						</div>
+
                         ${_s.months.map((m,i) => html`
                             <div class="col-month ${i === _s.months.length-1 ? 'col-current' : ''}">${Math.round(_m.catcalcstotals.sums[i])}</div>
                         `)}
-                        
-                        <div class="col-avgmed">${Math.round(_m.catcalcstotals.avg)}</div>
-                        <div class="col-budget">${Math.round(_m.catcalcstotals.budget)}</div>
-                        <div class="col-bucket">
-                            <div class="bucket-totals">
-                                <div class="remainder-total">
-                                    ${(_s.filter.cattags[0] === 3 || _s.filter.cattags[0] === 4) ? _s.area_quad_bucket_totals.remainder : ''}
-                                </div>
-                                <div class="unassigned" @click="${(e)=> this.bucket_select(e)}">
-                                    ${(_s.filter.cattags[0] === 3 || _s.filter.cattags[0] === 4) ? _s.area_quad_bucket_totals.unassigned : ''}
-                                </div>
-                                <div class="bucket-amount" @click="${()=>this.bucket_manage()}">
-                                    ${(_s.filter.cattags[0] === 3 || _s.filter.cattags[0] === 4) ? _m.areas.find(m=>_s.filter.arearef===m)['bucketquad'+_s.filter.cattags[0]] : ''}
-                                </div>
-                            </div>
-                        </div>
+
+                        <div class="col-avgmed">${Math.round(_s.prefs.avgormed === 1 ? _m.catcalcstotals.avg : _m.catcalcstotals.med)}</div>
+						<div class="col_allotment">
+							${Math.round(_m.catcalcstotals.allotment) }
+						</div>
+                    </div>
+                    <div class="grid-row totals-row">
+                        <div class="col-cat">
+							Totals 1 2
+						</div>
+
+
+                        ${_s.months.map((m,i) => html`
+                            <div class="col-month ${i === _s.months.length-1 ? 'col-current' : ''}">${Math.round(_m.catcalcstotals1_2.sums[i])}</div>
+                        `)}
+
+                        <div class="col-avgmed">${Math.round(_s.prefs.avgormed === 1 ? _m.catcalcstotals1_2.avg : _m.catcalcstotals1_2.med)}</div>
+						<div class="col_allotment">
+							${Math.round(_m.catcalcstotals1_2.allotment) }
+						</div>
+                    </div>
+                    <div class="grid-row totals-row">
+                        <div class="col-cat">
+							Totals 1 2 3
+						</div>
+
+                        ${_s.months.map((m,i) => html`
+                            <div class="col-month ${i === _s.months.length-1 ? 'col-current' : ''}">${Math.round(_m.catcalcstotals1_2_3.sums[i])}</div>
+                        `)}
+
+                        <div class="col-avgmed">${Math.round(_s.prefs.avgormed === 1 ? _m.catcalcstotals1_2_3.avg : _m.catcalcstotals1_2_3.med)}</div>
+						<div class="col_allotment">${Math.round(_m.catcalcstotals1_2_3.allotment)}</div>
                     </div>
                 </div>
             </div>
@@ -145,7 +169,7 @@
 
 
 
-        <div id="transactions" class="${_s.calcs_view_size === 'large' ? 'collapsed' : ''}">
+        <div id="transactions" class="split_${_s.split_mode}">
             <div id="tablewrap">
                 <table>
                     <thead>
@@ -181,32 +205,33 @@
 
 
     <footer class="touch_switch_calcs_transactions">
+		${localStorage.getItem("user_email") === "rfs@risingtiger.com" ? html`
 		<div id="footactions">
 			<a @click="${()=>{this.reset()}}">&nbsp;R&nbsp;</a>
 			&nbsp;
 			<a @click="${()=>{this.toggle_show_tags()}}">&nbsp;T&nbsp;</a>
 			&nbsp;
-			<a @click="${()=>{this.s.paymentsview.show_ui = this.s.paymentsview.show_ui === 1 ? 2 : 1; this.sc()}}">&nbsp;P&nbsp;</a>
+			<a @click="${()=>{this.s.paymentsview.show_ui = this.s.paymentsview.show_ui === 1 ? 2 : 1; this.render()}}">&nbsp;P&nbsp;</a>
 			&nbsp;
-			<a @click="${()=>{this.s.catsview.show_ui=1;this.sc();}}">&nbsp;C&nbsp;</a>
+			<a @click="${()=>{this.s.catsview.show_ui=1;this.render();}}">&nbsp;C&nbsp;</a>
+			&nbsp;
+			<a @click="${()=>{this.s.sourcesview.show_ui=1;this.render();}}">&nbsp;S&nbsp;</a>
 			&nbsp;
 			<a @click="${()=>{this.show_balances()}}">&nbsp;B&nbsp;</a>
 			&nbsp;
-			<a @click="${()=>{this.show_snapshot()}}">&nbsp;S&nbsp;</a>
+			<a @click="${()=>{this.set_split_mode(true); this.render();}}">&nbsp;V&nbsp;</a>
 			&nbsp;
-
-			<a @click="${()=>{this.set_calcs_view_size_from_ui('small')}}">&nbsp;MS&nbsp;</a>
+			<a @click="${()=>{this.set_calcs_month_columns_count(3)}}">&nbsp;MS&nbsp;</a>
 			&nbsp;
-			<a @click="${()=>{this.set_calcs_view_size_from_ui('medium')}}">&nbsp;MM&nbsp;</a>
-			&nbsp;
-			<a @click="${()=>{this.set_calcs_view_size_from_ui('large')}}">&nbsp;ML&nbsp;</a>
+			<a @click="${()=>{this.set_calcs_month_columns_count(12)}}">&nbsp;ML&nbsp;</a>
 			&nbsp;
 			<a @click="${()=>{this.download_csv();}}">&nbsp;D&nbsp;</a>
 			&nbsp;
 			<a @click="${()=>{this.download_transactions_to_csv();}}">&nbsp;DD&nbsp;</a>
 			&nbsp;
-			<a @click="${()=>{this.chat_about_transactions();}}">&nbsp;A&nbsp;</a>
+			<a class="allotments_left">${Math.round(_s.allotment_left)} -- ${Math.round(_s.allotment_left1_2)}</a>
 		</div>
+		` : '' }
 
 		<div id="totalies">
 		</div>
@@ -218,156 +243,67 @@
 
     </footer>
 
-	${ _s.balancesview_showui !== 0 ? html`
-	<vp-finance-balances></vp-finance-balances>
-	` : '' }
 
-	${ _s.snapshotview_showui !== 0 ? html`
-	<vp-finance-snapshot></vp-finance-snapshot>
-	` : '' }
-
-	${ _s.bucketview_showui !== 0 ? html`
-    <vp-finance-bucket></vp-finance-bucket>
-	` : '' }
-
-	${ _s.editview.show_ui !== 0 ? html`
-		<c-ol2 title="Transaction Details" @close="${()=> { this.s.editview.show_ui = 0; this.sc(); } }">
-			<vp-finance-edittransaction transaction="${_s.editview.transaction_id}"></vp-finance-edittransaction>
-		</c-ol2>
-	` : '' }
-
-
-	${ _s.catsview.show_ui !== 0 ? html`
-		<c-ol2 title="${_s.filter.arearef.longname} Cats" ?close="${this.s.catsview.show_ui === 2}" @close="${()=> { this.s.catsview.show_ui = 0; this.sc(); } }">
-			<vp-cats area_id="${_s.filter.arearef.id}"></vp-cats>
-		</c-ol2>
-	` : ''}
-
-	${ _s.paymentsview.show_ui !== 0 ? html`
-		<c-ol2 title="Payments" ?close="${this.s.paymentsview.show_ui === 2}" @close="${()=> { this.s.paymentsview.show_ui = 0; this.sc(); } }">
-
-		<div id="paymentsview">
-
-			<section class="payments">
-				<h3>Cycle Credit</h3>
-				${_m.payments.filter(p=>p.type === 'cyclecredit').sort((a,b)=> a.payee.localeCompare(b.payee)).map(p=>this.payments_r(p))}
-			</section>
-			<hr>
-			<section class="payments">
-				<h3>Carloans</h3>
-				${_m.payments.filter(p=>p.type === 'carloan').sort((a,b)=> a.payee.localeCompare(b.payee)).map(p=>this.payments_r(p))}
-			</section>
-			<hr>
-			<section class="payments">
-				<h3>DebtPay</h3>
-				${_m.payments.filter(p=>p.type === 'debtpay').sort((a,b)=> a.payee.localeCompare(b.payee)).map(p=>this.payments_r(p))}
-			</section>
-			<hr>
-			<section class="payments">
-				<h3>Utilities n Rent</h3>
-				${_m.payments.filter(p=>p.type === 'rent' || p.type === 'utilities').sort((a,b)=> a.payee.localeCompare(b.payee)).map(p=>this.payments_r(p))}
-			</section>
-			<hr>
-			<section class="payments">
-				<h3>Subscriptions</h3>
-				${_m.payments.filter(p=>p.type === 'subscription').sort((a,b)=> a.payee.localeCompare(b.payee)).map(p=>this.payments_r(p))}
-			</section>
-
-			<!--
-			<table>
-				<tr>
-					<th>payee</th>
-					<th>type</th>
-					<th>day</th>
-					<th>auto</th>
-					<th>amount</th>
-					<th>nointerest</th>
-					<th>pingschecking</th>
-					<th>notes</th>
-				</tr>
-
-				${_m.payments.map((p,i) => html`
-					<tr>
-						<td>${p.payee}</td>
-						<td>${p.type}</td>
-						<td>${p.day}</td>
-						<td>${p.is_auto ? 'yes' : 'no'}</td>
-						<td>${p.amount}</td>
-						<td>${p.nointerest_ifby}</td>
-						<td>${p.is_auto && p.payment_source && p.payment_source.name === 'checkpers' ? 'yes' : ''}</td>
-						<td><span>${p.notes}</span></td>
-					</tr>
-
-					${p.breakdown.map(b=> html`
-					<tr>
-						<td>${b.split(':')[0]}</td>
-						<td>aggregate</td>
-						<td>0</td>
-						<td>-</td>
-						<td>${b.split(':')[1]}</td>
-						<td>-</td>
-						<td>-</td>
-						<td>-</td>
-					</tr>
-					`)}
-				`)}
-			</table>
-	-->
-		</div>
-
-		</c-ol2>
-	` : ''}
-
-	${ _s.tagsview.show_ui !== 0 ? html`
-		<c-ol2 title="Tags"  ?close="${this.s.tagsview.show_ui === 2}" @close="${()=> { this.s.tagsview.show_ui = 0; this.sc(); } }">
-
-			<div id="tagsview">
-
-				<ul class="items">
-					${_s.tagsview.tagtotals.map(t=>html`
-					<li @click="${(e)=>{this.tagsview_tag_clicked(e)}}" data-id="${t.id}">
-							<h5>${t.name}</h5>
-							<p>
-								<span>${Math.round(t.total)}</span>
-							</p>
-						</li>
-					`)}
-				</ul>
-
-			</div>
-
-		</c-ol2>
-	` : ''}
 
 </div>
 
 
 
 
+${ _s.balancesview.show_ui !== 0 ? html`
+	<c-ol2 title="Balances" ?close="${this.s.balancesview.show_ui === 2}" @close="${()=> { this.s.balancesview.show_ui = 0; this.render(); } }">
+		<vp-financebalances 
+			area_id="${_s.filter.arearef.id}"
+			burnrateleft="${this.s.burnamountleft}">
+		</vp-financebalances>
+	</c-ol2>
+` : '' }
+
+${ _s.editview.show_ui !== 0 ? html`
+	<c-ol2 title="Transaction Details" actionterm="save" @close="${()=> { this.s.editview.show_ui = 0; this.render(); } }">
+		<vp-financeedittransaction transaction="${_s.editview.transaction_id}"></vp-financeedittransaction>
+	</c-ol2>
+` : '' }
 
 
-
-<!--
-${ _s.transactiondetails.show_ui !== 0 ? html`
-    <c-ol shape="1" title="Details" @close="${()=> this.transactiondetails_close() }">
-        <div id="transactiondetails">
-            <h4>Transaction Details</h4>
-            <ul class="items">
-                <li><h5>Date</h5><p>${(new Date(_s.transactiondetails.t.ts*1000)).toLocaleDateString()}</p></li>
-                <li><h5>Merchant</h5><p>${_s.transactiondetails.t.merchant}</p></li>
-                <li><h5>Amount</h5><p>${_s.transactiondetails.t.amount}</p></li>
-                <li><h5>Category</h5><p>${_s.transactiondetails.t.cat.parent.area.name} :: ${_s.transactiondetails.t.cat.parent.name} :: ${_s.transactiondetails.t.cat.name}</p></li>
-                <li><h5>Source</h5><p>${_s.transactiondetails.t.source.name}</p></li>
-                <li><h5>Tags</h5><p>${_s.transactiondetails.t.tags.map(tag=>html`<span>${tag}</span>`)}</p></li>
-                <li><h5>Note</h5><p>${_s.transactiondetails.t.notes}</p></li>
-                <li><h5>ID</h5><p>${_s.transactiondetails.t.id}</p></li>
-            </ul>
-        </div>
-    </c-ol>
+${ _s.catsview.show_ui !== 0 ? html`
+	<c-ol2 title="${_s.filter.arearef.longname} Cats" ?close="${this.s.catsview.show_ui === 2}" @close="${()=> { this.s.catsview.show_ui = 0; this.render(); } }">
+		<vp-financecats area_id="${_s.filter.arearef.id}" mode="${_s.catsview.mode}"  editing_cat_id="${_s.catsview.editing_cat_id}"></vp-financecats>
+	</c-ol2>
 ` : ''}
--->
 
+${ _s.sourcesview.show_ui !== 0 ? html`
+	<c-ol2 title="Sources" ?close="${this.s.sourcesview.show_ui === 2}" @close="${()=> { this.s.sourcesview.show_ui = 0; this.render(); } }">
+		<vp-financesources></vp-financesources>
+	</c-ol2>
+` : ''}
 
+${ _s.paymentsview.show_ui !== 0 ? html`
+	<c-ol2 title="Payments" ?close="${this.s.paymentsview.show_ui === 2}" @close="${()=> { this.s.paymentsview.show_ui = 0; this.render(); } }">
+		<vp-financepayments></vp-financepayments>
+	</c-ol2>
+` : ''}
+
+${ _s.tagsview.show_ui !== 0 ? html`
+	<c-ol2 title="Tags"  ?close="${this.s.tagsview.show_ui === 2}" @close="${()=> { this.s.tagsview.show_ui = 0; this.render(); } }">
+
+		<div id="tagsview">
+
+			<ul class="items">
+				${_s.tagsview.tagtotals.map(t=>html`
+				<li @click="${(e)=>{this.tagsview_tag_clicked(e)}}" data-id="${t.id}">
+						<h5>${t.name}</h5>
+						<p>
+							<span>${Math.round(t.total)}</span>
+						</p>
+					</li>
+				`)}
+			</ul>
+
+		</div>
+
+	</c-ol2>
+` : ''}
 
 
 

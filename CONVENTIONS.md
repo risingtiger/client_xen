@@ -1,1 +1,0 @@
-/Users/dave/Code/niftyclient/CONVENTIONS.md

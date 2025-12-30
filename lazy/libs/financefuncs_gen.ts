@@ -25,15 +25,15 @@ function get_months(month_end:Date, count:num) : Date[] {
 
 
 /*
-function month_budget_total(area:AreaT, cats:CatT[]) : num {
+function month_costs_total(area:AreaT, cats:CatT[]) : num {
 
-    let budget_total = 0
+    let costs_total = 0
 
     cats.filter(c=>c.area === area).forEach(cat => {
-        budget_total += cat.subs?.reduce((a,b)=> a+b.budget!, 0) as number
+        costs_total += cat.subs?.reduce((a,b)=> a+b.costs!, 0) as number
     })
 
-    return budget_total
+    return costs_total
 }
 */
 

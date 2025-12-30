@@ -2,9 +2,8 @@
 import { $NT, CMechLoadedDataT } from "../../../../../defs_client_symlink.js"
 import { num } from "../../../../../defs_server_symlink.js"
 import { AreaT, CatT, TransactionT, SourceT, FilterT } from "../../../../../defs_instance_server_symlink.js"
-import { area_quad_bucket_totals, cat_buckets_info } from "../../../../libs/financefuncs_bucket.js"
 import { filter_transactions } from "../../../../libs/financefuncs_sortfilter.js"
-import { CatCalcs, CatCalcTotals  } from '../../../../libs/financefuncs_catcalcs.js'
+import { CatCalcs, CatCalcTotals, CatCalcTotalsCombined, CatCalcTotalsOfCatTag, CatCalcTotalsOfFilter  } from '../../../../libs/financefuncs_catcalcs.js'
 
 declare var render: any;
 declare var html: any;
@@ -60,7 +59,7 @@ type ModelT = {
 	balances: {id:string, balance:number}[]
 	available_this_month: number,
 	burnrateleft:number,
-	availablefunds:number,
+		moneyin:number,
 	creditcardcyclebalance:number,
 	area_stats: AreaStatT[],
 	allarea_stats: AllAreaStatsT
@@ -104,7 +103,7 @@ class VPFinanceBalances extends HTMLElement {
 		sources_checking:[],
 		sources_receivables:[],
 		balances:[],
-		availablefunds: 0,
+		moneyin: 0,
 		creditcardcyclebalance: 0,
 		area_stats: [],
 		allarea_stats: { sumtotal_12combined: 0, sumtotal_123combined: 0, burnrate: 0, burnrateleft: 0, available_for_all_trisection_3s: 0 }
@@ -139,15 +138,8 @@ class VPFinanceBalances extends HTMLElement {
 
 
 
-    async connectedCallback() {   
-
-		const balances = await $N.FetchLassie("/api/xen/finance/sheets/get_balances")
-		if (!balances.ok) {   alert ("could not get balances"); return; }
-
-		this.m.balances = balances.data as {balance:number, id:string}[]
-
-		await $N.CMech.ViewPartConnectedCallback(this)
-		this.dispatchEvent(new Event('hydrated'));
+    connectedCallback() {   
+		$N.CMech.RegisterViewPart(this)
     }
 
 
@@ -156,7 +148,7 @@ class VPFinanceBalances extends HTMLElement {
 	async attributeChangedCallback(name:string, oldval:string|boolean|number, newval:string|boolean|number) {
 		await $N.CMech.AttributeChangedCallback(this, name, oldval, newval);
 		this.parsevalues()
-		this.sc();
+		this.render();
 	}
 
 
@@ -169,13 +161,29 @@ class VPFinanceBalances extends HTMLElement {
 
 
 
-	kd = (loadeddata: CMechLoadedDataT, _loadstate:string) =>  {
-		this.m.areas        = loadeddata.get("1:areas")! as AreaT[]
-		this.m.sources      = loadeddata.get("1:sources") as SourceT[]
-		this.m.transactions = loadeddata.get("1:transactions") as TransactionT[]
-		this.m.cats         = loadeddata.get("1:cats") as CatT[]
+	ingest = (loadeddata: CMechLoadedDataT) =>  {
+		this.m.areas        = loadeddata.get("areas")! as AreaT[]
+		this.m.sources      = loadeddata.get("sources") as SourceT[]
+		this.m.transactions = loadeddata.get("transactions") as TransactionT[]
+		this.m.cats         = loadeddata.get("cats") as CatT[]
 
 		this.parsevalues()
+	}
+
+
+
+
+	async hydrated() {   }
+
+
+
+
+	async revealed () {   
+		const balances = await $N.FetchLassie("/api/xen/finance/sheets/get_balances")
+		if (!balances.ok) {   alert ("could not get balances"); return; }
+
+		this.m.balances = balances.data as {balance:number, id:string}[]
+		this.render();   
 	}
 
 
@@ -197,64 +205,55 @@ class VPFinanceBalances extends HTMLElement {
 		thismonth.setUTCDate(1)
 		thismonth.setUTCHours(0, 0, 0, 0)
 
-		const daterange_thismonth = [new Date(thismonth), new Date(thismonth)]
-
-		const filter_template:FilterT = { arearef: null, parentcatref: null, catref: null, sourceref: null, tagsref: null, daterange: null, merchant: null, note: null, amountrange: null, cattags: [] };
+		const daterange_thismonth = [new Date(thismonth), new Date(thismonth)] as [Date, Date]
 
 		this.m.area_stats = []
 		this.m.allarea_stats = { sumtotal_12combined: 0, sumtotal_123combined: 0, burnrate: 0, burnrateleft: 0, available_for_all_trisection_3s: 0 }
 
 		this.m.areas.forEach(area => {
-			const filter_area:FilterT = { ...filter_template, daterange: [daterange_thismonth[0], daterange_thismonth[1]], arearef: area }
-			const filtered_transactions = filter_transactions(this.m.transactions, filter_area)
-			// Compute combined stats for cattags [1,2]
-			const catcalcs12 = CatCalcs(filtered_transactions, area, [1,2], this.m.cats, [daterange_thismonth[0], daterange_thismonth[0]])
-			const totals12 = CatCalcTotals(catcalcs12, area, [1,2])
-			const sumtotal_12combined = totals12.sums[totals12.sums.length - 1]
-			const burnrate = area.unfixedcosts + totals12.costs
-			const burnrateleft = burnrate - sumtotal_12combined
-			// Compute combined stats for cattags [1,2,3]
-			const catcalcs123 = CatCalcs(filtered_transactions, area, [1,2,3], this.m.cats, [daterange_thismonth[0], daterange_thismonth[0]])
-			const totals123 = CatCalcTotals(catcalcs123, area, [1,2,3])
-			const sumtotal_123combined = totals123.sums[totals123.sums.length - 1]
+			const catcalcstotals1     = CatCalcTotalsOfCatTag(this.m.transactions, this.m.cats, daterange_thismonth, area, daterange_thismonth, 1)
+			const catcalcstotals2     = CatCalcTotalsOfCatTag(this.m.transactions, this.m.cats, daterange_thismonth, area, daterange_thismonth, 2)
+			const catcalcstotals3     = CatCalcTotalsOfCatTag(this.m.transactions, this.m.cats, daterange_thismonth, area, daterange_thismonth, 3)
+			const catcalcstotals1_2   = CatCalcTotalsCombined([ catcalcstotals1, catcalcstotals2 ])
+			const catcalcstotals1_2_3 = CatCalcTotalsCombined([ catcalcstotals1, catcalcstotals2, catcalcstotals3 ])
+
+			const sum1_2              = catcalcstotals1_2.sums[catcalcstotals1_2.sums.length - 1]
+			const sum1_2_3            = catcalcstotals1_2_3.sums[catcalcstotals1_2_3.sums.length - 1]
+
 			this.m.area_stats.push({
 				arearef: area,
-				sumtotal_12combined: Math.round(sumtotal_12combined),
-				burnrate: Math.round(burnrate),
-				burnrateleft: Math.round(burnrateleft),
-				sumtotal_123combined: Math.round(sumtotal_123combined)
+				sumtotal_12combined:  Math.round(sum1_2),
+				burnrate:             Math.round(catcalcstotals1_2.allotment),
+				burnrateleft:         Math.round(catcalcstotals1_2.allotment_left),
+				sumtotal_123combined: Math.round(sum1_2_3)
 			})
 
-			// accumulate totals for all areas
-			this.m.allarea_stats.sumtotal_12combined += Math.round(sumtotal_12combined)
-			this.m.allarea_stats.sumtotal_123combined += Math.round(sumtotal_123combined)
-			this.m.allarea_stats.burnrate += Math.round(burnrate)
-			this.m.allarea_stats.burnrateleft += Math.round(burnrateleft)
+			this.m.allarea_stats.sumtotal_12combined += Math.round(sum1_2)
+			this.m.allarea_stats.sumtotal_123combined += Math.round(sum1_2_3)
+			this.m.allarea_stats.burnrate += Math.round(catcalcstotals1_2.allotment)
+			this.m.allarea_stats.burnrateleft += Math.round(catcalcstotals1_2.allotment_left)
 		})
 
 		// area is being ignored for now. I'll circle back to it
 		this.m.area  = this.m.areas.find((a:AreaT)=>a.id===this.a.area_id) as AreaT
-
 
 		this.m.sources_creditcardcycle = add_live_balance(this.m.sources.filter(s => s.type === 'creditcardcycle'))
 		this.m.sources_savings = add_live_balance(this.m.sources.filter(s => s.type === 'savings'))
 		this.m.sources_checking = add_live_balance(this.m.sources.filter(s => s.type === 'checking'))
 		this.m.sources_receivables = add_live_balance(this.m.sources.filter(s => s.type === 'receivables'))
 
-		this.m.availablefunds = this.m.sources_checking.reduce((acc, s)    => acc + s.deduced_balance, 0) + 
-						this.m.sources_savings.reduce((acc, s)     => acc + s.deduced_balance, 0) + 
+
+		this.m.moneyin = this.m.sources_checking.reduce((acc, s)    => acc + s.deduced_balance, 0) + 
 						this.m.sources_receivables.reduce((acc, s) => acc + s.deduced_balance, 0)
 
-		this.m.burnrateleft         = Number(this.a.burnrateleft)
 		this.m.creditcardcyclebalance = this.m.sources_creditcardcycle.reduce((acc, s) => acc + s.deduced_balance, 0)
-		this.m.available_this_month = this.m.availablefunds - this.m.creditcardcyclebalance - this.m.burnrateleft
-		this.m.allarea_stats.available_for_all_trisection_3s = this.m.availablefunds - this.m.creditcardcyclebalance - this.m.burnrateleft
+		this.m.allarea_stats.available_for_all_trisection_3s = this.m.moneyin - this.m.creditcardcyclebalance - this.m.allarea_stats.burnrateleft
 
 	}
 
 
 
-    sc(state_changes = {}) {   
+    render(state_changes = {}) {   
         this.s = Object.assign(this.s, state_changes)
         render(this.template(this.s, this.m), this.shadow);   
     }
@@ -317,27 +316,6 @@ class VPFinanceBalances extends HTMLElement {
 
 
 
-    getAllAreasAndCatBucketInfo(areas:AreaT[], cats:CatT[], transactions:TransactionT[]): AllAreasBucketInfoT {
-		let spentAgainstBucketsTotal = 0;
-		let remaingAgainstBucketsTotal = 0;
-		let bucketsTotal = 0;
-
-		areas.forEach(area => {
-			const catBucketsInfo = cat_buckets_info(area, cats, transactions);
-			const quad3Totals    = area_quad_bucket_totals(area, catBucketsInfo, 3)
-			const quad4Totals    = area_quad_bucket_totals(area, catBucketsInfo, 4)
-
-			spentAgainstBucketsTotal += (quad3Totals.spent + quad4Totals.spent)
-			remaingAgainstBucketsTotal += (quad3Totals.remainder + quad4Totals.remainder)
-			bucketsTotal += area.bucketquad3 + area.bucketquad4
-		});
-
-		return {
-			spentAgainstBucketsTotal,
-			remaingAgainstBucketsTotal,
-			bucketsTotal
-		}
-    }
 
 
 
@@ -346,7 +324,7 @@ class VPFinanceBalances extends HTMLElement {
 
 		const target              = e.currentTarget as HTMLInputElement
 		const id                  = target.dataset.id
-		const balance             = target.dataset.balance
+		// const balance             = target.dataset.balance
 		
 		const inputField          = document.createElement('input');
 		inputField.type           = 'number';
@@ -389,4 +367,8 @@ class VPFinanceBalances extends HTMLElement {
 
 
 
-customElements.define('vp-finance-balances', VPFinanceBalances);
+customElements.define('vp-financebalances', VPFinanceBalances);
+
+
+
+

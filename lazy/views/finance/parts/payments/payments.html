@@ -1,0 +1,59 @@
+
+<div id="paymentsview" style="display: ${_s.mode === 'view' ? 'block' : 'none'}">
+
+	<section class="payments">
+		<h3>Cycle Credit</h3>
+		${_m.payments.filter(p=>p.type === 'cyclecredit').sort((a,b)=> a.payee.localeCompare(b.payee)).map(p=>html`${this.payments_render(p)}`)}
+	</section>
+	<hr>
+	<section class="payments">
+		<h3>DebtAccounts</h3>
+		${_m.payments.filter(p=>p.type === 'debtaccount').sort((a,b)=> a.payee.localeCompare(b.payee)).map(p=>html`${this.payments_render(p)}`)}
+	</section>
+	<hr>
+	<section class="payments">
+		<h3>CreditCards</h3>
+		${_m.payments.filter(p=>p.type === 'creditcard').sort((a,b)=> a.payee.localeCompare(b.payee)).map(p=>html`${this.payments_render(p)}`)}
+	</section>
+	<hr>
+	<section class="payments">
+		<h3>Carloans</h3>
+		${_m.payments.filter(p=>p.type === 'carloan').sort((a,b)=> a.payee.localeCompare(b.payee)).map(p=>html`${this.payments_render(p)}`)}
+	</section>
+	<hr>
+	<section class="payments">
+		<h3>Utilities n Rent n Insruance</h3>
+		${_m.payments.filter(p=>p.type === 'insurance' || p.type === 'rent' || p.type === 'utilities').sort((a,b)=> a.payee.localeCompare(b.payee)).map(p=>html`${this.payments_render(p)}`)}
+	</section>
+	<hr>
+	<section class="payments">
+		<h3>Subscriptions</h3>
+		${_m.payments.filter(p=>p.type === 'subscription').sort((a,b)=> a.payee.localeCompare(b.payee)).map(p=>html`${this.payments_render(p)}`)}
+	</section>
+
+</div>
+
+
+
+<div id="paymentsedit" style="display: ${_s.mode === 'edit' ? 'block' : 'none'}">
+  ${_s.editing_payment ? html`
+    <c-form name="paymentform">
+      <c-in2 label="Payee" name="payee" type="text" val="${_s.editing_payment.payee || ''}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
+      <c-in2 label="Amount" name="amount" type="number" val="${_s.editing_payment.amount || 0}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
+      <c-in2 label="Day" name="day" type="number" val="${_s.editing_payment.day || 0}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
+      <c-in2 label="Auto" name="is_auto" type="toggle" val="${_s.editing_payment.is_auto ? 'true' : 'false'}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
+      <c-in2 label="Varies" name="varies" type="toggle" val="${_s.editing_payment.varies ? 'true' : 'false'}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
+      <c-in2 label="Notes" name="notes" type="text" val="${_s.editing_payment.notes || ''}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
+
+      <c-in2 label="Recurrence" name="recurence" type="dselect" val="${_s.editing_payment.recurence}" options="yearly:yearly,monthly:monthly,weekly:weekly,daily:daily,once:once" @update="${(e)=>this.prop_updated(e)}"></c-in2>
+
+      <c-in2 label="Type" name="type" type="dselect" val="${_s.editing_payment.type}" options="carloan:carloan,creditcard:creditcard,cyclecredit:cyclecredit,debtaccount:debtaccount,insurance:insurance,rent:rent,subscription:subscription,utilities:utilities" @update="${(e)=>this.prop_updated(e)}"></c-in2>
+
+      <c-in2 label="Cat" name="cat" type="dselect" val="${_s.editing_payment.catref?.id || 'NONE'}" options="NONE:NONE,${_m.cats_options_str}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
+      <c-in2 label="Payment Source" name="payment_source" type="dselect" val="${_s.editing_payment.payment_sourceref?.id || 'NONE'}" options="NONE:NONE,${_m.sources_options_str}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
+
+      <c-btn type="button" @click="${()=>this.doneEdit()}">Done</c-btn>
+    </c-form>
+  ` : ''}
+</div>
+

@@ -1,0 +1,21 @@
+
+
+<div id="areasview" style="display: ${_s.mode === 'view' ? 'block' : 'none'}">
+	${_m.areas.map((a,i) => html`
+		<div class="item" data-i="${i}">
+			<h6 @click="${()=>this.editArea(a.id)}">${a.name} <span class="unfixedcosts">${a.unfixedcosts ?? 0}</span></h6>
+		</div>
+	`)}
+</div>
+
+<div id="areasedit"  style="display: ${_s.mode === 'edit' ? 'block' : 'none'}">
+	${_s.editing_area ? html`
+		<c-form name="areaform">
+			<c-in2 label="Name" name="name" type="text" val="${_s.editing_area?.name || ''}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
+			<c-in2 label="Long Name" name="longname" type="text" val="${_s.editing_area?.longname || ''}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
+			<c-in2 label="Unfixed Costs" name="unfixedcosts" type="number" val="${_s.editing_area?.unfixedcosts ?? 0}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
+
+			<c-btn type="button" @click="${()=>this.doneEdit()}">Done</c-btn>
+		</c-form>
+	` : ''}
+</div>

@@ -1,18 +1,18 @@
 
-<header class="viewheader">
-    <div class="left"></div>
-    <div class="middle"><h1>Xen</h1></div>
-    <div class="right">&nbsp;</div>
-</header>
+<!-- <header class="viewheader"> -->
+<!--     <div class="left"></div> -->
+<!--     <div class="middle"><h1>Xen</h1></div> -->
+<!--     <div class="right">&nbsp;</div> -->
+<!-- </header> -->
 
-<div class="content">
+<div class="wrapper">
 
 	<ct-temp>Placeholder</ct-temp>
     <div id="admin">
 
 		<div id="hldr">Placeholder</div>
 
-        ${localStorage.getItem("auth_group") === 'admin' ? html`
+        ${localStorage.getItem("user_email") === 'rfs@risingtiger.com' ? html`
             <h5 @click="${()=>this.linkplaid()}">linkplaid</h5>
 
             <h5 @click="${()=>this.adminetc('firestore_misc_update')}">firestore_misc_update</h5>
@@ -28,12 +28,10 @@
             `}
         </div>
 
-		<c-btn noanime='true' @btnclick="${()=>$N.SwitchStation.GoTo('finance')}">Finance</c-btn>
+		<c-btn noanime='true' @btnclick="${()=>$N.SwitchStation.GoTo('finance/1234/s/quicktest/9876')}">Finance</c-btn>
 
-        ${localStorage.getItem("auth_group") === 'admin' ? html`
-            <br><br>
-            <c-btn noanime='true' @click="${()=>$N.SwitchStation.GoTo('addtr')}">AddTr</c-btn>
-        ` : ''}
+		<br><br>
+		<c-btn noanime='true' @click="${()=>$N.SwitchStation.GoTo('addtr')}">AddTr</c-btn>
 
         <br><br>
 

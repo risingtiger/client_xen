@@ -2,24 +2,21 @@
 
 
 import { str, num, GenericRowT } from "../../../defs_server_symlink.js"
-import { $NT, CMechLoadedDataT } from "../../../defs_client_symlink.js"
+import { $NT, CMechLoadedDataT, LazyLoadFuncReturnT } from "../../../defs_client_symlink.js"
 import { AreaT, CatT, SourceT, TagT, PaymentT, TransactionT, CatCalcsT, CatCalcsTotalsT, MonthSnapShotT, FilterT, CatBucketsInfoT, AreaQuadBucketTotalsT } from '../../../defs_instance_server_symlink.js'
+import KnitFuncs from "../../libs/knitfuncs.js"
 
 
 import { get_months  } from '../../libs/financefuncs_gen.js'
 import { filter_transactions, sort_transactions, current_month_of_filtered_transactions  } from '../../libs/financefuncs_sortfilter.js'
-import { CatCalcs, CatCalcTotals  } from '../../libs/financefuncs_catcalcs.js'
-import { cat_buckets_info, area_quad_bucket_totals  } from '../../libs/financefuncs_bucket.js'
+import { CatCalcs, CatCalcTotalsOfCatTag, CatCalcTotalsOfFilter, CatCalcTotalsCombined  } from '../../libs/financefuncs_catcalcs.js'
 
 //import { knit_all, get_months, filter_transactions, sort_transactions, current_month_of_filtered_transactions, catcalcs, catcalc_totals, snapshots, snapshots_for_ui  } from '../../libs/finance_funcs.js'
 import './parts/edit_transaction/edit_transaction.js'
-import './parts/snapshot/snapshot.js'
-import './parts/bucket/bucket.js'
 import './parts/balances/balances.js'
 import './parts/payments/payments.js'
 import './parts/sources/sources.js'
 import './parts/cats/cats.js'
-import './parts/overview/overview.js'
 
 declare var render: any;
 declare var html: any;
@@ -39,6 +36,7 @@ type ModelT = {
     cats:CatT[], 
     sources:SourceT[], 
     tags: TagT[],
+    users: any[],
 	payments: PaymentT[],
     transactions:TransactionT[], 
 	monthsnapshots: MonthSnapShotT[],
@@ -47,8 +45,11 @@ type ModelT = {
     current_month_transactions:TransactionT[], 
     catcalcs:CatCalcsT[],
     catcalcstotals: CatCalcsTotalsT,
-	catcalcstotals_12combined: CatCalcsTotalsT,
-	catcalcstotals_123combined: CatCalcsTotalsT,
+    catcalcstotals1: CatCalcsTotalsT,
+    catcalcstotals2: CatCalcsTotalsT,
+    catcalcstotals3: CatCalcsTotalsT,
+    catcalcstotals1_2: CatCalcsTotalsT,
+    catcalcstotals1_2_3: CatCalcsTotalsT,
 	data_to_sync: string[]
 }
 
@@ -72,7 +73,9 @@ type StateT = {
     key: { listen_for: KeyE  },
     prefs: { avgormed: 1|2 },
 	calcs_month_columns_count: number,
-	split_mode:'catcalcs'|'transactions'|'both'
+	split_mode:'catcalcs'|'transactions'|'both'|'unknown'
+	allotment_left:number
+	allotment_left1_2:number
 	burnamountleft:number
 }
 
@@ -107,7 +110,9 @@ class VFinance extends HTMLElement {
 		key: { listen_for: KeyE.NONE },
 		prefs: { avgormed: 1 },
 		calcs_month_columns_count: 0, // will be set later
-		split_mode: 'both',
+		split_mode: 'unknown',
+		allotment_left: 0,
+		allotment_left1_2: 0,
 		burnamountleft: 0
 	}
 	m:ModelT = {
@@ -116,15 +121,19 @@ class VFinance extends HTMLElement {
 		cats: [],
 		sources: [],
 		tags: [],
+		users:[],
 		transactions: [],
 		monthsnapshots: [],
 		previous_static_monthsnapshots: [],
 		filtered_transactions: [],
 		current_month_transactions: [],
 		catcalcs: [],
-		catcalcstotals: { sums: [], costs: 0, med: 0, avg: 0, goal: 0, goal_diff_total: 0 },
-		catcalcstotals_12combined: { sums: [], costs: 0, med: 0, avg: 0, goal: 0, goal_diff_total: 0 },
-		catcalcstotals_123combined: { sums: [], costs: 0, med: 0, avg: 0, goal: 0, goal_diff_total: 0 },
+		catcalcstotals: { sums: [], allotment: 0, allotment_left: 0, med: 0, avg: 0 },
+		catcalcstotals1: { sums: [], allotment: 0, allotment_left: 0, med: 0, avg: 0 },
+		catcalcstotals2: { sums: [], allotment: 0, allotment_left: 0, med: 0, avg: 0 },
+		catcalcstotals3: { sums: [], allotment: 0, allotment_left: 0, med: 0, avg: 0 },
+		catcalcstotals1_2: { sums: [], allotment: 0, allotment_left: 0, med: 0, avg: 0 },
+		catcalcstotals1_2_3: { sums: [], allotment: 0, allotment_left: 0, med: 0, avg: 0 },
 		payments: [], 
 		data_to_sync: ["areas", "cats", "sources", "tags", "payments", "transactions", "monthsnapshots"]
 	}
@@ -143,21 +152,7 @@ class VFinance extends HTMLElement {
 
 
 
-	async connectedCallback() {
-		await $N.CMech.ViewConnectedCallback(this)
-		this.dispatchEvent(new Event('hydrated'));
-
-		const eltoattach = this.shadow.querySelector('.touchroot') as HTMLElement
-
-		if (!this.s.touch_attached) {
-			eltoattach.addEventListener("touchstart", this.handle_touch_start.bind(this));
-			eltoattach.addEventListener("touchend", this.handle_touch_end.bind(this));
-			eltoattach.addEventListener("touchcancel", this.handle_touch_cancel.bind(this));
-			eltoattach.addEventListener("touchmove", this.handle_touch_move.bind(this));
-			document.addEventListener('keydown', this.handle_keydown.bind(this))
-			this.s.touch_attached = true
-		}
-	}
+	async connectedCallback() {$N.CMech.RegisterView(this);}
 
 
 
@@ -185,45 +180,125 @@ class VFinance extends HTMLElement {
 
 
 
-	kd = (loadeddata: CMechLoadedDataT, loadstate:string, _pathparams:GenericRowT, searchparams:GenericRowT) =>  {
-		console.log(loadstate)
+	static load = (_pathparams:GenericRowT, searchparams:GenericRowT) => new Promise<LazyLoadFuncReturnT>(async (res, rej) => {
 
+		let   r:any;
+		const d                        = new Map<str,GenericRowT[]>()
+		const promises:Promise<any>[] = []
 
-		this.m.areas          = loadeddata.get("1:areas")! as AreaT[]
-		this.m.cats           = loadeddata.get('1:cats') as CatT[]
-		this.m.sources        = loadeddata.get("1:sources") as SourceT[]
-		this.m.tags           = loadeddata.get("1:tags") as TagT[]
-		this.m.payments       = loadeddata.get("1:payments") as PaymentT[]
-		this.m.transactions   = loadeddata.get("1:transactions") as TransactionT[]
-
-		if (loadstate === 'initial') {
-
-			this.s.filter.arearef = this.m.areas.find(a=>a.name === searchparams.areaname) || null
-
-			this.set_default_cattags()
-			this.s.calcs_month_columns_count = ( searchparams.monthcount === 'default' ) ? ( window.innerWidth < 768 ? 3 : 6 ) : Number(searchparams.monthcount);
-			this.set_split_mode(false)
-
-			const enddate       = searchparams.enddate.split("-")
-			let   enddate_year  = Number(enddate[0])
-			let   enddate_month = Number(enddate[1])
-			const thismonth     = new Date()
-			thismonth.setUTCFullYear(enddate_year)
-			thismonth.setUTCMonth(enddate_month-1)
-			thismonth.setUTCDate(1)
-			thismonth.setUTCHours(0, 0, 0, 0)
-
-			this.set_active_month(thismonth)
-			this.set_default_except_area_and_date_and_cattags()
+		const today = new Date()
+		const todayFormatted = `${today.getUTCFullYear()}-${String(today.getUTCMonth() + 1).padStart(2, '0')}`
+		const enddate = (searchparams.enddate || todayFormatted).split("-")
+		let   enddate_year = Number(enddate[0])
+		let   enddate_month = Number(enddate[1])
+		let   monthcount = searchparams.monthcount || "default";
+		
+		if (monthcount === 'default') {
+			monthcount = window.innerWidth < 768 ? 3 : 6
+		} else {
+			monthcount = Number(searchparams.monthcount)
 		}
 
+		const tomonth = new Date()
+		tomonth.setUTCFullYear(enddate_year)
+		tomonth.setUTCMonth(enddate_month-1)
+		tomonth.setUTCDate(1)
+		tomonth.setUTCHours(0, 0, 0, 0)
+		tomonth.setUTCMonth(tomonth.getUTCMonth() + 1)
+		tomonth.setUTCDate(0)
+		tomonth.setUTCHours(23, 59, 59, 999)
+
+
+		const frommonth = new Date()
+		frommonth.setUTCFullYear(enddate_year)
+		frommonth.setUTCMonth(enddate_month-monthcount)
+		frommonth.setUTCDate(1)
+		frommonth.setUTCHours(0, 0, 0, 0)
+
+		const lower_bound = Math.floor( frommonth.getTime()/1000 )	
+		const upper_bound = Math.floor( tomonth.getTime()/1000 )
+
+		const ri:any  = $N.IDB.GetAll(["areas","cats","sources","tags","payments"]);
+		const rii:any = $N.IDB.GetRangeAll(["transactions"], ['date'], [lower_bound], [upper_bound])
+
+		promises.push(ri)
+		promises.push(rii)
+		try   { r = await Promise.all(promises); }
+		catch { rej(); return; }
+
+		const areas        = KnitFuncs.knit_areas(r[0].get("areas"))
+		const tags         = KnitFuncs.knit_tags(r[0].get("tags"), areas)
+		const sources      = KnitFuncs.knit_sources(r[0].get("sources"), areas)
+		const cats         = KnitFuncs.knit_cats(r[0].get("cats"), areas, r[0].get('payments'))
+
+		const payments     = KnitFuncs.knit_payments(r[0].get("payments"), sources, cats)
+		const transactions = KnitFuncs.knit_transactions(r[1].get("transactions"), cats, sources, tags)
+
+		d.set( "areas", areas )
+		d.set( "cats", cats )
+		d.set( "sources", sources )
+		d.set( "tags", tags )
+		d.set( "payments", payments )
+		d.set( "transactions", transactions)
+
+		tomonth.setUTCDate(1)
+		tomonth.setUTCHours(0, 0, 0, 0)
+
+		d.set( "calculated_params", [ { monthcount, tomonth}])
+
+		res({ d, refreshon: [ "areas", "cats", "sources", "tags", "payments", "transactions", "users" ] })
+		console.log("finance lazyload done")
+	})
+
+
+
+
+	ingest = (loadeddata: CMechLoadedDataT, _pathparams:GenericRowT, searchparams:GenericRowT) =>  {
+
+		this.m.areas          = loadeddata.get("areas")! as AreaT[]
+		this.m.cats           = loadeddata.get('cats') as CatT[]
+		this.m.sources        = loadeddata.get("sources") as SourceT[]
+		this.m.tags           = loadeddata.get("tags") as TagT[]
+		this.m.payments       = loadeddata.get("payments") as PaymentT[]
+		this.m.transactions   = loadeddata.get("transactions") as TransactionT[]
+		this.m.users          = loadeddata.get("users") as any[]
+
+		const calculated_params = loadeddata.get("calculated_params")![0] as any
+
+		const defaultareaname = localStorage.getItem("user_email") === 'rfs@risingtiger.com' ? 'pers' : 'fam' 
+
+		this.s.filter.arearef =  this.m.areas.find(a=>a.name === ( searchparams.areaname||defaultareaname )) || null
+
+		this.s.filter.cattags = this.s.filter.cattags.length ? this.s.filter.cattags : [2]
+
+		this.s.calcs_month_columns_count = calculated_params.monthcount
+		if (this.s.split_mode === 'unknown') this.set_split_mode(false, 'both')
+
+		this.set_active_month(calculated_params.tomonth)
 		this.parse_new_state()
 	}
 
 
 
 
-	sc(state_changes = {}) {   
+	hydrated = () => {
+		
+		const eltoattach = this.shadow.querySelector('.touchroot') as HTMLElement
+
+		if (!this.s.touch_attached) {
+			eltoattach.addEventListener("touchstart", this.handle_touch_start.bind(this));
+			eltoattach.addEventListener("touchend", this.handle_touch_end.bind(this));
+			eltoattach.addEventListener("touchcancel", this.handle_touch_cancel.bind(this));
+			eltoattach.addEventListener("touchmove", this.handle_touch_move.bind(this));
+			document.addEventListener('keydown', this.handle_keydown.bind(this))
+			this.s.touch_attached = true
+		}
+	}
+
+
+
+
+	render(state_changes = {}) {   
 		this.s = Object.assign(this.s, state_changes);
 		render(this.template(this.s, this.m), this.shadow);
 	}
@@ -240,33 +315,28 @@ class VFinance extends HTMLElement {
 
 	parse_new_state() {
 		this.s.filter.daterange                 = [this.s.months[0], this.s.months[this.s.months.length-1]];
-
-		// probably can take this out, since main.js dataload func already filters by daterange
 		this.m.filtered_transactions            = filter_transactions(this.m.transactions, this.s.filter);
-
-		const filter_12combined:FilterT         = Object.assign({}, this.s.filter, { cattags: [1,2] })
-		const filter_123combined:FilterT        = Object.assign({}, this.s.filter, { cattags: [1,2,3] })
-		const filtered_transactions_12combined  = filter_transactions(this.m.transactions, filter_12combined);
-		const filtered_transactions_123combined = filter_transactions(this.m.transactions, filter_123combined);
-		const catcalcs_12combined               = CatCalcs(filtered_transactions_12combined, this.s.filter.arearef as AreaT, [1,2], this.m.cats, this.s.months);
-		const catcalcs_123combined              = CatCalcs(filtered_transactions_123combined, this.s.filter.arearef as AreaT, [1,2,3], this.m.cats, this.s.months);
-
 		this.m.current_month_transactions       = current_month_of_filtered_transactions(this.m.filtered_transactions, this.s.months[this.s.months.length-1]);
 		this.m.catcalcs                         = CatCalcs(this.m.filtered_transactions, this.s.filter.arearef as AreaT, this.s.filter.cattags, this.m.cats, this.s.months);
-		this.m.catcalcstotals                   = CatCalcTotals(this.m.catcalcs, this.s.filter.arearef!, this.s.filter.cattags);
-		this.m.catcalcstotals_12combined        = CatCalcTotals(catcalcs_12combined, this.s.filter.arearef!, [1,2]);
-		this.m.catcalcstotals_123combined       = CatCalcTotals(catcalcs_123combined, this.s.filter.arearef!, [1,2,3]);
-		this.s.cat_buckets                      = cat_buckets_info((this.m.areas.find(a        => a === this.s.filter.arearef) as AreaT), this.m.cats, this.m.transactions); // wlll only contain cats of quad3 or 4
-		this.s.area_quad_bucket_totals          = area_quad_bucket_totals((this.m.areas.find(a => a === this.s.filter.arearef) as AreaT), this.s.cat_buckets, this.s.filter.cattags[0]) // will all be 0 unless we are specifically viewing quad 3 or 4
+		this.m.catcalcstotals                   = CatCalcTotalsOfFilter(this.m.transactions, this.m.cats, this.s.months, this.s.filter);
+		this.m.catcalcstotals1                  = CatCalcTotalsOfCatTag(this.m.transactions, this.m.cats, this.s.months, this.s.filter.arearef as AreaT, this.s.filter.daterange as [Date, Date], 1)
+		this.m.catcalcstotals2                  = CatCalcTotalsOfCatTag(this.m.transactions, this.m.cats, this.s.months, this.s.filter.arearef as AreaT, this.s.filter.daterange as [Date, Date], 2)
+		this.m.catcalcstotals3                  = CatCalcTotalsOfCatTag(this.m.transactions, this.m.cats, this.s.months, this.s.filter.arearef as AreaT, this.s.filter.daterange as [Date, Date], 3)
+		this.m.catcalcstotals1_2                = CatCalcTotalsCombined([ this.m.catcalcstotals1, this.m.catcalcstotals2 ])
+		this.m.catcalcstotals1_2_3              = CatCalcTotalsCombined([ this.m.catcalcstotals1, this.m.catcalcstotals2, this.m.catcalcstotals3 ])
 		this.m.current_month_transactions       = sort_transactions(this.m.current_month_transactions, "date", "asc")
 
-		this.s.burnamountleft = (this.m.catcalcstotals_12combined.costs + this.s.filter.arearef!.unfixedcosts) - this.m.catcalcstotals_12combined.sums[this.m.catcalcstotals_12combined.sums.length-1] 
+//_s.filter.cattags.length === 1 && _s.filter.cattags[0] === 2 ? Math.round(_s.filter.arearef.unfixedcosts  -  _m.catcalcstotals.sums[_m.catcalcstotals.sums.length-1]) : (_s.filter.cattags.length === 1 && _s.filter.cattags[0] === 1 ? Math.round(_m.catcalcstotals.costs - _m.catcalcstotals.sums[_m.catcalcstotals.sums.length-1]) : '') 
+
+		let allotment_left = 0;
+		if (this.s.filter.cattags && this.s.filter.cattags.length === 1 && this.s.filter.cattags[0] === 1) {
+			allotment_left = this.m.catcalcstotals1.allotment_left
+		} else if (this.s.filter.cattags && this.s.filter.cattags.length === 1 && this.s.filter.cattags[0] === 2) {
+			allotment_left = this.m.catcalcstotals2.allotment_left
+		}
+		this.s.allotment_left = allotment_left
+		this.s.allotment_left1_2 = this.m.catcalcstotals1_2.allotment_left
 	}
-
-
-
-
-	set_default_cattags() {   this.s.filter.cattags = [2]   }
 
 
 
@@ -283,17 +353,17 @@ class VFinance extends HTMLElement {
 
 	set_area(areaname:string) {
 
-		if(localStorage.getItem("auth_group") === 'admin') {
+		if(localStorage.getItem("user_email") === 'rfs@risingtiger.com') {
 			this.s.filter.arearef = this.m.areas.find(area => area.name === areaname) as AreaT
 			this.set_default_except_area_and_date_and_cattags()
 			this.parse_new_state()
-			this.sc()
+			this.render()
 
 			// http://localhost:3008/v/finance?enddate=2025-08&monthcount=default&areaname=rtm
 			const lastMonth = this.s.months[this.s.months.length - 1];
 			const enddate = `${lastMonth.getUTCFullYear()}-${String(lastMonth.getUTCMonth() + 1).padStart(2, '0')}`;
 			const monthcount = String(this.s.calcs_month_columns_count);
-			$N.SwitchStation.GoTo(`finance?enddate=${enddate}&monthcount=${monthcount}&areaname=${areaname}`)
+			$N.SwitchStation.GoTo(`finance/1234/quicktest/5432?enddate=${enddate}&monthcount=${monthcount}&areaname=${areaname}`)
 		} else {
 			console.log("not allowed")
 		}
@@ -317,12 +387,21 @@ class VFinance extends HTMLElement {
 
 	set_active_month_from_offset(offset:number) {
 
-		if (offset === this.s.months.length-1) {return}
+		let clonedate:Date|null = null
 
-		const num = this.s.months.length - 1 - offset
-		const clonedate = this.s.months[this.s.months.length-1]
-		clonedate.setUTCMonth(clonedate.getUTCMonth() - num)
-		this.set_active_month(clonedate)
+		if  (offset < 0) {
+			clonedate = this.s.months[this.s.months.length-1]
+			clonedate.setUTCMonth(clonedate.getUTCMonth() + offset)
+		} else {
+			clonedate = this.s.months[this.s.months.length-1]
+			clonedate.setUTCMonth(clonedate.getUTCMonth() + offset)
+		}
+
+		const year = clonedate.getUTCFullYear()
+		const month = String(clonedate.getUTCMonth() + 1).padStart(2, '0')
+		const yearMonthString = `${year}-${month}`
+		
+		$N.SwitchStation.GoTo(`finance/1234/s/quicktest/5432?enddate=${yearMonthString}&monthcount=${this.s.calcs_month_columns_count}&areaname=${this.s.filter.arearef?.name}`)
 	}
 
 
@@ -350,7 +429,7 @@ class VFinance extends HTMLElement {
 	filter_by_source(sourcename:string) {
 		this.s.filter.sourceref = this.m.sources.find(source => source.name === sourcename) as SourceT
 		this.parse_new_state()
-		this.sc()
+		this.render()
 	}
 
 
@@ -359,7 +438,7 @@ class VFinance extends HTMLElement {
 	filter_by_cattag(tags:number[]) {
 		this.s.filter.cattags = tags
 		this.parse_new_state()
-		this.sc()
+		this.render()
 	}
 
 
@@ -368,7 +447,7 @@ class VFinance extends HTMLElement {
 	filter_by_tag(tag:TagT) {
 		this.s.filter.tagsref = [tag]
 		this.parse_new_state()
-		this.sc()
+		this.render()
 	}
 
 
@@ -376,7 +455,7 @@ class VFinance extends HTMLElement {
 
 	sort_transactions_by(sort_by:string, sort_direction:string) {
 		this.m.current_month_transactions = sort_transactions(this.m.current_month_transactions, sort_by, sort_direction)
-		this.sc()
+		this.render()
 	}
 
 
@@ -386,7 +465,7 @@ class VFinance extends HTMLElement {
 		const el = e.currentTarget as HTMLElement
 		this.s.editview.transaction_id = el.dataset.id as string
 		this.s.editview.show_ui = 1
-		this.sc()
+		this.render()
 	}
 
 
@@ -395,9 +474,10 @@ class VFinance extends HTMLElement {
 	calcmonth_clicked(e:MouseEvent) {
 		const el = e.currentTarget as HTMLElement
 		const month_i = Number(el.dataset.month_i)
-		this.set_active_month_from_offset(month_i)
-		this.parse_new_state()
-		this.sc()
+
+		const offset = month_i - (this.s.months.length - 1)
+
+		this.set_active_month_from_offset(offset)
 	}
 
 
@@ -408,37 +488,24 @@ class VFinance extends HTMLElement {
 		const el = e.currentTarget as HTMLElement
 		const i  = Number(el.dataset.i)
 		const ii = Number(el.dataset.ii || -1)
-		const mi = Number( el.dataset.mi)
 
 		let parentcat:CatT|null = null
 		let cat:CatT|null       = null
 
-		if (ii !== -1) {
-			parentcat = this.m.catcalcs[i].catref
-			cat = this.m.catcalcs[i].subsref![ii].catref
+		parentcat = this.m.catcalcs[i].catref
+		cat = this.m.catcalcs[i].subsref![ii].catref
 
-			if (this.s.filter.parentcatref === parentcat && this.s.filter.catref === cat) {
-				parentcat = null
-				cat = null
-			}
-
-		} else { 
+		if (this.s.filter.parentcatref === parentcat && this.s.filter.catref === cat) {
+			parentcat = null
 			cat = null
-			parentcat = this.m.catcalcs[i].catref
-
-			if (this.s.filter.parentcatref === parentcat) {
-				parentcat = null
-				cat = null
-			}
 		}
 
 		this.s.filter.parentcatref = parentcat
 		this.s.filter.catref = cat
 
-		this.set_active_month_from_offset(mi)
 		this.set_split_mode(false, 'both', 'transactions')
 		this.parse_new_state()
-		this.sc()
+		this.render()
 	}
 
 
@@ -456,7 +523,7 @@ class VFinance extends HTMLElement {
 		this.s.catsview.mode = 'edit'
 		this.s.catsview.editing_cat_id = cat.id
 
-		this.sc()
+		this.render()
 	}
 
 
@@ -464,7 +531,7 @@ class VFinance extends HTMLElement {
 
 	avgormed_clicked(_e:MouseEvent) {
 		this.s.prefs.avgormed = this.s.prefs.avgormed === 1 ? 2 : 1
-		this.sc()
+		this.render()
 	}
 		
 
@@ -498,18 +565,18 @@ class VFinance extends HTMLElement {
 
 	show_balances = () => { 
 		this.s.balancesview.show_ui = 1
-		this.sc()
+		this.render()
 	}
 
 
 
 	bucket_manage(_e: MouseEvent) { 
 		this.s.bucketview_showui = 1
-		this.sc()
+		this.render()
 		setTimeout(()=> {
 			const el = (this.shadow.querySelector('vp-finance-bucket') as any)
 			el.showManageUI(this.m.areas.find(a=>a === this.s.filter.arearef)!, this.s.filter.cattags, this.s.cat_buckets, this.s.area_quad_bucket_totals)
-			el.addEventListener('close', ()=> this.sc({ bucketview_showui: 0 }))
+			el.addEventListener('close', ()=> this.render({ bucketview_showui: 0 }))
 		}, 30)
 	}
 
@@ -519,7 +586,7 @@ class VFinance extends HTMLElement {
 	bucket_select(e: MouseEvent) {
 		this.s.bucketview_showui = 1
 		const el = e.currentTarget as HTMLElement; const catId = el.dataset.cat_id as string; const elId = el.id as string
-		this.sc()
+		this.render()
 		setTimeout(()=> {
 			const el = (this.shadow.querySelector('vp-finance-bucket') as any)
 			el.twoStepClicks(
@@ -531,7 +598,7 @@ class VFinance extends HTMLElement {
 				this.s.filter.cattags,
 				this.s.area_quad_bucket_totals
 			);
-			el.addEventListener('close', ()=> this.sc({ bucketview_showui: 0 }))
+			el.addEventListener('close', ()=> this.render({ bucketview_showui: 0 }))
 		}, 30)
 	}  
 
@@ -540,11 +607,11 @@ class VFinance extends HTMLElement {
 
 	show_snapshot() {
 		this.s.snapshotview_showui = 1;
-		this.sc();
+		this.render();
 		setTimeout(()=> {
 			const el = (this.shadow.querySelector('vp-finance-snapshot') as any)
 			el.FleshItOut(this.m.areas, this.m.cats, this.m.transactions, this.m.previous_static_monthsnapshots, this.s.months)
-			el.addEventListener('close', ()=> this.sc({ snapshotview_showui: 0 }))
+			el.addEventListener('close', ()=> this.render({ snapshotview_showui: 0 }))
 		}, 30)
 	}
 
@@ -558,7 +625,7 @@ class VFinance extends HTMLElement {
 
 		this.s.catsview.cats_with_deleteflag = (r.data as any).cats_with_deleteflag
 
-		this.sc()
+		this.render()
 	}
 
 
@@ -568,7 +635,7 @@ class VFinance extends HTMLElement {
 
 		if (this.s.tagsview.show_ui === 1) {
 			this.s.tagsview.show_ui = 2
-			this.sc()
+			this.render()
 			return
 		}
 
@@ -587,7 +654,7 @@ class VFinance extends HTMLElement {
 
 		this.s.tagsview.show_ui = 1
 
-		this.sc()
+		this.render()
 	}
 
 
@@ -612,7 +679,7 @@ class VFinance extends HTMLElement {
 		this.set_active_month(thismonth)
 
 		this.parse_new_state()
-		this.sc()
+		this.render()
 	}
 
 
@@ -669,11 +736,7 @@ async handle_touch_end(e:TouchEvent) {
             let is_direction_right = xdelta > 0 ? true : false
 
             if (this.s.touch.origin_action === 'month') {
-                const clonedate = this.s.months[this.s.months.length-1]
-                clonedate.setUTCMonth(clonedate.getUTCMonth() + (is_direction_right ? -1 : 1))
-                this.set_active_month(clonedate)
-                this.parse_new_state()
-                this.sc()
+				this.set_active_month_from_offset( is_direction_right ? -1 : 1 )
             }
 
             else if (this.s.touch.origin_action === 'catquad') {
@@ -693,12 +756,12 @@ async handle_touch_end(e:TouchEvent) {
                 }
 
                 this.parse_new_state()
-                this.sc()
+                this.render()
             }
 
             else if (this.s.touch.origin_action === 'area') {
 
-                if (localStorage.getItem("auth_group") === 'admin') {
+                if (localStorage.getItem("user_email") === 'rfs@risingtiger.com') {
 
                     if (this.s.filter.arearef?.name === 'fam' && !is_direction_right) 
                         this.set_area('pers')
@@ -750,19 +813,11 @@ async handle_keydown(e:KeyboardEvent) {
     if ( this.s.key.listen_for === KeyE.NONE) {
 
         if (e.key === 'h') {
-            const clonedate = this.s.months[this.s.months.length-1]
-            clonedate.setUTCMonth(clonedate.getUTCMonth() - 1)
-            this.set_active_month(clonedate)
-            this.parse_new_state()
-            this.sc()
+			this.set_active_month_from_offset(-1)
         }
 
         else if (e.key === 'l') {
-            const clonedate = this.s.months[this.s.months.length-1]
-            clonedate.setUTCMonth(clonedate.getUTCMonth() + 1)
-            this.set_active_month(clonedate)
-            this.parse_new_state()
-            this.sc()
+			this.set_active_month_from_offset(1)
         }
 
         else if (e.key === 'j') {
@@ -783,12 +838,12 @@ async handle_keydown(e:KeyboardEvent) {
 
         else if (e.key === 'p') {
             this.s.paymentsview.show_ui = this.s.paymentsview.show_ui === 1 ? 2 : 1
-            this.sc()
+            this.render()
         }
 
         else if (e.key === 'c') {
             this.s.catsview.show_ui = this.s.catsview.show_ui === 1 ? 2 : 1
-            this.sc()
+            this.render()
         }
 
 		else if (e.key === 'b') {
@@ -796,19 +851,19 @@ async handle_keydown(e:KeyboardEvent) {
 				this.show_balances()
 			} else {
 				this.s.balancesview.show_ui = 0
-				this.sc()
+				this.render()
 			}
 		}
 
 
         else if (e.key === 's') {
             this.s.sourcesview.show_ui = this.s.sourcesview.show_ui === 1 ? 2 : 1
-            this.sc()
+            this.render()
         }
 
         else if (e.key === 'v') {
             this.set_split_mode(true)
-            this.sc()
+            this.render()
         }
 
         else if (e.key === 'd') {
@@ -824,6 +879,7 @@ async handle_keydown(e:KeyboardEvent) {
             this.set_area('fam')
         }
         if (e.key === 'i') {
+
             this.set_area('pers')
         }
         if (e.key === 'o') {
@@ -1033,6 +1089,13 @@ async handle_keydown(e:KeyboardEvent) {
 
 
 customElements.define('v-finance', VFinance);
+
+
+
+
+
+
+
 
 export {  }
 

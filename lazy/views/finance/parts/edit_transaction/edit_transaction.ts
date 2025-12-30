@@ -2,8 +2,7 @@
 
 import { $NT, CMechLoadedDataT } from "../../../../../defs_client_symlink.js"
 import { str } from "../../../../../defs_server_symlink.js"
-import { TransactionT, AreaT, CatT, TagT, SourceT } from '../../../../../defs.js'
-import { knit_cats, knit_transactions, knit_tags  } from '../../../../libs/financefuncs_knit.js'
+import { TransactionT, AreaT, CatT, TagT } from '../../../../../defs_instance_server_symlink.js'
 
 declare var render: any;
 declare var html: any;
@@ -26,7 +25,8 @@ type ModelT = {
 type StateT = {
 	prop: str,
 	cat_options: str
-	tag_options: str
+	tag_options: str,
+	testtog: boolean
 }
 
 
@@ -39,7 +39,8 @@ class VPFinanceEditTransaction extends HTMLElement {
     s:StateT = {
 		prop: "",
 		cat_options: "",
-		tag_options: ""
+		tag_options: "",
+		testtog: false
 	}
     m:ModelT = {
 		areas: [],
@@ -62,10 +63,7 @@ class VPFinanceEditTransaction extends HTMLElement {
 
 
 
-	async connectedCallback() {   
-		await $N.CMech.ViewPartConnectedCallback(this)
-		this.dispatchEvent(new Event('hydrated'));
-	}
+	async connectedCallback() {$N.CMech.RegisterViewPart(this);}   
 
 
 
@@ -82,128 +80,144 @@ class VPFinanceEditTransaction extends HTMLElement {
 
 
 
-	kd = (loadeddata: CMechLoadedDataT, loadstate:string) => {
+	ingest = (loadeddata: CMechLoadedDataT) => {
 
-		if (loadstate === 'initial' || loadstate === 'datachanged') {
-			const trs             = loadeddata.get("1:transactions") as TransactionT[]
+		const trs             = loadeddata.get("transactions") as TransactionT[]
+		this.m.areas          = loadeddata.get("areas")! as AreaT[]
+		this.m.cats           = loadeddata.get("cats")! as CatT[]
+		this.m.tags           = loadeddata.get("tags")! as TagT[]
 
-			this.m.areas          = loadeddata.get("1:areas")! as AreaT[]
-			this.m.cats           = knit_cats(this.m.areas, loadeddata.get('1:cats')!) as CatT[]
-			this.m.tags           = $N.Utils.resolve_object_references(loadeddata.get("1:tags")!, loadeddata) as TagT[]
+		// const sources         = loadeddata.get("sources") as SourceT[]
+		this.m.transaction     = trs.find(t=>t.id === this.a.transaction)! as TransactionT
 
-			const sources         = loadeddata.get("1:sources") as SourceT[]
-			const transaction     = trs.find(t=>t.id === this.a.transaction)! as any
 
-			this.m.transaction    = ( knit_transactions(this.m.cats, sources, this.m.tags, [transaction]) as TransactionT[] )[0]
+		const get_cat_options = () => {
+			let s = ""
 
-			const get_cat_options = () => {
-				let s = ""
-
-				for (let cparent of this.m.cats) {
-					for (let sub of cparent.subsref!) {
-						s += `${sub.name}:${sub.id},`
-					}
+			for (let cparent of this.m.cats) {
+				for (let sub of cparent.subsref!) {
+					s += `${sub.name}:${sub.id},`
 				}
-
-				return s.slice(0, -1)
-			} 
-
-			const get_tag_options = () => {
-				let s = "None:none,"
-				for (let tag of this.m.tags) {
-					s += `${tag.name}:${tag.id},`
-				}
-				return s.slice(0, -1)
-			} 
-
-			let areas:AreaT[] = []
-			if (localStorage.getItem("user_email") !== 'accounts@risingtiger.com') {
-				areas = ( loadeddata.get("1:areas")! as AreaT[]).filter(a=>a.name === "fam")
-			} else {
-				areas = loadeddata.get("1:areas")! as AreaT[]
 			}
 
-			this.s.cat_options = get_cat_options()
-			this.s.tag_options = get_tag_options()
+			return s.slice(0, -1)
+		} 
 
-			this.m.transaction_tag_id = this.m.transaction.tagsref.length ? (this.m.transaction.tagsref[0] as any).id : ""
-
-			/*
-			const transaction = await $N.Firestore.Retrieve(`transactions/${this.getAttribute("transaction")}`)
-
-			this.m.transaction = transaction[0];
-			this.m.transaction_tag_id = this.m.transaction!.tags.length ? (this.m.transaction!.tags[0] as any)._path.segments[1] : ""
-
-			const idata = await $N.IndexedDB.GetAll(["areas","cats", "tags"])
-
-			let areas:AreaT[] = []
-			if (localStorage.getItem("user_email") !== 'accounts@risingtiger.com') {
-				areas = idata.get("areas")!.filter(a=>a.name === "fam")
-			} else {
-				areas = idata.get("areas")!
+		const get_tag_options = () => {
+			let s = "None:none,"
+			for (let tag of this.m.tags) {
+				s += `${tag.name}:${tag.id},`
 			}
+			return s.slice(0, -1)
+		} 
 
-			this.m.cats = knit_cats(areas, idata.get("cats")!) as CatT[]
-			this.m.tags = knit_tags(idata.get("tags")!) as TagT[]
-
-			this.s.cat_options = get_cat_options()
-			this.s.tag_options = get_tag_options()
-
-			this.sc()
-
-			this.dispatchEvent(new Event('hydrated'))
-			*/
+		let areas:AreaT[] = []
+		if (localStorage.getItem("user_email") !== 'rfs@risingtiger.com') {
+			areas = ( loadeddata.get("1:areas")! as AreaT[]).filter(a=>a.name === "fam")
+		} else {
+			areas = loadeddata.get("1:areas")! as AreaT[]
 		}
+
+		this.s.cat_options = get_cat_options()
+		this.s.tag_options = get_tag_options()
+
+		this.m.transaction_tag_id = this.m.transaction.tagsref.length ? (this.m.transaction.tagsref[0] as any).id : ""
+
+		/*
+		const transaction = await $N.Firestore.Retrieve(`transactions/${this.getAttribute("transaction")}`)
+
+		this.m.transaction = transaction[0];
+		this.m.transaction_tag_id = this.m.transaction!.tags.length ? (this.m.transaction!.tags[0] as any)._path.segments[1] : ""
+
+		const idata = await $N.IndexedDB.GetAll(["areas","cats", "tags"])
+
+		let areas:AreaT[] = []
+		if (localStorage.getItem("user_email") !== 'rfs@risingtiger.com') {
+			areas = idata.get("areas")!.filter(a=>a.name === "fam")
+		} else {
+			areas = idata.get("areas")!
+		}
+
+		this.m.cats = knit_cats(areas, idata.get("cats")!) as CatT[]
+		this.m.tags = knit_tags(idata.get("tags")!) as TagT[]
+
+		this.s.cat_options = get_cat_options()
+		this.s.tag_options = get_tag_options()
+
+		this.render()
+
+		this.dispatchEvent(new Event('hydrated'))
+		*/
 	}
 
 
 
 
-	async prop_updated(e:any) {
+	async prop_updated(_e:any) {
 
-		let changed:any = {}
-
-		if (e.detail.name === "amount") {
-			changed.amount = parseFloat(e.detail.newval)
-		}
-
-		else if (e.detail.name === "notes") {
-			changed.notes = e.detail.newval
-		}
-
-		else if (e.detail.name === "cat") {
-			changed.cat = { __path:["cats", e.detail.newval] } 
-		}
-
-		else if (e.detail.name === "date") {
-			const dateObj = new Date(e.detail.newval);
-			dateObj.setUTCHours(12, 0, 0, 0);
-			changed.date = Math.floor(dateObj.getTime() / 1000); 
-		}
-
-		else if (e.detail.name === "tag") {
-
-			const r = await $N.FetchLassie("/api/xen/finance/update_transaction_tag", { method: "POST", body: JSON.stringify({ docid: this.m.transaction!.id, tagid: e.detail.newval }) })
-			if (!r.ok) {   alert ("Error: " + r.statusText); return;   }
-		}
-
-		else if (e.detail.name === "merchant") {
-			const r = await $N.FetchLassie("/api/xen/finance/update_merchant_name", { method: "POST", body: JSON.stringify({ newname: e.detail.newval, oldname: e.detail.oldval }) })
-			if (!r.ok) {   alert ("Error: " + r.statusText); return;   }
-		}
-
-
-		if (Object.keys(changed).length) {
-			try   { await $N.LocalDBSync.Patch("transactions/"+this.m.transaction!.id, changed); }
-			catch {}
-		}
-
-		e.detail.done()
+		// const merchant = ( this.shadow.querySelector('c-in2[name="merchant"]') as HTMLFormElement ).getAttribute("val")
+		// const promises:any[] = []
+		//
+		// promises.push($N.DataHodl.PatchLocalDB("transactions/"+this.m.transaction!.id, {merchant}));
+		//
+		// await Promise.all(promises)
+		//
+		// $N.ToastShow("Saved", 'saved');
 	}
 
 
 
-	sc(state_changes = {}) {   
+
+	async props_updated(_e?:any) {
+
+		const mainform = this.shadow.querySelector('form[name="mainform"]') as HTMLFormElement
+		const inputs = mainform.querySelectorAll('c-in2')
+		const values:Record<string, string> = {}
+
+		for (const input of inputs) {
+			const name = input.getAttribute('name')
+			const val = input.getAttribute('val')
+			if (name && val !== null) values[name] = val
+		}
+
+		const amount   = parseFloat(values['amount']) || null
+		const notes    = values['notes'] || ""
+		const cat      = values['cat'] ? { __path: ['cats',values['cat']] } : null
+		const merchant = values['merchant'] || ""
+		let   date     = values['date'] || '' as number | string
+		const dateObj  = new Date(date);
+		dateObj.setUTCHours(12, 0, 0, 0);
+		date           = Math.floor(dateObj.getTime() / 1000); 
+
+		const promises:any[] = []
+
+		const updateobj = {amount, notes, cat, merchant, date}
+
+		promises.push($N.DataHodl.PatchLocalDB("transactions/"+this.m.transaction!.id, updateobj));
+
+		const r = await Promise.all(promises)
+
+		if (r[1] && !r[1].ok) {   $N.ToastShow("Error: " + r[1].statusText, 'error'); return;   }
+
+		$N.ToastShow("Saved", 'saved');
+
+
+
+		// else if (e.detail.name === "merchant") {
+		// 	const r = await $N.FetchLassie("/api/xen/finance/update_merchant_name_in_all_transactions", { method: "POST", body: JSON.stringify({ newname: e.detail.newval, oldname: e.detail.oldval }) })
+		// 	if (!r.ok) {   alert ("Error: " + r.statusText); return;   }
+		// }
+	}
+
+
+
+	actiontermclicked () {
+		this.props_updated()
+	}
+
+
+
+	render(state_changes = {}) {   
 		this.s = Object.assign(this.s, state_changes)
 		render(this.template(this.s, this.m), this.shadow);   
 	}
@@ -216,7 +230,7 @@ class VPFinanceEditTransaction extends HTMLElement {
 }
 
 
-customElements.define('vp-finance-edittransaction', VPFinanceEditTransaction);
+customElements.define('vp-financeedittransaction', VPFinanceEditTransaction);
 
 
 

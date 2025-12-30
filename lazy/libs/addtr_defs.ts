@@ -4,6 +4,7 @@ import { SheetsTransactionT } from "../../defs_instance_server_symlink.js"
 import { AreaT, CatT, SourceT, TagT } from '../../defs.js'
 
 export enum InputModeE { 
+	initial = 'initial',
 	saving = 'saving', 
 	saved = 'saved', 
 	skipped = 'skipped', 
@@ -12,7 +13,8 @@ export enum InputModeE {
 	note = 'note', 
 	tag = 'tag', 
 	amount = 'amount', 
-	merchant = 'merchant' 
+	merchant = 'merchant',
+	date = 'date' 
 }
 
 
@@ -58,7 +60,6 @@ export type StateT = {
 	activetransactions: NewTransactionT[],
 	infocus: NewTransactionT,
 	infocusindex: num,
-    newcount: num,
     inputmode: InputModeE,
 	highlightcat: CatT|null,
 	highlighttag: TagT|null,

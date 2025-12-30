@@ -5,16 +5,15 @@
     "firebase": {
       "project": "xenition",
       "identity_platform_key": "AIzaSyDfXcwqyiRGGO6pMBsG8CvNEtDIhdspKRI",
-      "dbversion": 18
+      "dbversion": 23
     },
     "localdb_objectstores": [
-		{"name": "areas"}, 
-		{"name": "cats"}, 
-		{"name": "sources"}, 
-		{"name": "tags"}, 
-		{"name": "payments"}, 
-		{"name": "transactions", "indexes": ["cat", "source"]}, 
-		{"name": "monthsnapshots"} 
+		{"name": "areas", "indexes": ["ts"]}, 
+		{"name": "cats", "indexes": ["ts"]}, 
+		{"name": "sources", "indexes": ["ts"]}, 
+		{"name": "tags", "indexes": ["ts"]}, 
+		{"name": "payments", "indexes": ["ts"]}, 
+		{"name": "transactions", "indexes": ["cat", "source", "date", "ts"]} 
     ]
   },
   "LAZYLOADS": [
@@ -24,14 +23,19 @@
       "name":	  "home",
       "is_instance": true,
       "dependencies": [
-        {"type": "component", "name": "btn"},
-        {"type": "component", "name": "toast"}
+		{"type": "component", "name": "btn"},
+		{"type": "component", "name": "toast"}
       ],
       "auth": []
     },
     {
       "type": "view",
-      "urlmatch": "finance",
+      "urlmatch": "finance/:tempid",
+		"subs": [
+			{
+				"urlmatch": "quicktest/:quicktestid"
+			}
+		],
       "name": "finance",
       "is_instance": true,
       "dependencies": [
@@ -44,32 +48,32 @@
         {"type": "component", "name": "toast"}
       ],
       "auth": [],
-      "localdb_preload": ["areas", "cats", "sources", "tags", "payments", "transactions", "monthsnapshots"]
+      "localdb_preload": ["areas", "cats", "sources", "tags", "payments", "transactions"]
+    },
+    {
+      "type": "view",
+      "urlmatch": "search",
+      "name": "search",
+      "is_instance": true,
+      "dependencies": [
+        {"type": "component", "name": "in2"},
+        {"type": "component", "name": "btn"},
+        {"type": "component", "name": "toast"}
+      ],
+      "auth": [],
+      "localdb_preload": ["areas", "sources"]
     },
 	{
 		"type": "view",
 		"urlmatch": "addtr",
-		"subs": [
-			{
-			"urlmatch": "?sometin=string&another=number",
-			"loadfunc": "placeholder"
-			}
-		],
 		"name": "addtr",
 		"is_instance": true,
 		"dependencies": [
 			{"type": "component", "name": "btn"},
 			{"type": "component", "name": "toast"}
 		],
-		"auth": ["admin"]
-	},
-    {
-      "type": "component",
-      "name": "placeholder_component",
-      "is_instance": true,
-      "dependencies": [
-      ],
-      "auth": []
-    }
+		"auth": ["admin"],
+		"localdb_preload": ["areas", "cats", "sources", "tags"]
+	}
   ]
 }

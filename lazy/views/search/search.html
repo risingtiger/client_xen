@@ -1,0 +1,96 @@
+
+
+<div class="wrapper touchroot">
+	<header class="viewheader" style="display:none;">
+		<a class="left"><span>‸</span><span></span></a>
+		<div class="middle">
+			<h1>Ya</h1>
+		</div>
+		<div class="right">
+		</div>
+	</header>
+
+	<div class="layout">
+		<section class="criteria-panel">
+			<form class="criteria-form" @submit="${(event)=>this.submitSearch(event)}">
+				<div class="criteria-header">
+					<h1>Transaction Search</h1>
+					${_s.hasSearched && _s.stale ? html`<span class="stale-indicator" role="status">Results out of date</span>` : ''}
+				</div>
+
+				<p class="criteria-description">Filter by amount, merchant, or notes to locate transactions.</p>
+
+				${_s.error ? html`<p class="form-error" role="alert">${_s.error}</p>` : ''}
+
+				<div class="criteria-field">
+					<label for="search_amount">Amount</label>
+					<input id="search_amount" name="amount" type="text" inputmode="decimal" autocomplete="off" placeholder="e.g. 42.50" .value="${_s.criteria.amount}" @input="${(event)=>this.onCriteriaInput('amount', event)}" ?disabled="${_s.loading}">
+					<span class="field-hint">Enter a number. Use negative values for expenses when needed.</span>
+				</div>
+
+				<div class="criteria-field">
+					<label for="search_merchant">Merchant</label>
+					<input id="search_merchant" name="merchant" type="text" autocomplete="off" placeholder="e.g. Grocery Store" .value="${_s.criteria.merchant}" @input="${(event)=>this.onCriteriaInput('merchant', event)}" ?disabled="${_s.loading}">
+				</div>
+
+				<div class="criteria-field">
+					<label for="search_source">Source</label>
+					<select id="search_source" name="source" .value="${_s.criteria.sourceId ?? ''}" @change="${(event)=>this.onCriteriaInput('source', event)}" ?disabled="${_s.loading}">
+						<option value="">All sources</option>
+						${_m.sources.map((source) => html`<option value="${source.id}">${source.name}</option>`)}
+					</select>
+				</div>
+
+				<div class="criteria-field">
+					<label for="search_notes">Notes</label>
+					<textarea id="search_notes" name="notes" rows="3" placeholder="Any text contained in transaction notes" .value="${_s.criteria.notes}" @input="${(event)=>this.onCriteriaInput('notes', event)}" ?disabled="${_s.loading}"></textarea>
+				</div>
+
+				<div class="criteria-actions">
+					<button type="submit" class="search-btn" ?disabled="${_s.loading}">${_s.loading ? 'Searching…' : 'Search'}</button>
+				</div>
+			</form>
+		</section>
+
+		<section class="results-panel">
+			<div class="results-header">
+				<h2>Results</h2>
+				${_s.loading ? html`<span class="loading-indicator">Searching…</span>` : ''}
+			</div>
+
+			${_m.transactions.length ? html`
+				<div class="tablewrap">
+					<table>
+						<thead>
+							<tr>
+								<th class="date">Date</th>
+								<th class="merchant">Merchant</th>
+								<th class="amount">Amount</th>
+								<th class="notes">Notes</th>
+							</tr>
+						</thead>
+						<tbody>
+							${_m.transactions.map((tx) => html`
+								<tr data-id="${tx.id}">
+									<td class="date">${this.formatDate(tx.date)}</td>
+									<td class="merchant" title="${tx.merchant}">${tx.merchant}</td>
+									<td class="amount">${this.formatAmount(tx.amount)}</td>
+									<td class="notes" title="${this.formatNotes(tx.notes)}">${this.formatNotes(tx.notes)}</td>
+								</tr>
+							`)}
+						</tbody>
+					</table>
+				</div>
+			` : html`
+				<div class="empty-state">
+					${_s.hasSearched ? html`<p>No transactions matched your criteria.</p>` : html`<p>Run a search to see matching transactions.</p>`}
+				</div>
+			`}
+		</section>
+	</div>
+</div>
+
+
+
+
+

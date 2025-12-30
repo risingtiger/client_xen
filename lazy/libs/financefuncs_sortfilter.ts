@@ -2,7 +2,7 @@
 
 
 //import { num } from "../../../defs_server_symlink.js";
-import { TransactionT, FilterT  } from '../..//defs.js'
+import { TransactionT, FilterT  } from '../../defs_instance_server_symlink.js'
 
 
 
@@ -23,8 +23,7 @@ function filter_transactions(transactions:TransactionT[], filter:FilterT) : Tran
     }
 
     return transactions.filter((transaction:TransactionT) => {
-
-        if (filter.arearef && transaction.arearef !== filter.arearef) { return false }
+		if (filter.arearef && transaction.catref.parentref!.arearef !== filter.arearef) { return false }
         if (filter.catref && transaction.catref !== filter.catref) { return false }
         if (filter.cattags && filter.cattags.length && !transaction.catref.tags.some((t:number) => filter.cattags.includes(t))) { return false }
         if (filter.parentcatref && transaction.catref.parentref !== filter.parentcatref) { return false }
