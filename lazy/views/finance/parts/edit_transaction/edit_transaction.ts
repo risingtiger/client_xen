@@ -123,31 +123,7 @@ class VPFinanceEditTransaction extends HTMLElement {
 
 		this.m.transaction_tag_id = this.m.transaction.tagsref.length ? (this.m.transaction.tagsref[0] as any).id : ""
 
-		/*
-		const transaction = await $N.Firestore.Retrieve(`transactions/${this.getAttribute("transaction")}`)
 
-		this.m.transaction = transaction[0];
-		this.m.transaction_tag_id = this.m.transaction!.tags.length ? (this.m.transaction!.tags[0] as any)._path.segments[1] : ""
-
-		const idata = await $N.IndexedDB.GetAll(["areas","cats", "tags"])
-
-		let areas:AreaT[] = []
-		if (localStorage.getItem("user_email") !== 'rfs@risingtiger.com') {
-			areas = idata.get("areas")!.filter(a=>a.name === "fam")
-		} else {
-			areas = idata.get("areas")!
-		}
-
-		this.m.cats = knit_cats(areas, idata.get("cats")!) as CatT[]
-		this.m.tags = knit_tags(idata.get("tags")!) as TagT[]
-
-		this.s.cat_options = get_cat_options()
-		this.s.tag_options = get_tag_options()
-
-		this.render()
-
-		this.dispatchEvent(new Event('hydrated'))
-		*/
 	}
 
 
@@ -188,28 +164,25 @@ class VPFinanceEditTransaction extends HTMLElement {
 		const dateObj  = new Date(date);
 		dateObj.setUTCHours(12, 0, 0, 0);
 		date           = Math.floor(dateObj.getTime() / 1000); 
+		const tags     = (values['tag'] && values['tag'] !== 'none') 
+			? [{ __path: ['tags', values['tag']] }] 
+			: []
 
-		const promises:any[] = []
+		const updateobj = {amount, notes, cat, merchant, date, tags}
 
-		const updateobj = {amount, notes, cat, merchant, date}
+		await $N.DataHodl.PatchLocalDB("transactions/"+this.m.transaction!.id, updateobj)
 
-		promises.push($N.DataHodl.PatchLocalDB("transactions/"+this.m.transaction!.id, updateobj));
-
-		const r = await Promise.all(promises)
-
-		if (r[1] && !r[1].ok) {   $N.ToastShow("Error: " + r[1].statusText, 'error'); return;   }
+		// Update local tag model
+		this.m.transaction_tag_id = values['tag'] === 'none' ? '' : values['tag']
+		if (values['tag'] && values['tag'] !== 'none') {
+			const tag = this.m.tags.find(t => t.id === values['tag'])
+			this.m.transaction!.tagsref = tag ? [tag] : []
+		} else {
+			this.m.transaction!.tagsref = []
+		}
 
 		$N.ToastShow("Saved", 'saved');
-
-
-
-		// else if (e.detail.name === "merchant") {
-		// 	const r = await $N.FetchLassie("/api/xen/finance/update_merchant_name_in_all_transactions", { method: "POST", body: JSON.stringify({ newname: e.detail.newval, oldname: e.detail.oldval }) })
-		// 	if (!r.ok) {   alert ("Error: " + r.statusText); return;   }
-		// }
 	}
-
-
 
 	actiontermclicked () {
 		this.props_updated()

@@ -48,11 +48,11 @@
                 <div class="grid-header">
                     <div class="grid-row header-row">
                         <div class="col-cat">
+							<a class="${_s.filter.cattags.length === 3 ? 'active' : ''}" @click="${()=>this.filter_by_cattag([1,2,3])}" data-cattags='1,2,3'>&#96;</a>
                             <a class="${_s.filter.cattags[0] === 1 && !_s.filter.cattags[1] ? 'active' : ''}" @click="${()=>this.filter_by_cattag([1])}" data-cattags='1'>&nbsp;1&nbsp;</a>
                             <a class="${_s.filter.cattags[0] === 2 && !_s.filter.cattags[1] ? 'active' : ''}" @click="${()=>this.filter_by_cattag([2])}" data-cattags='2'>&nbsp;2&nbsp;</a>
                             <a class="${_s.filter.cattags[0] === 3 && !_s.filter.cattags[1] ? 'active' : ''}" @click="${()=>this.filter_by_cattag([3])}" data-cattags='3'>&nbsp;3&nbsp;</a>
                         </div>
-
 
                         ${_s.months_display_str.map((m,i) => html`
 							<div class="col-month ${i === _s.months_display_str.length-1 ? 'col-current' : ''}" @click="${(e)=>this.calcmonth_clicked(e)}" data-month_i="${i}">${_s.months_display_str[i]}</div>

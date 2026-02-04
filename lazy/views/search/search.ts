@@ -3,7 +3,7 @@
 
 import { GenericRowT } from "../../../defs_server_symlink.js"
 import { $NT, CMechLoadedDataT, LazyLoadFuncReturnT } from "../../../defs_client_symlink.js"
-import { TransactionT, AreaT, SourceT } from "../../../defs_instance_server_symlink.js"
+import { TransactionT, AreaT, SourceT, CatT, TagT } from "../../../defs_instance_server_symlink.js"
 import KnitFuncs from "../../libs/knitfuncs.js"
 
 declare var render: any;
@@ -30,6 +30,8 @@ type ModelT = {
 	transactions: TransactionT[]
 	areas: AreaT[]
 	sources: SourceT[]
+	cats: CatT[]
+	tags: TagT[]
 }
 
 type StateT = {
@@ -65,7 +67,10 @@ class VSearch extends HTMLElement {
 		transactions: [],
 		areas: [],
 		sources: [],
+		cats: [],
+		tags: [],
 	}
+	header: null
 
 	shadow:ShadowRoot
 
@@ -102,16 +107,21 @@ class VSearch extends HTMLElement {
 	static load = (_pathparams:GenericRowT, _searchparams:GenericRowT) => new Promise<LazyLoadFuncReturnT>(async (res, rej) => {
 
 		const d = new Map<string,GenericRowT[]>()
-		const promises:Promise<any>[] = []
-		const ri:any  = $N.IDB.GetAll(["sources","areas"]);
-		promises.push(ri)
+		const ri:any = $N.IDB.GetAll(["sources","areas","cats","tags"]);
 
 		try { 
-			const r = await Promise.all(promises); 
-			d.set( "areas",   KnitFuncs.knit_areas(r[0].get('areas')))
-			d.set( "sources", KnitFuncs.knit_sources(r[0].get('sources'), d.get('areas') as AreaT[]))
+			const r = await Promise.all([ri]); 
+			const areas   = KnitFuncs.knit_areas(r[0].get('areas'))
+			const tags    = KnitFuncs.knit_tags(r[0].get('tags'), areas)
+			const sources = KnitFuncs.knit_sources(r[0].get('sources'), areas)
+			const cats    = KnitFuncs.knit_cats(r[0].get('cats'), areas, [])
+
+			d.set("areas", areas)
+			d.set("sources", sources)
+			d.set("cats", cats)
+			d.set("tags", tags)
 		}
-		catch { rej(); return;   }
+		catch { rej(); return; }
 
 		res({ d, refreshon:[]})
 	})
@@ -119,10 +129,12 @@ class VSearch extends HTMLElement {
 
 
 
-	ingest = (loadeddata: CMechLoadedDataT, _pathparams:GenericRowT, _searchparams:GenericRowT) =>  {
+	ingest = (loadeddata: CMechLoadedDataT) =>  {
 		this.m.transactions = []
 		this.m.areas        = loadeddata.get("areas") as AreaT[]
 		this.m.sources      = loadeddata.get("sources") as SourceT[]
+		this.m.cats         = loadeddata.get("cats") as CatT[]
+		this.m.tags         = loadeddata.get("tags") as TagT[]
 		this.render()
 	}
 
@@ -176,7 +188,7 @@ class VSearch extends HTMLElement {
 
 
 	submitSearch = async (event?:Event) => {
-
+		
 		if (event) event.preventDefault()
 		if (this.s.loading) return
 
@@ -193,41 +205,29 @@ class VSearch extends HTMLElement {
 			hasSearched: true,
 		})
 
-		try {
-			const r = await $N.FetchLassie("/api/xen/finance/transactions/search", {
-				method: "POST",
-				body: JSON.stringify({ search_criterias: scr }),
-			})
-
-			if (!r.ok) {
-				console.error("Search request failed:", r.status, r.statusText)
-				this.render({
-					loading: false,
-					error: "Search failed. Please try again.",
-					stale: true,
-				})
-				return
-			}
-
-			this.m.transactions = r.data as TransactionT[]
-
+		const r = await $N.FetchLassie("/api/xen/finance/transactions/search", {
+			method: "POST",
+			body: JSON.stringify({ search_criterias: scr }),
+		})
+		if (!r.ok) {
+			console.error("Search request failed:", r.status, r.statusText)
 			this.render({
 				loading: false,
-				error: "",
-				stale: false,
-				hasSearched: true,
-				lastExecutedCriteria: { ...this.s.criteria },
-			})
-
-		} catch (error) {
-			console.error("Search request error:", error)
-			this.render({
-				loading: false,
-				error: "Unable to search transactions. Please try again.",
+				error: "Search failed. Please try again.",
 				stale: true,
-				hasSearched: true,
 			})
+			return
 		}
+
+		this.m.transactions = KnitFuncs.knit_transactions(r.data as any[], this.m.cats, this.m.sources, this.m.tags)
+
+		this.render({
+			loading: false,
+			error: "",
+			stale: false,
+			hasSearched: true,
+			lastExecutedCriteria: { ...this.s.criteria },
+		})
 	}
 
 	shouldMarkStale = () => {
@@ -257,6 +257,12 @@ class VSearch extends HTMLElement {
 	formatNotes = (notes:string) => {
 		if (!notes) return "—"
 		return notes
+	}
+
+	formatCategory = (catref:CatT|null) => {
+		if (!catref) return "—"
+		if (catref.parentref) return `${catref.parentref.name}:${catref.name}`
+		return catref.name
 	}
 
 	currencyFormatter = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" })

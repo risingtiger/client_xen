@@ -7,6 +7,10 @@
 
 <div class="wrapper">
 
+	${!localStorage.getItem("user_email") ? html`
+		<c-btn noanime='true' @click="${()=>$N.SwitchStation.GoTo('login')}">Login</c-btn>
+	` : ''}
+
 	<ct-temp>Placeholder</ct-temp>
     <div id="admin">
 
@@ -34,7 +38,7 @@
 		<c-btn noanime='true' @click="${()=>$N.SwitchStation.GoTo('addtr')}">AddTr</c-btn>
 
         <br><br>
-
+		<c-btn noanime='true' @click="${()=>$N.SwitchStation.GoTo('search')}">Search</c-btn>
 
 		<br><br>
 
@@ -51,5 +55,6 @@
     </div>
 
 </div>
+
 
 

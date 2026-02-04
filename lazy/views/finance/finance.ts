@@ -2,7 +2,7 @@
 
 
 import { str, num, GenericRowT } from "../../../defs_server_symlink.js"
-import { $NT, CMechLoadedDataT, LazyLoadFuncReturnT } from "../../../defs_client_symlink.js"
+import { $NT, CMechLoadedDataT, LazyLoadFuncReturnT, ViewHeaderT } from "../../../defs_client_symlink.js"
 import { AreaT, CatT, SourceT, TagT, PaymentT, TransactionT, CatCalcsT, CatCalcsTotalsT, MonthSnapShotT, FilterT, CatBucketsInfoT, AreaQuadBucketTotalsT } from '../../../defs_instance_server_symlink.js'
 import KnitFuncs from "../../libs/knitfuncs.js"
 
@@ -137,6 +137,8 @@ class VFinance extends HTMLElement {
 		payments: [], 
 		data_to_sync: ["areas", "cats", "sources", "tags", "payments", "transactions", "monthsnapshots"]
 	}
+
+	header:ViewHeaderT = { title: '', disable: true }
 
 	shadow:ShadowRoot
 
@@ -363,7 +365,7 @@ class VFinance extends HTMLElement {
 			const lastMonth = this.s.months[this.s.months.length - 1];
 			const enddate = `${lastMonth.getUTCFullYear()}-${String(lastMonth.getUTCMonth() + 1).padStart(2, '0')}`;
 			const monthcount = String(this.s.calcs_month_columns_count);
-			$N.SwitchStation.GoTo(`finance/1234/quicktest/5432?enddate=${enddate}&monthcount=${monthcount}&areaname=${areaname}`)
+			$N.SwitchStation.GoTo(`finance/1234/quicktest/5432?enddate=${enddate}&monthcount=${monthcount}&areaname=${areaname}`, { replacestate: true })
 		} else {
 			console.log("not allowed")
 		}
@@ -401,7 +403,7 @@ class VFinance extends HTMLElement {
 		const month = String(clonedate.getUTCMonth() + 1).padStart(2, '0')
 		const yearMonthString = `${year}-${month}`
 		
-		$N.SwitchStation.GoTo(`finance/1234/s/quicktest/5432?enddate=${yearMonthString}&monthcount=${this.s.calcs_month_columns_count}&areaname=${this.s.filter.arearef?.name}`)
+		$N.SwitchStation.GoTo(`finance/1234/s/quicktest/5432?enddate=${yearMonthString}&monthcount=${this.s.calcs_month_columns_count}&areaname=${this.s.filter.arearef?.name}`, { replacestate: true })
 	}
 
 
@@ -639,8 +641,7 @@ class VFinance extends HTMLElement {
 			return
 		}
 
-
-		const filtered_tags = this.m.tags.filter((tag:any) => tag.arearef === this.s.filter.arearef)
+		const filtered_tags = this.m.tags.filter((tag:any) => tag.arearef.id === this.s.filter.arearef!.id)
 
 		this.s.tagsview.tagtotals = filtered_tags.map(tag => {
 
@@ -806,9 +807,13 @@ async handle_touch_move(_e:TouchEvent) {
 
 async handle_keydown(e:KeyboardEvent) {
 
-	if (!e.ctrlKey) {
+	if (e.target !== document.body) {
 		return
 	}
+
+	// if (!e.ctrlKey) {
+	// 	return
+	// }
 
     if ( this.s.key.listen_for === KeyE.NONE) {
 
@@ -896,7 +901,7 @@ async handle_keydown(e:KeyboardEvent) {
             this.filter_by_cattag([3])
         }
         if (e.key === '`') {
-            this.filter_by_cattag([1,2])
+            this.filter_by_cattag([1,2,3])
         }
     } 
 

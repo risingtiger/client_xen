@@ -40,7 +40,7 @@ class VHome extends HTMLElement {
 	s:StateT = {
 		admin_return_str: "",
 	}
-	header: null
+	header:ViewHeaderT = { title: '', disable: true }
 
 	shadow:ShadowRoot
 
@@ -138,8 +138,8 @@ class VHome extends HTMLElement {
 		localStorage.clear()
 
 		this.reset_remove_database()
-			.then(() => window.location.href = "/")
-			.catch(() => alert("Error resetting database"))
+			.then(() => { alert ("Database deleted successfully"); window.location.href = "/"; })
+			.catch(() => console.log("Error resetting database"))
 	}
 
 
@@ -147,31 +147,21 @@ class VHome extends HTMLElement {
 
 	reset_datasync() {
 
-		localStorage.removeItem("datasync_store_metas")
-		localStorage.removeItem("indexeddb_stores")
+		localStorage.removeItem("localdbsync_collections_ts")
 
 		this.reset_remove_database()
-			.then(() => window.location.href = "/")
-			.catch(() => alert("Error resetting database"))
+			.then(() => { alert ("Database deleted successfully"); window.location.href = "/"; })
+			.catch(() => console.log("Error resetting database"))
 	}
 
 
 
 	reset_remove_database = () => new Promise((resolve, reject) => {
 
-		var req = indexedDB.deleteDatabase("xenition");
-		req.onsuccess = function () {
-			console.log("Deleted database successfully");
-			resolve(1)
-		};
-		req.onerror = function () {
-			console.log("Couldn't delete database");
-			reject()
-		};
-		req.onblocked = function () {
-			console.log("Couldn't delete database due to the operation being blocked");
-			reject()
-		};
+		try   {	$N.IDB.DeleteDatabase();	} 
+		catch { reject(); return;	}
+
+		resolve(1);
 	})
 
 

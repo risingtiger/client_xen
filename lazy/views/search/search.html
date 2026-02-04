@@ -58,12 +58,14 @@
 				${_s.loading ? html`<span class="loading-indicator">Searching…</span>` : ''}
 			</div>
 
+
 			${_m.transactions.length ? html`
 				<div class="tablewrap">
 					<table>
 						<thead>
 							<tr>
 								<th class="date">Date</th>
+								<th class="category">Category</th>
 								<th class="merchant">Merchant</th>
 								<th class="amount">Amount</th>
 								<th class="notes">Notes</th>
@@ -73,6 +75,7 @@
 							${_m.transactions.map((tx) => html`
 								<tr data-id="${tx.id}">
 									<td class="date">${this.formatDate(tx.date)}</td>
+									<td class="category" title="${this.formatCategory(tx.catref)}">${this.formatCategory(tx.catref)}</td>
 									<td class="merchant" title="${tx.merchant}">${tx.merchant}</td>
 									<td class="amount">${this.formatAmount(tx.amount)}</td>
 									<td class="notes" title="${this.formatNotes(tx.notes)}">${this.formatNotes(tx.notes)}</td>

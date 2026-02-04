@@ -36,6 +36,7 @@ class VAddTr extends HTMLElement {
 		original_amount: null
 	}
 
+	header:ViewHeaderT = { title: '', disable: true }
 	keycatcherel:HTMLInputElement
 
 	shadow:ShadowRoot

@@ -87,7 +87,7 @@ export default {
 
 
 	knit_tags(raw_tags:any, areas:AreaT[]) : TagT[] {
-		return raw_tags.map((raw_tag:any) => { 
+		return raw_tags.filter((raw_tag:any) => raw_tag.area !== null).map((raw_tag:any) => { 
 
 			const arearef = areas.find((area:AreaT) => area.id === raw_tag.area.__path[1])
 			return { id: raw_tag.id, arearef, ts: raw_tag.ts, name: raw_tag.name, sort: raw_tag.sort } 
@@ -125,7 +125,16 @@ export default {
 
 			const trsource = sources.find((source:SourceT) => source.id === raw_transaction.source.__path[1])
 
-			const trtags = raw_transaction.tags.map((t:any) => tags.find((tag:TagT) => tag.id === t._path.segments[1]) as TagT)
+			const trtags:TagT[] = []
+			if (raw_transaction.tags && raw_transaction.tags.length) {
+				for (const t of raw_transaction.tags) {
+					const tagfind = tags.find((tag:TagT) => tag.id === t.__path[1])
+					if (tagfind) {
+						trtags.push(tagfind)
+					}
+				}
+			}
+
 
 			return {
 				id: raw_transaction.id,
