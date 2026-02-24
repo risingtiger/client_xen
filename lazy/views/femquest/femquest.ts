@@ -459,7 +459,8 @@ class VFemQuest extends HTMLElement {
 		// Speed ramps from 1.0x at ring 1 to 1.3x at ring 10
 		const speedRamp = 1.0 + intensity * 0.3;
 		const speedMult = 0.08 * speedRamp;
-		const turbMult = 2.5 * speedRamp;
+		const turbMult = 3.25 * speedRamp;
+		const widthScale = 1.0 + intensity; // 1.0x at level 1, 2.0x at level 10
 		const widthMult = 2.0;
 
 		// Fixed undulation amplitude in camera space (same at all ring levels)
@@ -524,7 +525,7 @@ class VFemQuest extends HTMLElement {
 				// Width undulates along the strand (fixed, not intensity-dependent)
 				const widthNoise = 0.5 + (noise3D(t * 8 + no + 400, elapsed * 0.15 * speedRamp, no * 0.4)) * 1.0;
 				const taper = Math.sin(t * Math.PI);
-				const halfW = strand.ribbonWidth * taper * widthMult * widthNoise;
+				const halfW = strand.ribbonWidth * taper * widthMult * widthNoise * widthScale;
 
 				const vi = p * 2;
 				// Left vertex
