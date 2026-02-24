@@ -1,0 +1,30 @@
+
+
+<div class="wrapper">
+
+<div class="backgroundimg"></div>
+
+<div class="scalevalue-display">
+	<span class="scalevalue-label">intensity</span>
+	${_s.scalevalue}
+</div>
+
+<div class="threejs-container" id="threejs-container"></div>
+
+<div class="rings-container">
+	${[1,2,3,4,5,6,7,8,9,10].map((i) => {
+		const radius = 60 + (i - 1) * (300 - 60) / 9;
+		const size = radius * 2;
+		const isActive = _s.scalevalue >= i;
+		const isCurrent = _s.scalevalue === i;
+		return html`<div
+			class="ring ring-${i} ${isActive ? 'active' : ''} ${isCurrent ? 'current' : ''}"
+			style="width:${size}px;height:${size}px;"
+		></div>`;
+	})}
+</div>
+
+<div class="interaction-overlay" id="interaction-overlay"></div>
+
+</div>
+

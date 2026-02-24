@@ -74,6 +74,17 @@
 		],
 		"auth": ["admin"],
 		"localdb_preload": ["areas", "cats", "sources", "tags"]
-	}
+	},
+    {
+      "type":	  "view",
+      "urlmatch": "femquest",
+      "name":	  "femquest",
+      "is_instance": true,
+      "dependencies": [
+		{"type": "component", "name": "btn"},
+		{"type": "component", "name": "toast"}
+      ],
+      "auth": []
+    }
   ]
 }
