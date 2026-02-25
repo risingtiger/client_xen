@@ -4,13 +4,10 @@
 import { num,str } from "../../../defs_server_symlink.js";
 import { $NT, GenericRowT, LazyLoadFuncReturnT, ViewHeaderT } from "../../../defs_client_symlink.js";
 
-// @ts-ignore
-import * as THREE from "https://unpkg.com/three@0.170.0/build/three.module.min.js";
-
-
 declare var render: any;
 declare var html: any;
 declare var $N: $NT;
+let THREE:any = null;
 
 
 type AttributesT = {
@@ -114,6 +111,8 @@ const FRAGMENT_SHADER = `
 	uniform float uIntensity;
 	uniform float uPulse;
 	uniform float uTime;
+	uniform float uOpacity;
+	uniform vec3 uColor;
 
 	varying float vAlong;
 	varying float vAcross;
@@ -130,21 +129,52 @@ const FRAGMENT_SHADER = `
 		// Combined softness
 		float alpha = alongFade * acrossFade;
 
-		// Always white
-		vec3 color = vec3(1.0, 1.0, 1.0);
+		vec3 color = uColor;
 
 		// Pulse brightness
 		float brightness = 1.0 + uPulse * 0.4;
 
 		// Bold, visible wisps (consistent at all levels)
 		float baseAlpha = 0.85;
-		alpha *= baseAlpha * brightness;
+		alpha *= baseAlpha * brightness * uOpacity;
 
 		// Premultiply RGB by alpha to prevent gray fringing during canvas compositing
 		gl_FragColor = vec4(color * brightness * alpha, alpha);
 	}
 `;
 
+
+
+// ── Orb Shaders ──────────────────────────────────────────────────────────
+
+const ORB_VERTEX_SHADER = `
+	varying vec2 vUv;
+	void main() {
+		vUv = uv;
+		gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+	}
+`;
+
+const ORB_FRAGMENT_SHADER = `
+	uniform float uProgress; // 0..1 animation progress
+	varying vec2 vUv;
+
+	void main() {
+		vec2 center = vec2(0.5, 0.5);
+		float dist = length(vUv - center) * 2.0; // 0 at center, 1 at edge
+
+		// Radial gradient: bright center fading to transparent edge
+		float radialFade = 1.0 - smoothstep(0.0, 1.0, dist);
+
+		// Fade out as the orb expands
+		float fadeOut = 1.0 - smoothstep(0.3, 1.0, uProgress);
+
+		float alpha = radialFade * fadeOut * 0.9;
+
+		vec3 color = vec3(1.0, 1.0, 1.0);
+		gl_FragColor = vec4(color * alpha, alpha);
+	}
+`;
 
 
 class VFemQuest extends HTMLElement {
@@ -164,15 +194,15 @@ class VFemQuest extends HTMLElement {
 	private _camera:any = null
 	private _renderer:any = null
 	private _animationId:number = 0
-	private _material:any = null
 	private _startTime:number = 0
 	private _threeInitialized:boolean = false
 
-	// Strand system
-	private _strands:StrandT[] = []
-	private _strandMeshes:any[] = []
-	private _strandPositions:Float32Array[] = []
-	private _strandGeometries:any[] = []
+	// Strand system — one set per ring level (index 0 = level 1, index 9 = level 10)
+	private _levelMaterials:any[] = []
+	private _levelStrands:StrandT[][] = []
+	private _levelMeshes:any[][] = []
+	private _levelPositions:Float32Array[][] = []
+	private _levelGeometries:any[][] = []
 
 	// Viewport / coordinate mapping
 	private _viewportH:number = 0
@@ -188,6 +218,13 @@ class VFemQuest extends HTMLElement {
 	private _currentInnerR:number = 0 // smoothly interpolated
 	private _centerX:number = 0
 	private _centerY:number = 0
+
+	// Level 10 burst effect
+	private _orbMesh:any = null
+	private _orbMaterial:any = null
+	private _burstProgress:number = -1 // -1 = inactive, 0..1 = animating
+	private _burstStartTime:number = 0
+	private _burstDuration:number = 0.6 // seconds for full expansion
 
 
 	static get observedAttributes() { return Object.keys(ATTRIBUTES); }
@@ -205,7 +242,6 @@ class VFemQuest extends HTMLElement {
 
 	async connectedCallback() {
 		$N.CMech.RegisterView(this);
-		requestAnimationFrame(() => { this._initThreeJS(); });
 	}
 
 
@@ -227,14 +263,21 @@ class VFemQuest extends HTMLElement {
 
 
 	static load = (_pathparams:GenericRowT, _searchparams:GenericRowT) => new Promise<LazyLoadFuncReturnT>(async (res, _rej) => {
-		const d = new Map<str,GenericRowT[]>()
-		res({ d, refreshon:[]})
+		if (!THREE) {
+			// @ts-ignore
+			THREE = await import('https://cdn.jsdelivr.net/npm/three@0.183.1/build/three.module.min.js');
+		}
+		const d = new Map<str,GenericRowT[]>();
+		res({ d, refreshon:[] });
 	})
 
 
 
 
 	ingest = () =>  {
+		setTimeout(()=> { // hack since the DOM has to render first for three to hook into element
+			this._initThreeJS();
+		}, 100)
 	}
 
 
@@ -335,6 +378,9 @@ class VFemQuest extends HTMLElement {
 		// Build strand system
 		this._initStrands();
 
+		// Build orb for level-10 burst effect
+		this._initOrb(aspect);
+
 		// Interaction
 		this._attachInteractionListeners();
 
@@ -350,13 +396,104 @@ class VFemQuest extends HTMLElement {
 	// ── Strand System ────────────────────────────────────────────────────
 
 	private _initStrands() {
-		this._material = new THREE.ShaderMaterial({
-			vertexShader: VERTEX_SHADER,
-			fragmentShader: FRAGMENT_SHADER,
+		for (let level = 0; level < RING_COUNT; level++) {
+			const mat = new THREE.ShaderMaterial({
+				vertexShader: VERTEX_SHADER,
+				fragmentShader: FRAGMENT_SHADER,
 			uniforms: {
 				uTime: { value: 0 },
 				uIntensity: { value: 0.0 },
 				uPulse: { value: 0.0 },
+				uOpacity: { value: 1.0 },
+				uColor: { value: new THREE.Vector3(1.0, 1.0, 1.0) },
+			},
+				transparent: true,
+				blending: THREE.CustomBlending,
+				blendSrc: THREE.OneFactor,
+				blendDst: THREE.OneMinusSrcAlphaFactor,
+				blendSrcAlpha: THREE.OneFactor,
+				blendDstAlpha: THREE.OneMinusSrcAlphaFactor,
+				depthWrite: false,
+				depthTest: false,
+				side: THREE.DoubleSide,
+			});
+			this._levelMaterials.push(mat);
+
+			const strands:StrandT[] = [];
+			const meshes:any[] = [];
+			const positionsArr:Float32Array[] = [];
+			const geometries:any[] = [];
+
+			for (let s = 0; s < STRAND_COUNT; s++) {
+				const strand:StrandT = {
+					baseAngle: (s / STRAND_COUNT) * Math.PI * 2 + Math.random() * 0.3,
+					orbitRadius: 0.3 + Math.random() * 0.4,
+					orbitSpeed: (0.06 + Math.random() * 0.1) * (Math.random() > 0.5 ? 1 : -1),
+					noiseOffset: Math.random() * 1000,
+					ribbonWidth: 0.025 + Math.random() * 0.04,
+					lengthFactor: 0.5 + Math.random() * 0.4,
+					radialOscSpeed: 0.2 + Math.random() * 0.4,
+					radialOscAmp: 0.08 + Math.random() * 0.2,
+				};
+				strands.push(strand);
+
+				// Build ribbon geometry
+				const pointCount = SEGMENTS_PER_STRAND + 1;
+				const vertCount = pointCount * 2;
+				const positions = new Float32Array(vertCount * 3);
+				const alongAttr = new Float32Array(vertCount);
+				const acrossAttr = new Float32Array(vertCount);
+				const indices:number[] = [];
+
+				for (let p = 0; p < pointCount; p++) {
+					const t = p / SEGMENTS_PER_STRAND;
+					const vi = p * 2;
+
+					alongAttr[vi] = t;
+					acrossAttr[vi] = -1.0;
+					alongAttr[vi + 1] = t;
+					acrossAttr[vi + 1] = 1.0;
+
+					if (p < SEGMENTS_PER_STRAND) {
+						const bl = vi;
+						const br = vi + 1;
+						const tl = vi + 2;
+						const tr = vi + 3;
+						indices.push(bl, br, tl);
+						indices.push(br, tr, tl);
+					}
+				}
+
+				const geo = new THREE.BufferGeometry();
+				geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+				geo.setAttribute('aAlongStrand', new THREE.BufferAttribute(alongAttr, 1));
+				geo.setAttribute('aAcrossStrand', new THREE.BufferAttribute(acrossAttr, 1));
+				geo.setIndex(indices);
+
+				const mesh = new THREE.Mesh(geo, mat);
+				mesh.frustumCulled = false;
+				mesh.visible = false;
+				this._scene.add(mesh);
+
+				geometries.push(geo);
+				positionsArr.push(positions);
+				meshes.push(mesh);
+			}
+
+			this._levelStrands.push(strands);
+			this._levelMeshes.push(meshes);
+			this._levelPositions.push(positionsArr);
+			this._levelGeometries.push(geometries);
+		}
+	}
+
+
+	private _initOrb(aspect:number) {
+		this._orbMaterial = new THREE.ShaderMaterial({
+			vertexShader: ORB_VERTEX_SHADER,
+			fragmentShader: ORB_FRAGMENT_SHADER,
+			uniforms: {
+				uProgress: { value: 0 },
 			},
 			transparent: true,
 			blending: THREE.CustomBlending,
@@ -369,64 +506,14 @@ class VFemQuest extends HTMLElement {
 			side: THREE.DoubleSide,
 		});
 
-		for (let s = 0; s < STRAND_COUNT; s++) {
-			const strand:StrandT = {
-				baseAngle: (s / STRAND_COUNT) * Math.PI * 2 + Math.random() * 0.3,
-				orbitRadius: 0.3 + Math.random() * 0.4,
-				orbitSpeed: (0.06 + Math.random() * 0.1) * (Math.random() > 0.5 ? 1 : -1),
-				noiseOffset: Math.random() * 1000,
-				ribbonWidth: 0.025 + Math.random() * 0.04,
-				lengthFactor: 0.5 + Math.random() * 0.4, // each strand covers a large arc
-				radialOscSpeed: 0.2 + Math.random() * 0.4,
-				radialOscAmp: 0.08 + Math.random() * 0.2,
-			};
-			this._strands.push(strand);
-
-			// Build ribbon geometry
-			const pointCount = SEGMENTS_PER_STRAND + 1;
-			const vertCount = pointCount * 2;
-			const positions = new Float32Array(vertCount * 3);
-			const alongAttr = new Float32Array(vertCount);
-			const acrossAttr = new Float32Array(vertCount);
-			const indices:number[] = [];
-
-			for (let p = 0; p < pointCount; p++) {
-				const t = p / SEGMENTS_PER_STRAND; // 0..1 along strand
-				const vi = p * 2;
-
-				// Left vertex
-				alongAttr[vi] = t;
-				acrossAttr[vi] = -1.0;
-
-				// Right vertex
-				alongAttr[vi + 1] = t;
-				acrossAttr[vi + 1] = 1.0;
-
-				// Quads: two triangles per segment
-				if (p < SEGMENTS_PER_STRAND) {
-					const bl = vi;
-					const br = vi + 1;
-					const tl = vi + 2;
-					const tr = vi + 3;
-					indices.push(bl, br, tl);
-					indices.push(br, tr, tl);
-				}
-			}
-
-			const geo = new THREE.BufferGeometry();
-			geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-			geo.setAttribute('aAlongStrand', new THREE.BufferAttribute(alongAttr, 1));
-			geo.setAttribute('aAcrossStrand', new THREE.BufferAttribute(acrossAttr, 1));
-			geo.setIndex(indices);
-
-			const mesh = new THREE.Mesh(geo, this._material);
-			mesh.frustumCulled = false;
-			this._scene.add(mesh);
-
-			this._strandGeometries.push(geo);
-			this._strandPositions.push(positions);
-			this._strandMeshes.push(mesh);
-		}
+		// Plane large enough to cover the full viewport when scaled up
+		const maxDim = Math.max(this._cameraFrustumSize * aspect, this._cameraFrustumSize);
+		const orbGeo = new THREE.PlaneGeometry(maxDim * 2.5, maxDim * 2.5);
+		this._orbMesh = new THREE.Mesh(orbGeo, this._orbMaterial);
+		this._orbMesh.frustumCulled = false;
+		this._orbMesh.visible = false;
+		this._orbMesh.position.z = 0.1; // slightly in front of strands
+		this._scene.add(this._orbMesh);
 	}
 
 
@@ -436,110 +523,170 @@ class VFemQuest extends HTMLElement {
 
 	private _animate = () => {
 		this._animationId = requestAnimationFrame(this._animate);
-		if (!this._material) return;
+		if (this._levelMaterials.length === 0) return;
 
 		const elapsed = (performance.now() - this._startTime) / 1000;
-		const intensity = (this.s.scalevalue - 1) / 9; // 0..1
-
-		// Update uniforms
-		this._material.uniforms.uTime.value = elapsed;
-		this._material.uniforms.uIntensity.value = intensity;
+		const activeLevel = this.s.scalevalue; // 1..10
+		const intensity = (activeLevel - 1) / 9; // 0..1
 
 		// Pulse decay
 		if (this._pulseAmount > 0) {
 			this._pulseAmount *= 0.94;
 			if (this._pulseAmount < 0.01) this._pulseAmount = 0;
 		}
-		this._material.uniforms.uPulse.value = this._pulseAmount;
 
-		// Smooth radius interpolation for the ring band
+		// Level-10 burst effect
+		let burstWidthMult = 1.0;
+		if (this._burstProgress >= 0) {
+			const burstElapsed = elapsed - this._burstStartTime;
+			this._burstProgress = Math.min(burstElapsed / this._burstDuration, 1.0);
+
+			// Orb: start tiny, expand to full screen
+			const orbScale = this._burstProgress;
+			this._orbMesh.visible = true;
+			this._orbMesh.scale.set(orbScale, orbScale, 1);
+			this._orbMaterial.uniforms.uProgress.value = this._burstProgress;
+
+			// Width pulse: animate up to 4x then back to 1x (breath in/out)
+			// Peak at ~25% through the animation, then ease back down
+			const widthT = this._burstProgress;
+			const breath = Math.sin(widthT * Math.PI) * Math.pow(1.0 - widthT, 0.4);
+			burstWidthMult = 1.0 + 1.5 * (breath / 0.66); // normalized so peak ≈ 2.5x
+
+			if (this._burstProgress >= 1.0) {
+				this._burstProgress = -1;
+				this._orbMesh.visible = false;
+			}
+		}
+
+		// Smooth radius interpolation for the active ring band
 		this._currentOuterR += (this._targetOuterR - this._currentOuterR) * 0.1;
 		this._currentInnerR += (this._targetInnerR - this._currentInnerR) * 0.1;
 
-		// Speed ramps from 1.0x at ring 1 to 1.3x at ring 10
+		// Active level params
 		const speedRamp = 1.0 + intensity * 0.3;
 		const speedMult = 0.08 * speedRamp;
 		const turbMult = 3.25 * speedRamp;
 		const widthScale = 1.0 + intensity; // 1.0x at level 1, 2.0x at level 10
 		const widthMult = 2.0;
-
-		// Fixed undulation amplitude in camera space (same at all ring levels)
 		const undulationAmp = this._pxToCamera(40);
 
-		// Strands centered on the ring midpoint
-		const ringCenter = (this._currentOuterR + this._currentInnerR) / 2;
+		// Preceding level params (constant, matching level 1 behavior)
+		const precSpeedRamp = 1.0;
+		const precSpeedMult = 0.08;
+		const precTurbMult = 3.25;
+		const precTangentialScale = 0.5; // narrower tangential bandwidth
 
-		for (let s = 0; s < STRAND_COUNT; s++) {
-			const strand = this._strands[s];
-			const positions = this._strandPositions[s];
-			const geo = this._strandGeometries[s];
-			const mesh = this._strandMeshes[s];
-			const pointCount = SEGMENTS_PER_STRAND + 1;
+		for (let level = 0; level < RING_COUNT; level++) {
+			const ringIndex = level + 1; // 1..10
+			const mat = this._levelMaterials[level];
+			const strands = this._levelStrands[level];
+			const meshes = this._levelMeshes[level];
+			const positionsArr = this._levelPositions[level];
+			const geometries = this._levelGeometries[level];
 
-			mesh.visible = true;
-
-			// Time-varying base angle
-			const angle = strand.baseAngle + elapsed * strand.orbitSpeed * speedMult;
-
-			// Radial breathing (slowed)
-			const radialOsc = Math.sin(elapsed * strand.radialOscSpeed * 0.3 * speedRamp + strand.noiseOffset) * strand.radialOscAmp;
-
-			const no = strand.noiseOffset; // shorthand
-
-			for (let p = 0; p < pointCount; p++) {
-				const t = p / SEGMENTS_PER_STRAND; // 0..1
-
-				// Base arc angle for this spine point
-				const arcAngle = angle + t * strand.lengthFactor * Math.PI * 2;
-
-				// ── Multi-octave radial undulation (perpendicular to ring path) ──
-				const radNoise1 = (noise3D(t * 5 + no, elapsed * 0.12 * turbMult, no * 0.1) - 0.5) * 2.0;
-				const radNoise2 = (noise3D(t * 11 + no * 1.3, elapsed * 0.25 * turbMult, no * 0.3) - 0.5) * 1.0;
-				const radNoise3 = (noise3D(t * 23 + no * 2.1, elapsed * 0.4 * turbMult, no * 0.7) - 0.5) * 0.5;
-				const radialUndulation = (radNoise1 + radNoise2 + radNoise3) / 3.5;
-
-				// Center on ring midpoint, undulate with fixed amplitude
-				let r = ringCenter + radialOsc * undulationAmp * 0.5 + radialUndulation * undulationAmp;
-
-				// Soft minimum so strands don't collapse to zero
-				if (r < 0.001) r = 0.001;
-
-				// ── Multi-octave tangential undulation (along the arc) ──
-				const tanNoise1 = (noise3D(t * 6 + no + 200, elapsed * 0.1 * turbMult, no * 0.2) - 0.5) * 2.0;
-				const tanNoise2 = (noise3D(t * 14 + no * 1.7 + 200, elapsed * 0.2 * turbMult, no * 0.5) - 0.5) * 1.0;
-				const tanNoise3 = (noise3D(t * 28 + no * 2.5 + 200, elapsed * 0.35 * turbMult, no * 0.9) - 0.5) * 0.5;
-				const tangentialUndulation = (tanNoise1 + tanNoise2 + tanNoise3) / 3.5;
-
-				// Apply tangential offset as an angular displacement
-				const tangentialOffset = tangentialUndulation * 0.15;
-				const finalArcAngle = arcAngle + tangentialOffset;
-
-				// Spine position
-				const sx = Math.cos(finalArcAngle) * r;
-				const sy = Math.sin(finalArcAngle) * r;
-
-				// Perpendicular direction (tangent to arc = perpendicular to radial)
-				const perpX = -Math.sin(finalArcAngle);
-				const perpY = Math.cos(finalArcAngle);
-
-				// Width undulates along the strand (fixed, not intensity-dependent)
-				const widthNoise = 0.5 + (noise3D(t * 8 + no + 400, elapsed * 0.15 * speedRamp, no * 0.4)) * 1.0;
-				const taper = Math.sin(t * Math.PI);
-				const halfW = strand.ribbonWidth * taper * widthMult * widthNoise * widthScale;
-
-				const vi = p * 2;
-				// Left vertex
-				positions[vi * 3]     = sx - perpX * halfW;
-				positions[vi * 3 + 1] = sy - perpY * halfW;
-				positions[vi * 3 + 2] = 0;
-
-				// Right vertex
-				positions[(vi + 1) * 3]     = sx + perpX * halfW;
-				positions[(vi + 1) * 3 + 1] = sy + perpY * halfW;
-				positions[(vi + 1) * 3 + 2] = 0;
+			// Hide levels above current scalevalue
+			if (ringIndex > activeLevel) {
+				for (const mesh of meshes) mesh.visible = false;
+				continue;
 			}
 
-			geo.attributes.position.needsUpdate = true;
+			const isActive = ringIndex === activeLevel;
+
+			// Set uniforms per level
+			mat.uniforms.uTime.value = elapsed;
+			mat.uniforms.uIntensity.value = intensity;
+			mat.uniforms.uPulse.value = this._pulseAmount;
+			// Preceding opacity: nearest preceding = 0.30, furthest = 0.05, linear between
+			let levelOpacity = 1.0;
+			if (!isActive) {
+				const precCount = activeLevel - 1; // total preceding levels
+				if (precCount <= 1) {
+					levelOpacity = 0.30;
+				} else {
+					const distFromActive = activeLevel - ringIndex; // 1 = nearest, precCount = furthest
+					const t = (distFromActive - 1) / (precCount - 1); // 0 = nearest, 1 = furthest
+					levelOpacity = 0.30 + (0.05 - 0.30) * t;
+				}
+			}
+			mat.uniforms.uOpacity.value = levelOpacity;
+
+			// Color: interpolate from white (level 1) to target color (level 10)
+			const colorT = (ringIndex - 1) / 9; // 0..1
+			const cr = 1.0 + (1.0 - 1.0) * colorT;
+			const cg = 1.0 + (1.0 - 1.0) * colorT;
+			const cb = 1.0 + (1.0 - 1.0) * colorT;
+			mat.uniforms.uColor.value.set(cr, cg, cb);
+
+			// Ring center for this level
+			const outerR = isActive ? this._currentOuterR : this._ringCameraRadius(ringIndex);
+			const innerR = isActive ? this._currentInnerR : this._ringCameraRadius(Math.max(0, ringIndex - 1));
+			const ringCenter = (outerR + innerR) / 2;
+
+			// Pick params based on active vs preceding
+			const sm = isActive ? speedMult : precSpeedMult;
+			const sr = isActive ? speedRamp : precSpeedRamp;
+			const tm = isActive ? turbMult : precTurbMult;
+			const ws = isActive ? widthScale * burstWidthMult : 1.0; // preceding = level-1 width (1.0x)
+			const tanScale = isActive ? 1.0 : precTangentialScale;
+
+			for (let s = 0; s < STRAND_COUNT; s++) {
+				const strand = strands[s];
+				const positions = positionsArr[s];
+				const geo = geometries[s];
+				const mesh = meshes[s];
+				const pointCount = SEGMENTS_PER_STRAND + 1;
+
+				mesh.visible = true;
+
+				const angle = strand.baseAngle + elapsed * strand.orbitSpeed * sm;
+				const radialOsc = Math.sin(elapsed * strand.radialOscSpeed * 0.3 * sr + strand.noiseOffset) * strand.radialOscAmp;
+				const no = strand.noiseOffset;
+
+				for (let p = 0; p < pointCount; p++) {
+					const t = p / SEGMENTS_PER_STRAND;
+					const arcAngle = angle + t * strand.lengthFactor * Math.PI * 2;
+
+					// Multi-octave radial undulation
+					const radNoise1 = (noise3D(t * 5 + no, elapsed * 0.12 * tm, no * 0.1) - 0.5) * 2.0;
+					const radNoise2 = (noise3D(t * 11 + no * 1.3, elapsed * 0.25 * tm, no * 0.3) - 0.5) * 1.0;
+					const radNoise3 = (noise3D(t * 23 + no * 2.1, elapsed * 0.4 * tm, no * 0.7) - 0.5) * 0.5;
+					const radialUndulation = (radNoise1 + radNoise2 + radNoise3) / 3.5;
+
+					let r = ringCenter + radialOsc * undulationAmp * 0.5 + radialUndulation * undulationAmp;
+					if (r < 0.001) r = 0.001;
+
+					// Multi-octave tangential undulation (scaled down for preceding levels)
+					const tanNoise1 = (noise3D(t * 6 + no + 200, elapsed * 0.1 * tm, no * 0.2) - 0.5) * 2.0;
+					const tanNoise2 = (noise3D(t * 14 + no * 1.7 + 200, elapsed * 0.2 * tm, no * 0.5) - 0.5) * 1.0;
+					const tanNoise3 = (noise3D(t * 28 + no * 2.5 + 200, elapsed * 0.35 * tm, no * 0.9) - 0.5) * 0.5;
+					const tangentialUndulation = (tanNoise1 + tanNoise2 + tanNoise3) / 3.5;
+
+					const tangentialOffset = tangentialUndulation * 0.15 * tanScale;
+					const finalArcAngle = arcAngle + tangentialOffset;
+
+					const sx = Math.cos(finalArcAngle) * r;
+					const sy = Math.sin(finalArcAngle) * r;
+
+					const perpX = -Math.sin(finalArcAngle);
+					const perpY = Math.cos(finalArcAngle);
+
+					const widthNoise = 0.5 + (noise3D(t * 8 + no + 400, elapsed * 0.15 * sr, no * 0.4)) * 1.0;
+					const taper = Math.sin(t * Math.PI);
+					const halfW = strand.ribbonWidth * taper * widthMult * widthNoise * ws;
+
+					const vi = p * 2;
+					positions[vi * 3]     = sx - perpX * halfW;
+					positions[vi * 3 + 1] = sy - perpY * halfW;
+					positions[vi * 3 + 2] = 0;
+
+					positions[(vi + 1) * 3]     = sx + perpX * halfW;
+					positions[(vi + 1) * 3 + 1] = sy + perpY * halfW;
+					positions[(vi + 1) * 3 + 2] = 0;
+				}
+
+				geo.attributes.position.needsUpdate = true;
+			}
 		}
 
 		this._renderer.render(this._scene, this._camera);
@@ -594,7 +741,6 @@ class VFemQuest extends HTMLElement {
 
 		this._isDragging = true;
 		this._hasClicked = true;
-		this._pulseAmount = 1.0;
 
 		(e.target as HTMLElement).setPointerCapture(e.pointerId);
 	}
@@ -627,13 +773,19 @@ class VFemQuest extends HTMLElement {
 
 		if (newValue === this.s.scalevalue) return;
 
+		const prevValue = this.s.scalevalue;
 		this.s.scalevalue = newValue;
+
+		// Trigger level-10 burst effect
+		if (newValue === RING_COUNT && prevValue !== RING_COUNT) {
+			const elapsed = (performance.now() - this._startTime) / 1000;
+			this._burstProgress = 0;
+			this._burstStartTime = elapsed;
+		}
 
 		// Sync target band to ring's camera-space radius
 		this._targetOuterR = this._ringCameraRadius(newValue);
 		this._targetInnerR = this._ringCameraRadius(Math.max(0, newValue - 1));
-
-		this._pulseAmount = Math.max(this._pulseAmount, 0.3);
 
 		this.render();
 	}
@@ -653,12 +805,19 @@ class VFemQuest extends HTMLElement {
 			cancelAnimationFrame(this._animationId);
 			this._animationId = 0;
 		}
-		for (const geo of this._strandGeometries) {
-			if (geo) geo.dispose();
+		for (const geos of this._levelGeometries) {
+			for (const geo of geos) if (geo) geo.dispose();
 		}
-		if (this._material) {
-			this._material.dispose();
-			this._material = null;
+		for (const mat of this._levelMaterials) {
+			if (mat) mat.dispose();
+		}
+		if (this._orbMesh) {
+			this._orbMesh.geometry.dispose();
+			this._orbMesh = null;
+		}
+		if (this._orbMaterial) {
+			this._orbMaterial.dispose();
+			this._orbMaterial = null;
 		}
 		if (this._renderer) {
 			this._renderer.dispose();
@@ -666,10 +825,11 @@ class VFemQuest extends HTMLElement {
 		}
 		this._scene = null;
 		this._camera = null;
-		this._strandMeshes = [];
-		this._strandGeometries = [];
-		this._strandPositions = [];
-		this._strands = [];
+		this._levelMaterials = [];
+		this._levelStrands = [];
+		this._levelMeshes = [];
+		this._levelPositions = [];
+		this._levelGeometries = [];
 		this._threeInitialized = false;
 	}
 }
