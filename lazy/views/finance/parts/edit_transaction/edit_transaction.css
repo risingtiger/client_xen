@@ -2,6 +2,20 @@
     position: relative;
 }
 
+.icobtns {
+	position: absolute;
+	top: 10px;
+	right: 10px;
+	z-index: 100;
+	.icobtn > i {
+		background-color: var(--actioncolor);
+	}
+}
+
+#wrap {
+	padding-top: 48px;
+	z-index: 90;
+}
 
 ul.items > li > h5 {
     color: rgb(190 56 151);

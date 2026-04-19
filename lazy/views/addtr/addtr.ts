@@ -427,6 +427,7 @@ class VAddTr extends HTMLElement {
 
 
 	skip = (e:any) => new Promise<void>(async (_res) => {
+
 		this.s.inputmode = InputModeE.skipped
 		this.render()
 

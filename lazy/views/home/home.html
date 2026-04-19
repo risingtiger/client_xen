@@ -32,13 +32,13 @@
             `}
         </div>
 
-		<c-btn noanime='true' @btnclick="${()=>$N.SwitchStation.GoTo('finance/1234/s/quicktest/9876')}">Finance</c-btn>
+		<c-btn nopulse noanime='true' @btnclick="${()=>$N.SwitchStation.GoTo('finance/1234/s/quicktest/9876')}">Finance</c-btn>
 
 		<br><br>
-		<c-btn noanime='true' @click="${()=>$N.SwitchStation.GoTo('addtr')}">AddTr</c-btn>
+		<c-btn nopulse noanime='true' @click="${()=>$N.SwitchStation.GoTo('addtr')}">AddTr</c-btn>
 
         <br><br>
-		<c-btn noanime='true' @click="${()=>$N.SwitchStation.GoTo('search')}">Search</c-btn>
+		<c-btn nopulse noanime='true' @click="${()=>$N.SwitchStation.GoTo('search')}">Search</c-btn>
 
 		<br><br>
 
@@ -53,8 +53,10 @@
         <h5 @click="${()=>this.save_logs()}">Save Logs</h5>
         <h5 @click="${()=>this.get_logs()}">Get Logs</h5>
 
-		<br><br><br>
-		<c-btn noanime @click="${()=>$N.SwitchStation.GoTo('femquest')}">FQ</c-btn>
+        ${localStorage.getItem("user_email") === 'rfs@risingtiger.com' ? html`
+			<br><br><br>
+			<c-btn nopulse noanime @click="${()=>$N.SwitchStation.GoTo('femquest')}">FQ</c-btn>
+		` : ''}
     </div>
 
 </div>

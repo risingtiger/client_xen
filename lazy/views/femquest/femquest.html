@@ -15,7 +15,7 @@
 
 <div class="rings-container">
 	${[1,2,3,4,5,6,7,8,9,10].map((i) => {
-		const radius = 60 + (i - 1) * (300 - 60) / 9;
+		const radius = i * 87 / 10;
 		const size = radius * 2;
 		const isActive = _s.scalevalue >= i;
 		const isCurrent = _s.scalevalue === i;

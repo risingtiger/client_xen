@@ -144,7 +144,7 @@ class VPFinanceEditTransaction extends HTMLElement {
 
 
 
-	async props_updated(_e?:any) {
+	async saveit(_e?:any) {
 
 		const mainform = this.shadow.querySelector('form[name="mainform"]') as HTMLFormElement
 		const inputs = mainform.querySelectorAll('c-in2')
@@ -182,10 +182,6 @@ class VPFinanceEditTransaction extends HTMLElement {
 		}
 
 		$N.ToastShow("Saved", 'saved');
-	}
-
-	actiontermclicked () {
-		this.props_updated()
 	}
 
 

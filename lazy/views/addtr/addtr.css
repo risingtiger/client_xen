@@ -1,4 +1,11 @@
 
+
+
+@media (max-width: 767px) {
+	:host > .wrapper {padding-top: var(--windowtop);} /* took the header height out of it */
+}
+
+
 #toparea {
 	position: relative;
 	height: 198px;
@@ -16,7 +23,7 @@
 }
 #actionbtns {
 	position: absolute;
-	top: 148px;
+	top: 171px;
 	left: 0;
 	width: 100%;
 	height: 53px;
@@ -28,7 +35,7 @@
 }
 #fullmerchant {
 	position: absolute;
-	top: 184px;
+	top: 216px;
 	left: 0;
 	width: 100%;
 	height: 53px;

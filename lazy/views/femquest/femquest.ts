@@ -29,8 +29,7 @@ const ATTRIBUTES:AttributesT = { propa:"" }
 const STRAND_COUNT = 5;
 const SEGMENTS_PER_STRAND = 40;
 const RING_COUNT = 10;
-const RING_MIN_RADIUS_PX = 60;  // ring 1 pixel radius
-const RING_MAX_RADIUS_PX = 300; // ring 10 pixel radius
+const RING_MAX_RADIUS_PX = 87;  // ring 10 pixel radius (was 300; shrunk so level 10 = old level 2 size)
 
 
 // ── Noise ────────────────────────────────────────────────────────────────
@@ -317,9 +316,9 @@ class VFemQuest extends HTMLElement {
 	}
 
 	private _ringPixelRadius(ringIndex:number):number {
-		// Ring 0 = center (0px), ring 1 = 60px, ring 10 = 300px, linear between 1-10
+		// Even spacing: ring 0 = 0px, ring 1 = 8.7px, ..., ring 10 = 87px
 		if (ringIndex <= 0) return 0;
-		return RING_MIN_RADIUS_PX + (ringIndex - 1) * (RING_MAX_RADIUS_PX - RING_MIN_RADIUS_PX) / (RING_COUNT - 1);
+		return ringIndex * RING_MAX_RADIUS_PX / RING_COUNT;
 	}
 
 	private _ringCameraRadius(ringIndex:number):number {
@@ -405,7 +404,7 @@ class VFemQuest extends HTMLElement {
 				uIntensity: { value: 0.0 },
 				uPulse: { value: 0.0 },
 				uOpacity: { value: 1.0 },
-				uColor: { value: new THREE.Vector3(1.0, 1.0, 1.0) },
+				uColor: { value: new THREE.Vector3(1.0, 0.0, 1.0) },
 			},
 				transparent: true,
 				blending: THREE.CustomBlending,
@@ -430,10 +429,10 @@ class VFemQuest extends HTMLElement {
 					orbitRadius: 0.3 + Math.random() * 0.4,
 					orbitSpeed: (0.06 + Math.random() * 0.1) * (Math.random() > 0.5 ? 1 : -1),
 					noiseOffset: Math.random() * 1000,
-					ribbonWidth: 0.025 + Math.random() * 0.04,
+					ribbonWidth: ( 0.025 + Math.random()  * 0.04) * 0.20,
 					lengthFactor: 0.5 + Math.random() * 0.4,
 					radialOscSpeed: 0.2 + Math.random() * 0.4,
-					radialOscAmp: 0.08 + Math.random() * 0.2,
+					radialOscAmp: (0.08 + Math.random() * 0.2) * 0.29,
 				};
 				strands.push(strand);
 
@@ -568,14 +567,14 @@ class VFemQuest extends HTMLElement {
 		const speedMult = 0.08 * speedRamp;
 		const turbMult = 3.25 * speedRamp;
 		const widthScale = 1.0 + intensity; // 1.0x at level 1, 2.0x at level 10
-		const widthMult = 2.0;
-		const undulationAmp = this._pxToCamera(40);
+		const widthMult = 4.0;
+		const undulationAmp = this._pxToCamera(4);
 
 		// Preceding level params (constant, matching level 1 behavior)
 		const precSpeedRamp = 1.0;
 		const precSpeedMult = 0.08;
 		const precTurbMult = 3.25;
-		const precTangentialScale = 0.5; // narrower tangential bandwidth
+		const precTangentialScale = 0.7; // narrower tangential bandwidth
 
 		for (let level = 0; level < RING_COUNT; level++) {
 			const ringIndex = level + 1; // 1..10
@@ -611,12 +610,8 @@ class VFemQuest extends HTMLElement {
 			}
 			mat.uniforms.uOpacity.value = levelOpacity;
 
-			// Color: interpolate from white (level 1) to target color (level 10)
-			const colorT = (ringIndex - 1) / 9; // 0..1
-			const cr = 1.0 + (1.0 - 1.0) * colorT;
-			const cg = 1.0 + (1.0 - 1.0) * colorT;
-			const cb = 1.0 + (1.0 - 1.0) * colorT;
-			mat.uniforms.uColor.value.set(cr, cg, cb);
+			// Color: full purple for all levels
+			mat.uniforms.uColor.value.set(1.0, 0.0, 1.0);
 
 			// Ring center for this level
 			const outerR = isActive ? this._currentOuterR : this._ringCameraRadius(ringIndex);
@@ -657,12 +652,12 @@ class VFemQuest extends HTMLElement {
 					if (r < 0.001) r = 0.001;
 
 					// Multi-octave tangential undulation (scaled down for preceding levels)
-					const tanNoise1 = (noise3D(t * 6 + no + 200, elapsed * 0.1 * tm, no * 0.2) - 0.5) * 2.0;
-					const tanNoise2 = (noise3D(t * 14 + no * 1.7 + 200, elapsed * 0.2 * tm, no * 0.5) - 0.5) * 1.0;
-					const tanNoise3 = (noise3D(t * 28 + no * 2.5 + 200, elapsed * 0.35 * tm, no * 0.9) - 0.5) * 0.5;
+					const tanNoise1 = (noise3D(t * 12 + no + 200, elapsed * 0.5 * tm, no * 0.2) - 0.5) * 2.0;
+					const tanNoise2 = (noise3D(t * 28 + no * 1.7 + 200, elapsed * 0.8 * tm, no * 0.5) - 0.5) * 1.0;
+					const tanNoise3 = (noise3D(t * 50 + no * 2.5 + 200, elapsed * 1.2 * tm, no * 0.9) - 0.5) * 0.5;
 					const tangentialUndulation = (tanNoise1 + tanNoise2 + tanNoise3) / 3.5;
 
-					const tangentialOffset = tangentialUndulation * 0.15 * tanScale;
+					const tangentialOffset = tangentialUndulation * 2.0 * tanScale;
 					const finalArcAngle = arcAngle + tangentialOffset;
 
 					const sx = Math.cos(finalArcAngle) * r;
@@ -736,7 +731,7 @@ class VFemQuest extends HTMLElement {
 		const dy = y - this._centerY;
 		const dist = Math.sqrt(dx * dx + dy * dy);
 
-		const hitRadius = Math.max(this._ringPixelRadius(this.s.scalevalue), RING_MIN_RADIUS_PX);
+		const hitRadius = Math.max(this._ringPixelRadius(this.s.scalevalue), 60);
 		if (dist > hitRadius && !this._hasClicked) return;
 
 		this._isDragging = true;

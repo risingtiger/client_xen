@@ -1,5 +1,9 @@
 
 
+@media (max-width: 767px) {
+	:host > .wrapper {padding-top: var(--windowtop);} /* took the header height out of it */
+}
+
 div.wrapper {
     width: 100vw;
     height: 100svh;
@@ -8,7 +12,7 @@ div.wrapper {
 #calc_transactions_wrapper {
     display: flex;
     justify-content: space-between;
-    height: calc(100svh - 26px);
+    height: calc(100vh - 26px);
     width: 100vw;
     overflow: hidden;
 }
@@ -28,9 +32,10 @@ div.wrapper {
     width: 48vw;
 }
 
+
 .calcs-grid {
     display: grid;
-    grid-template-rows: 24px auto 1fr 86px;
+    grid-template-rows: 24px auto 1fr 124px;
     height: 100%;
     width: 100%;
 }
@@ -383,12 +388,51 @@ vp-finance-bucket {
 }
 
 
-footer {
+
+.wrapper > footer {
     position: absolute;
     bottom: 0;
     left: 0;
     width: 100%;
     height: 25px;
+    top: calc(100vh - 41px);
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
 	/*
     & #snapshot {

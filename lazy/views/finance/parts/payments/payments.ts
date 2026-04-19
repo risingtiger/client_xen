@@ -139,6 +139,7 @@ class VPFinancePayments extends HTMLElement {
 	}
 
 	async prop_updated(e:any) {
+		debugger
 		if (!this.s.editing_payment) return
 		const changed:any = {}
 		const n = e.detail.name
