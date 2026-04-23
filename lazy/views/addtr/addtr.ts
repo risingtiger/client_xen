@@ -1,7 +1,7 @@
 
 
 import { str } from "../../../defs_server_symlink.js"
-import { $NT, CMechLoadedDataT, GenericRowT, LazyLoadFuncReturnT } from "../../../defs_client_symlink.js"
+import { $NT, CMechLoadedDataT, GenericRowT, LazyLoadFuncReturnT, ViewHeaderT } from "../../../defs_client_symlink.js"
 import { SaveNewTransactionServerT, SheetsTransactionT } from "../../../defs_instance_server_symlink.js"
 import { AreaT, CatT, SourceT } from '../../../defs_instance_server_symlink.js'
 import { NewTransactionT, InputModeE, AttributesT, ModelT, StateT } from "../../libs/addtr_defs.js"
