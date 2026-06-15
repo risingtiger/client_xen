@@ -1,17 +1,11 @@
 
-<div class="icobtns">
-	<div class="icobtn" @click="${()=> this.saveit()}">
-		<i class="icon-save" ></i>
-	</div>
-</div>
-
 <div id="wrap">
 	<form name="mainform">
 		<c-in2 label="Merchant" name="merchant" type="text" val="${_m.transaction.merchant.substring(0, 20)}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
 		<c-in2 label="Amount" name="amount" type="number" val="${_m.transaction.amount}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
-		<c-in2 label="Cat" name="cat" type="dselect" val="${_m.transaction.catref.id}" options="${_s.cat_options}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
+		<c-in2 label="Cat" name="cat" type="select" val="${_m.transaction.catref.id}" options="${_s.cat_options}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
 		<c-in2 label="Notes" name="notes" type="text" val="${_m.transaction.notes}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
-		<c-in2 label="Tag" name="tag" type="dselect" val="${_m.transaction_tag_id || 'none'}" options="${_s.tag_options}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
+		<c-in2 label="Tag" name="tag" type="select" val="${_m.transaction_tag_id || 'none'}" options="${_s.tag_options}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
 		<c-in2 label="date" name="date" type="date" val="${new Date(_m.transaction.date * 1000).toISOString().split('T')[0]}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
 	</form>
 

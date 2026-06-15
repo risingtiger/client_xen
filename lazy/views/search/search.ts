@@ -15,10 +15,10 @@ export type AttributesT = {}
 type SearchFieldT = "amount" | "merchant" | "notes" | "source"
 
 type CriteriaValuesT = {
-  amount: number|null
-  merchant: string
-  notes: string
-  sourceId: string|null
+	amount: number|null
+	merchant: string
+	notes: string
+	sourceIds: string[]
 }
 
 type SearchCriterionT = {
@@ -46,10 +46,10 @@ type StateT = {
 const ATTRIBUTES:AttributesT = {}
 
 const DEFAULT_CRITERIA:CriteriaValuesT = {
-  amount: null,
-  merchant: "",
-  notes: "",
-  sourceId: null,
+	amount: null,
+	merchant: "",
+	notes: "",
+	sourceIds: [],
 }
 
 class VSearch extends HTMLElement {
@@ -175,8 +175,8 @@ class VSearch extends HTMLElement {
 				break
 
 			case "source":
-				const sourceValue = target.value.trim()
-				this.s.criteria.sourceId = sourceValue ? sourceValue : null
+				if (!(target instanceof HTMLSelectElement)) return
+				this.s.criteria.sourceIds = Array.from(target.selectedOptions).map(option => option.value).filter(Boolean)
 				break
 		}
 		this.s.stale = this.shouldMarkStale()
@@ -192,11 +192,14 @@ class VSearch extends HTMLElement {
 		if (event) event.preventDefault()
 		if (this.s.loading) return
 
-		const scr: SearchCriterionT[] = []
-		if (this.s.criteria.merchant ) scr.push({ field: "merchant", val: this.s.criteria.merchant })
-		if (this.s.criteria.amount !== null && this.s.criteria.amount > 0) scr.push({ field: "amount", val: this.s.criteria.amount })
-		if (this.s.criteria.notes ) scr.push({ field: "notes", val: this.s.criteria.notes })
-		if (this.s.criteria.sourceId) scr.push({ field: "source", val: this.s.criteria.sourceId })
+		const baseCriteria: SearchCriterionT[] = []
+		if (this.s.criteria.merchant ) baseCriteria.push({ field: "merchant", val: this.s.criteria.merchant })
+		if (this.s.criteria.amount !== null && this.s.criteria.amount > 0) baseCriteria.push({ field: "amount", val: this.s.criteria.amount })
+		if (this.s.criteria.notes ) baseCriteria.push({ field: "notes", val: this.s.criteria.notes })
+
+		const searchCriteriaSets = this.s.criteria.sourceIds.length
+			? this.s.criteria.sourceIds.map(sourceId => [ ...baseCriteria, { field: "source", val: sourceId } as SearchCriterionT ])
+			: [ baseCriteria ]
 
 		this.render({
 			loading: true,
@@ -205,12 +208,13 @@ class VSearch extends HTMLElement {
 			hasSearched: true,
 		})
 
-		const r = await $N.FetchLassie("/api/xen/finance/transactions/search", {
+		const searchResponses = await Promise.all(searchCriteriaSets.map(search_criterias => $N.FetchLassie("/api/xen/finance/transactions/search", {
 			method: "POST",
-			body: JSON.stringify({ search_criterias: scr }),
-		})
-		if (!r.ok) {
-			console.error("Search request failed:", r.status, r.statusText)
+			body: JSON.stringify({ search_criterias }),
+		})))
+		const failedResponse = searchResponses.find(r => !r.ok)
+		if (failedResponse) {
+			console.error("Search request failed:", failedResponse.status, failedResponse.statusText)
 			this.render({
 				loading: false,
 				error: "Search failed. Please try again.",
@@ -219,14 +223,22 @@ class VSearch extends HTMLElement {
 			return
 		}
 
-		this.m.transactions = KnitFuncs.knit_transactions(r.data as any[], this.m.cats, this.m.sources, this.m.tags)
+		const rawTransactionsById = new Map<string, any>()
+		for (const response of searchResponses) {
+			for (const rawTransaction of response.data as any[]) {
+				rawTransactionsById.set(rawTransaction.id, rawTransaction)
+			}
+		}
+
+		const rawTransactions = Array.from(rawTransactionsById.values()).sort((a:any, b:any) => b.date - a.date)
+		this.m.transactions = KnitFuncs.knit_transactions(rawTransactions, this.m.cats, this.m.sources, this.m.tags)
 
 		this.render({
 			loading: false,
 			error: "",
 			stale: false,
 			hasSearched: true,
-			lastExecutedCriteria: { ...this.s.criteria },
+			lastExecutedCriteria: { ...this.s.criteria, sourceIds: [ ...this.s.criteria.sourceIds ] },
 		})
 	}
 
@@ -236,7 +248,8 @@ class VSearch extends HTMLElement {
 
 		const a = this.s.criteria
 		const b = this.s.lastExecutedCriteria
-		return a.amount === b.amount && a.merchant === b.merchant && a.notes === b.notes && a.sourceId === b.sourceId
+		const sourceIdsMatch = a.sourceIds.length === b.sourceIds.length && a.sourceIds.every((sourceId, i) => sourceId === b.sourceIds[i])
+		return !(a.amount === b.amount && a.merchant === b.merchant && a.notes === b.notes && sourceIdsMatch)
 	}
 
 

@@ -1,5 +1,6 @@
 
 
+
 @media (max-width: 767px) {
 	:host > .wrapper {padding-top: var(--windowtop);} /* took the header height out of it */
 }
@@ -395,7 +396,21 @@ vp-finance-bucket {
     left: 0;
     width: 100%;
     height: 25px;
-    top: calc(100vh - 41px);
+    top: calc(100vh - 31px);
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     
     

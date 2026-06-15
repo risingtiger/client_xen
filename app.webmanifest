@@ -4,87 +4,40 @@
     "description": "Xen",
     "theme_color": "#fff",
     "background_color": "#fff",
+    "orientation": "any",
+    "categories": ["business", "utilities"],
 	"icons": [
 		{
 			"purpose": "any",
-			"src": "/assets/media/pwticons/1024.png",
-			"sizes": "1024x1024",
-			"type": "image/png"
+			"src": "/assets/instance/media/favicon.svg",
+			"sizes": "any",
+			"type": "image/svg+xml"
 		},
 		{
-			"purpose": "any",
-			"src": "/assets/media/pwticons/512.png",
-			"sizes": "512x512",
-			"type": "image/png"
-		},
-
-		{
-		  "purpose": "maskable",
-		  "sizes": "1024x1024",
-		  "src": "/assets/media/pwticons/1024.png",
-		  "type": "image/png"
-		},
-		{
-		  "purpose": "maskable",
-		  "sizes": "512x512",
-		  "src": "/assets/media/pwticons/512.png",
-		  "type": "image/png"
-		},
-		{
-		  "purpose": "maskable",
-		  "sizes": "258x258",
-		  "src": "/assets/media/pwticons/258.png",
-		  "type": "image/png"
-		},
-		{
-		  "purpose": "maskable",
-		  "sizes": "196x196",
-		  "src": "/assets/media/pwticons/196.png",
-		  "type": "image/png"
-		},
-		{
-		  "purpose": "maskable",
-		  "sizes": "128x128",
-		  "src": "/assets/media/pwticons/128.png",
-		  "type": "image/png"
-		},
-		{
-		  "purpose": "maskable",
-		  "sizes": "92x92",
-		  "src": "/assets/media/pwticons/92.png",
-		  "type": "image/png"
-		},
-		{
-		  "purpose": "maskable",
-		  "sizes": "72x72",
-		  "src": "/assets/media/pwticons/72.png",
-		  "type": "image/png"
-		},
-		{
-		  "purpose": "maskable",
-		  "sizes": "48x48",
-		  "src": "/assets/media/pwticons/48.png",
-		  "type": "image/png"
+			"purpose": "maskable",
+			"src": "/assets/instance/media/favicon.svg",
+			"sizes": "any",
+			"type": "image/svg+xml"
 		}
 	],
 	"screenshots": [
-		{
-			"purpose": "any",
-			"src": "/assets/media/pwtscreenshot_narrow.png",
-			"type": "image/png",
-			"sizes": "540x720",
-			"form_factor": "narrow"
-		},
-		{
-			"purpose": "any",
-			"src": "/assets/media/pwtscreenshot_wide.png",
-			"type": "image/png",
-			"sizes": "720x540",
-			"form_factor": "wide"
-		}
+	  {
+		"src": "/assets/instance/media/screenshot_narrow.png",
+		"sizes": "540x720",
+		"type": "image/png",
+		"form_factor": "narrow",
+		"label": "Mobile view of Xen"
+	  },
+	  {
+		"src": "/assets/instance/media/screenshot_wide.png",
+		"sizes": "720x540",
+		"type": "image/png",
+		"form_factor": "wide",
+		"label": "Desktop view of Xen"
+	  }
 	],
     "scope": "ignored",
     "start_url": "ignored",
-    "version":"3452",
+    "version":"3456",
     "display": "ignored"
 }

@@ -1,73 +1,58 @@
 
+
+
+
+
 <div class="wrapper">
 
     <div id="toparea">
 
 		<div class="toparea_row_a">
 
-			<div id="wrap-cat" class="editwrap">
-				<input id="input-cat" type="text" placeholder="category"
-					   class="editprop ${_s.inputmode === 'cat' ? 'highlight' : ''}"
+			<div id="wrap-amount">
+				<span id="amount-currency">$</span>
+				<input id="input-amount" type="number" placeholder="amount"
+					   class="editval ${_s.inputmode === 'amount' ? 'highlight' : ''}"
 					   @input="${this.handle_input_change}"
 					   @keyup="${this.handle_input_keyup}"
 					   @focus="${this.handle_focus}" @blur="${this.handle_blur}"
-					   autocorrect="off"
 					   tabindex="1">
 			</div>
 
-			<div id="wrap-note" class="editwrap">
-				<input id="input-note" type="text" placeholder="note"
-					   class="editprop ${_s.inputmode === 'note' ? 'highlight' : ''}"
-					   @input="${this.handle_input_change}"
-					   @keyup="${this.handle_input_keyup}"
-					   @focus="${this.handle_focus}" @blur="${this.handle_blur}"
-					   tabindex="2">
-			</div>
-
-			<div id="wrap-tag" class="editwrap">
-				<input id="input-tag" type="text" placeholder="tag"
-					   class="editprop ${_s.inputmode === 'tag' ? 'highlight' : ''}"
+			<div id="wrap-merchant">
+				<input id="input-merchant" type="text" placeholder="merchant"
+					   class="editval ${_s.inputmode === 'merchant' ? 'highlight' : ''}"
 					   @input="${this.handle_input_change}"
 					   @keyup="${this.handle_input_keyup}"
 					   @focus="${this.handle_focus}" @blur="${this.handle_blur}"
 					   autocorrect="off"
-					   tabindex="3">
+					   tabindex="2">
 			</div>
 
-
+			<div id="wrap_delete">
+				${ localStorage.getItem('user_email') === 'rfs@risingtiger.com' ? html`<c-btn @btnclick="${(e)=>this.delete(e)}"><i class="icon-trash" class="actionbtn"></i></c-btn>` : ''}
+			</div>
 
 
 		</div>
 
-
 		<div class="toparea_row_b">
 
-			<div id="wrap-amount" class="editwrap">
-				<input id="input-amount" type="number" placeholder="amount"
-					   class="editprop ${_s.inputmode === 'amount' ? 'highlight' : ''}"
-					   @input="${this.handle_input_change}"
-					   @keyup="${this.handle_input_keyup}"
-					   @focus="${this.handle_focus}" @blur="${this.handle_blur}"
-					   tabindex="4">
-			</div>
-
-			<div id="wrap-merchant" class="editwrap">
-				<input id="input-merchant" type="text" placeholder="merchant"
-					   class="editprop ${_s.inputmode === 'merchant' ? 'highlight' : ''}"
-					   @input="${this.handle_input_change}"
-					   @keyup="${this.handle_input_keyup}"
-					   @focus="${this.handle_focus}" @blur="${this.handle_blur}"
-					   autocorrect="off"
-					   tabindex="5">
-			</div>
-
-			<div id="wrap-date" class="editwrap">
+			<div id="wrap-date">
 				<input id="input-date" type="date" placeholder="date"
-					   class="editprop ${_s.inputmode === 'date' ? 'highlight' : ''}"
+					   class="editval ${_s.inputmode === 'date' ? 'highlight' : ''}"
 					   @input="${this.handle_input_change}"
 					   @keyup="${this.handle_input_keyup}"
 					   @focus="${this.handle_focus}" @blur="${this.handle_blur}"
-					   tabindex="6">
+					   tabindex="3">
+			</div>
+
+			<div id="wrap-source">
+				<div id="showsource">${_s.infocus.source?.name ?? 'source'}</div>
+			</div>
+
+			<div id="wrap-ofcount">
+				<div id="ofcount">${_s.index+1} of ${_m.newtransactions.length}</div>
 			</div>
 
 		</div>
@@ -75,34 +60,47 @@
 
 		<div class="toparea_row_c">
 
-			<div id="wrap-source" class="editwrap">
-				<div id="showsource">${_s.infocus.source?.name ?? 'source'}</div>
+			<div id="wrap-cat">
+				<input id="input-cat" type="text" placeholder="category"
+					   class="editval ${_s.inputmode === 'cat' ? 'highlight' : ''}"
+					   @input="${this.handle_input_change}"
+					   @keyup="${this.handle_input_keyup}"
+					   @focus="${this.handle_focus}" @blur="${this.handle_blur}"
+					   autocorrect="off"
+					   tabindex="4">
 			</div>
 
-			<div id="wrap-split" class="editwrap">
-				<div id="split" @click="${()=>this.addsplit()}">${_s.activetransactions.length>1 ? (_s.infocusindex+1) + ' of ' + (Number(_s.activetransactions.length)) : 'add split'}</div>
-				<!--
-				<input id="input-split" type="text" placeholder="split"
-					   class="editprop ${_s.inputmode === 'split' ? 'highlight' : ''}"
-					   @keyup="${(e)=>this.handle_input_keyup(e, 'split')}"
-					   .value=""
-					   tabindex="3">
-				-->
+			<div id="wrap-note">
+				<textarea id="input-note" placeholder="note"
+						  class="editval ${_s.inputmode === 'note' ? 'highlight' : ''}"
+						  @input="${this.handle_input_change}"
+						  @keyup="${this.handle_input_keyup}"
+						  @focus="${this.handle_focus}" @blur="${this.handle_blur}"
+						  rows="3"
+						  tabindex="5"></textarea>
 			</div>
 
-			<div id="wrap-ofcount" class="editwrap">
-				<div id="ofcount">${_s.index+1} of ${_m.newtransactions.length}</div>
+			<div id="wrap-tag">
+				<input id="input-tag" type="text" placeholder="tag"
+					   class="editval ${_s.inputmode === 'tag' ? 'highlight' : ''}"
+					   @input="${this.handle_input_change}"
+					   @keyup="${this.handle_input_keyup}"
+					   @focus="${this.handle_focus}" @blur="${this.handle_blur}"
+					   autocorrect="off"
+					   tabindex="6">
 			</div>
+
 		</div>
+
 
 	</div>
 
-	<div id="splittotal">${_s.original_amount ? _s.activetransactions.reduce((acc, tr) => acc + tr.amount, 0) + ' of ' + _s.original_amount : ''}</div>
+	<!-- <div id="splittotal">${_s.original_amount ? _s.activetransactions.reduce((acc, tr) => acc + tr.amount, 0) + ' of ' + _s.original_amount : ''}</div> -->
 
 	<div id="actionbtns">
-		${ localStorage.getItem('user_email') === 'rfs@risingtiger.com' ? html`<c-btn @btnclick="${(e)=>this.delete(e)}" class="actionbtn">Delete</c-btn>` : ''}
-		<c-btn @btnclick="${(e)=>this.skip(e)}" class="actionbtn">Skip</c-btn>
-		<c-btn @btnclick="${(e)=>this.save_infocus_transaction(e)}" class="actionbtn">Save</c-btn>
+		<c-btn id="skipit" @btnclick="${(e)=>this.skip(e)}" noanime>skip</c-btn>
+		<c-btn id="copyit" @btnclick="${()=>this.copy_transaction()}" noanime>copy</c-btn>
+		<c-btn id="saveit" tabindex="7" @btnclick="${(e)=>this.save_infocus_transaction(e)}" noanime><i class="icon-save" class="actionbtn"></i> save</c-btn>
 	</div>
 
 	<div id="fullmerchant">${_s.infocus.merchant || '--'}</div>
@@ -171,7 +169,10 @@
         <a class="addnew" @click="${()=> this.addnew()}">add new</a>
 		&nbsp; | &nbsp;
         <a class="addnew" @click="${()=> this.addnew(true)}">add new apple</a>
+		${localStorage.getItem('user_email') === 'rfs@risingtiger.com' ? html`
+		&nbsp; | &nbsp;
+		<a class="addnew" @click="${()=> this.toggle_transaction_source_mode()}">${_s.sourcefiltermode === 'hide_visafam' ? 'visafam+' : 'visafam-'}</a>
+		` : ''}
     </footer>
 
 </div>
-

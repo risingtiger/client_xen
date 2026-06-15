@@ -20,14 +20,8 @@
 			<c-in2 label="Category Name" name="name" type="text" val="${_s.editing_cat?.name || ''}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
 			<c-in2 label="Costs (P: ${_s.editing_cat.costs_from_payments})" name="costs" type="number" val="${_s.editing_cat?.costs || 0}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
 			<c-in2 label="Goal" name="goal" type="number" val="${_s.editing_cat?.goal || 0}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
-			<c-in2 label="Quadrant" name="quadrant" type="dselect" val="${_s.editing_cat.tags[0]}" options="Fixed:1,UnFixed:2,Open:3" @update="${(e)=>this.prop_updated(e)}"></c-in2>
-			<c-in2 label="Parent Category" name="parent_category" type="dselect" val="${_s.editing_cat?.parentref?.id}" options="${_m.all_parent_cats_options_str}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
-
-			<!-- Move transactions UI -->
-			<div class="move-transactions">
-				<c-dselect name="move_to_cat" term="category" val="${_s.move_transactions_to_cat_id || ''}" options="${_m.subcategories_options_str}" @update="${(e)=>this.s.move_transactions_to_cat_id=e.detail.newval}"></c-dselect>
-				<c-btn type="button" @click="${()=>this.move_transactions()}" ?disabled="${!_s.move_transactions_to_cat_id}">Move transactions</c-btn>
-			</div>
+			<c-in2 label="Quadrant" name="quadrant" type="select" val="${_s.editing_cat.tags[0]}" options="Fixed:1,UnFixed:2,Open:3" @update="${(e)=>this.prop_updated(e)}"></c-in2>
+			<c-in2 label="Parent Category" name="parent_category" type="select" val="${_s.editing_cat?.parentref?.id}" options="${_m.all_parent_cats_options_str}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
 
 			<c-btn type="button" @click="${()=>this.doneEdit()}">Done</c-btn>
 		</c-form>

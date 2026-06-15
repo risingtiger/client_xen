@@ -28,7 +28,6 @@ type StateT = {
     filter: FilterT,
 		editing_cat: CatT | null,
 		mode: 'view' | 'edit',
-		move_transactions_to_cat_id: string | null,
 }
 
 
@@ -43,7 +42,6 @@ class VPFinanceCats extends HTMLElement {
 		filter: { arearef: null, parentcatref: null, catref: null, sourceref: null, tagsref: null, daterange: null, merchant: null, note: null, amountrange: null, cattags: [] },
 		editing_cat: null,
 		mode: 'view',
-		move_transactions_to_cat_id: null,
 	}
     m:ModelT = {
 		areas: [],
@@ -115,7 +113,6 @@ class VPFinanceCats extends HTMLElement {
 	doneEdit() {
 		this.s.editing_cat = null;
 		this.s.mode = 'view';
-		this.s.move_transactions_to_cat_id = null;
 		this.render();
 	}
 
@@ -163,23 +160,6 @@ class VPFinanceCats extends HTMLElement {
 		e.detail.done()
 	}
 
-
-
-
-	async move_transactions(e:any) {
-
-		if (!this.s.editing_cat || !this.s.move_transactions_to_cat_id)                 { alert('No category or move to in edit.'); return; }
-
-		const from_cat_id = this.s.editing_cat.id;
-		const to_cat_id   = this.s.move_transactions_to_cat_id; 
-
-		let r = await $N.FetchLassie('/api/xen/finance/move_transactions', { method: 'POST', body: JSON.stringify({ from_cat_id, to_cat_id }) }); 
-		if (!r!.ok) { alert('Error: ' + r!.statusText); return; }
-
-		$N.ToastShow('transactions moved over')
-
-		e.detail.done()
-	}
 
 
 

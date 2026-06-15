@@ -189,7 +189,8 @@
                             <td data-id="${t.id}" @click="${(e)=>this.transactionrow_clicked(e)}" class="date">${(new Date(t.date*1000)).toLocaleDateString("en-US", {month: '2-digit', day: '2-digit'}).slice(0,5).replace("/","-")}</td>
                             <td class="merchant">${t.merchant.toLowerCase().slice(0,18)}</td>
                             <td class="category">${t.catref.name.slice(0,9)}</td>
-                            <td class="amount">${Math.round(t.amount)}</td>
+                            <!-- <td class="amount">${Math.round(t.amount)}</td> -->
+                            <td class="amount">${t.amount}</td>
                             <td class="notes">${t.tagsref.map(tg=>html`<span class='tag' @click="${(e)=>this.transaction_tag_clicked(e)}" data-id="${tg.id}">#${tg.name} </span>`)} ${t.notes}</td>
                         </tr>
                     `)}
@@ -260,7 +261,7 @@ ${ _s.balancesview.show_ui !== 0 ? html`
 ` : '' }
 
 ${ _s.editview.show_ui !== 0 ? html`
-	<c-ol2 title="Transaction Details" actionterm="save" @close="${()=> { this.s.editview.show_ui = 0; this.render(); } }">
+	<c-ol2 title="Transaction Details" actionterm="save" @actionclicked="${()=> this.edit_transaction_actionclicked()}" @close="${()=> { this.s.editview.show_ui = 0; this.render(); } }">
 		<vp-financeedittransaction transaction="${_s.editview.transaction_id}"></vp-financeedittransaction>
 	</c-ol2>
 ` : '' }
@@ -279,7 +280,7 @@ ${ _s.sourcesview.show_ui !== 0 ? html`
 ` : ''}
 
 ${ _s.paymentsview.show_ui !== 0 ? html`
-	<c-ol2 title="Payments" ?close="${this.s.paymentsview.show_ui === 2}" @close="${()=> { this.s.paymentsview.show_ui = 0; this.render(); } }">
+	<c-ol2 title="Payments" actionterm="add" ?close="${this.s.paymentsview.show_ui === 2}" @actionclicked="${()=> this.payments_actionclicked()}" @close="${()=> { this.s.paymentsview.show_ui = 0; this.render(); } }">
 		<vp-financepayments></vp-financepayments>
 	</c-ol2>
 ` : ''}

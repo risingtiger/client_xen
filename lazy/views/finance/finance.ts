@@ -471,6 +471,20 @@ class VFinance extends HTMLElement {
 	}
 
 
+	edit_transaction_actionclicked() {
+		const editel = this.shadow.querySelector("vp-financeedittransaction") as any
+		if (!editel) return
+		editel.saveit()
+	}
+
+
+	payments_actionclicked() {
+		const paymentsel = this.shadow.querySelector("vp-financepayments") as any
+		if (!paymentsel) return
+		paymentsel.ol2_actionclicked()
+	}
+
+
 
 
 	calcmonth_clicked(e:MouseEvent) {

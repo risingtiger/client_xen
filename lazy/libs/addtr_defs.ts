@@ -42,15 +42,19 @@ export type NewTransactionT = {
 }
 
 export type AttributesT = {
-    propa: str,
+	propa: str,
 }
+
+export type SourceFilterModeT = 'hide_visafam' | 'show_all'
 
 export type ModelT = {
 	areas: AreaT[], 
+	allcats: CatT[],
 	cats: CatT[], 
 	sources: SourceT[], 
 	tags: TagT[],
 	sheet_transactions: SheetsTransactionT[],
+	allnewtransactions: NewTransactionT[],
 	newtransactions: NewTransactionT[], 
 }
 
@@ -65,7 +69,6 @@ export type StateT = {
 	highlighttag: TagT|null,
 	filteredcats: CatT[],
 	filteredtags: TagT[],
-	original_amount: num | null
+	original_amount: num | null,
+	sourcefiltermode: SourceFilterModeT,
 }
-
-

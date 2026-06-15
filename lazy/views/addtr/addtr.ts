@@ -5,7 +5,7 @@ import { $NT, CMechLoadedDataT, GenericRowT, LazyLoadFuncReturnT, ViewHeaderT } 
 import { SaveNewTransactionServerT, SheetsTransactionT } from "../../../defs_instance_server_symlink.js"
 import { AreaT, CatT, SourceT } from '../../../defs_instance_server_symlink.js'
 import { NewTransactionT, InputModeE, AttributesT, ModelT, StateT } from "../../libs/addtr_defs.js"
-import { HandleInputChange as ItemHandleInputChange, HandleFilteredCatsTagsReset as ItemHandleFilteredCatsTagsReset, Set_Cat_From_Click, Set_Tag_From_Click, HandleUpdateTransactionFromCurrentInputModeInput as ItemHandleUpdateTransactionFromCurrentInputModeInput } from "../../libs/addtr_item.js"
+import { HandleInputChange as ItemHandleInputChange, HandleFilteredCatsTagsReset as ItemHandleFilteredCatsTagsReset, Set_Cat_From_Click, Set_Tag_From_Click, HandleUpdateTransactionFromCurrentInputModeInput as ItemHandleUpdateTransactionFromCurrentInputModeInput, HandleCommitCategoryAndTagInputs as ItemHandleCommitCategoryAndTagInputs } from "../../libs/addtr_item.js"
 import KnitFuncs from "../../libs/knitfuncs.js"
 
 
@@ -22,7 +22,7 @@ const ATTRIBUTES:AttributesT = { propa: "" }
 
 class VAddTr extends HTMLElement {
 	a:AttributesT = { ...ATTRIBUTES }
-	m:ModelT = { areas: [], cats: [], sources: [], tags: [], sheet_transactions:[], newtransactions:[],  }
+	m:ModelT = { areas: [], allcats: [], cats: [], sources: [], tags: [], sheet_transactions:[], allnewtransactions: [], newtransactions:[],  }
 	s:StateT = {
 		index: -1,
 		activetransactions: [],
@@ -33,7 +33,8 @@ class VAddTr extends HTMLElement {
 		highlighttag: null,
 		filteredcats: [],
 		filteredtags: [],
-		original_amount: null
+		original_amount: null,
+		sourcefiltermode: 'hide_visafam'
 	}
 
 	header:ViewHeaderT = { title: '', disable: true }
@@ -107,7 +108,8 @@ class VAddTr extends HTMLElement {
 	ingest = (loadeddata: CMechLoadedDataT) => {
 
 		this.m.areas   = loadeddata.get("areas") as AreaT[]
-		this.m.cats    = loadeddata.get("cats") as CatT[]
+		this.m.allcats = loadeddata.get("cats") as CatT[]
+		this.m.cats    = this.m.allcats.slice()
 		this.m.sources = loadeddata.get("sources") as SourceT[]
 		this.m.tags    = loadeddata.get("tags") as any[]
 
@@ -130,29 +132,11 @@ class VAddTr extends HTMLElement {
 			}
 		}).sort((a, b) => a.date - b.date)
 
-
-		/* ********* FILTER BASED ON USER EMAIL ********* */
-		const source = this.m.sources.find(s=>s.name === "visafam")
-
-		const user_email = localStorage.getItem("user_email") || "";
-
-		if (user_email === "rfs@risingtiger.com") {
-			this.m.newtransactions = all_new_transactions
-		} else {
-			this.m.newtransactions = all_new_transactions.filter(tr => tr.source === source);
-		}
-
+		this.m.allnewtransactions = all_new_transactions
+		this.apply_transaction_source_filter()
+		this.apply_category_filter()
 
 		if (localStorage.getItem("user_email") !== "rfs@risingtiger.com") {
-
-			const filteredcats_being_areafam:CatT[] = []
-			const areafam   = this.m.areas.find(a=>a.name === "fam")
-
-			for (const cat of this.m.cats) {
-				if (cat.arearef !== areafam) continue;
-				filteredcats_being_areafam.push(cat);
-			}
-			this.m.cats = filteredcats_being_areafam;
 			this.m.newtransactions.forEach(tr => tr.notes = '')
 		}
 		/* ********* ************************** ********* */
@@ -163,12 +147,68 @@ class VAddTr extends HTMLElement {
 
 
 
+	apply_transaction_source_filter = () => {
+
+		const user_email = localStorage.getItem("user_email") || "";
+		const visafam_source = this.m.sources.find(s => s.name === "visafam")
+
+		if (!visafam_source) {
+			// Unhandled Case: if the visafam source is missing, we should surface a dedicated filter/load error here.
+			this.m.newtransactions = this.m.allnewtransactions.slice()
+			return;
+		}
+
+		if (user_email !== "rfs@risingtiger.com") {
+			this.m.newtransactions = this.m.allnewtransactions.filter(tr => tr.source === visafam_source)
+			return;
+		}
+
+		if (this.s.sourcefiltermode === 'show_all') {
+			this.m.newtransactions = this.m.allnewtransactions.slice()
+			return;
+		}
+
+		this.m.newtransactions = this.m.allnewtransactions.filter(tr => tr.source !== visafam_source)
+	}
+
+
+
+	apply_category_filter = () => {
+
+		const user_email = localStorage.getItem("user_email") || "";
+		const areafam = this.m.areas.find(a => a.name === "fam")
+
+		if (!areafam) {
+			// Unhandled Case: if the fam area is missing, we should surface a dedicated category-filter error here.
+			this.m.cats = this.m.allcats.slice()
+			return;
+		}
+
+		if (user_email !== "rfs@risingtiger.com") {
+			this.m.cats = this.m.allcats.filter(cat => cat.arearef === areafam)
+			return;
+		}
+
+		if (this.s.sourcefiltermode === 'show_all') {
+			this.m.cats = this.m.allcats.slice()
+			return;
+		}
+
+		this.m.cats = this.m.allcats.filter(cat => cat.arearef !== areafam)
+	}
+
+
+
+
 
 	async hydrated() {
 
 		if (this.m.newtransactions.length === 0) {   alert("no new transactions"); return;   }
 
-		( this.shadow.querySelector("#input-cat") as HTMLInputElement ).focus()
+		// preventScroll: the view is still at translate:100vw (data-active not yet set by switchstation on first load/refresh);
+		// focusing without this would horizontally scroll the window and leave the view visually shifted left.
+		const catel = this.shadow.querySelector("#input-cat") as HTMLInputElement
+		try { catel.focus({ preventScroll: true } as any); } catch { catel.focus(); }
 
 		await this.set_next_focus('standard')
 
@@ -213,7 +253,7 @@ class VAddTr extends HTMLElement {
 
 		if (update_all_inputs) {
 			const catel = this.shadow.querySelector("#input-cat") as HTMLInputElement
-			const notesel = this.shadow.querySelector("#input-note") as HTMLInputElement
+			const notesel = this.shadow.querySelector("#input-note") as HTMLTextAreaElement
 			const tagel = this.shadow.querySelector("#input-tag") as HTMLInputElement
 			const amountel = this.shadow.querySelector("#input-amount") as HTMLInputElement
 			const merchantel = this.shadow.querySelector("#input-merchant") as HTMLInputElement
@@ -222,7 +262,7 @@ class VAddTr extends HTMLElement {
 			catel.value = this.s.infocus.catref?.name ?? ""
 			notesel.value = this.s.infocus.notes
 			tagel.value = this.s.infocus.tags && this.s.infocus.tags.length ? this.s.infocus.tags[0].name : "" 
-			amountel.value = this.s.infocus.amount.toString()
+			amountel.value = this.s.infocus.amount.toFixed(2)
 			merchantel.value = this.s.infocus.merchant
 
 			const date = new Date(this.s.infocus.date * 1000)
@@ -295,6 +335,9 @@ class VAddTr extends HTMLElement {
 
 		ItemHandleUpdateTransactionFromCurrentInputModeInput(
 			this.s.inputmode, this.shadow, this.s.infocus, this.s.highlightcat, this.s.highlighttag
+		)
+		ItemHandleCommitCategoryAndTagInputs(
+			this.shadow, this.s.infocus, this.s.highlightcat, this.s.highlighttag
 		)
 		this.s.inputmode = InputModeE.saving
 		if (!this.s.infocus.catref) { 
@@ -464,6 +507,44 @@ class VAddTr extends HTMLElement {
 
 
 
+	copy_transaction = () => {
+
+		ItemHandleUpdateTransactionFromCurrentInputModeInput(
+			this.s.inputmode, this.shadow, this.s.infocus, this.s.highlightcat, this.s.highlighttag
+		)
+		ItemHandleCommitCategoryAndTagInputs(
+			this.shadow, this.s.infocus, this.s.highlightcat, this.s.highlighttag
+		)
+
+		if (this.s.index < 0 || !this.m.newtransactions[this.s.index]) {
+			// Unhandled Case: if copy is triggered without an indexed transaction, we should surface a dedicated UI warning here.
+			return;
+		}
+
+		const currenttransaction = this.m.newtransactions[this.s.index]
+
+		if (currenttransaction.sheets_id !== this.s.infocus.sheets_id) {
+			// Unhandled Case: if copy is triggered for a manual transaction outside newtransactions, we should insert it into a dedicated draft list instead.
+			return;
+		}
+
+		const copiedtransaction = this.copynewtr(this.s.infocus)
+		const allindex = this.m.allnewtransactions.indexOf(currenttransaction)
+
+		if (allindex === -1) {
+			// Unhandled Case: if the filtered transaction is missing from allnewtransactions, we should rebuild both lists before inserting.
+			return;
+		}
+
+		this.m.newtransactions.splice(this.s.index + 1, 0, copiedtransaction)
+		this.m.allnewtransactions.splice(allindex + 1, 0, copiedtransaction)
+
+		this.render(true)
+		alert("transaction copied")
+	}
+
+
+
 	addnew = (isapple:boolean = false) => {
 
 		const sourceid = isapple ? "7688adbc-13ef-469f-81d7-1e02098d2d06" : "61771fdb-4121-4442-bd4f-057290a64b2e"
@@ -496,17 +577,59 @@ class VAddTr extends HTMLElement {
 
 
 	addsplit = () => {
-		if (this.s.activetransactions.length === 1) {
-			this.s.original_amount = this.s.activetransactions[0].amount
-			this.s.infocus.amount  = 0
+		this.copy_transaction()
+	}
+
+
+
+	toggle_transaction_source_mode = async () => {
+
+		if (localStorage.getItem("user_email") !== "rfs@risingtiger.com") return;
+
+		const currenttransaction = this.m.newtransactions[this.s.index]
+
+		this.s.sourcefiltermode = this.s.sourcefiltermode === 'hide_visafam' ? 'show_all' : 'hide_visafam'
+		this.apply_transaction_source_filter()
+		this.apply_category_filter()
+
+		const nextindex = currenttransaction ? this.m.newtransactions.indexOf(currenttransaction) : -1
+
+		this.s.index = -1
+		this.s.activetransactions = []
+		this.s.infocus = {} as NewTransactionT
+		this.s.infocusindex = -1
+		this.s.inputmode = InputModeE.initial
+		this.s.highlightcat = null
+		this.s.highlighttag = null
+		this.s.original_amount = null
+
+		ItemHandleFilteredCatsTagsReset(this.m, this.s)
+
+		if (this.m.newtransactions.length === 0) {
+			// Unhandled Case: if toggling removes every transaction, we should show an empty-state instead of leaving the form blank.
+			this.render()
+			return;
 		}
 
-		const nt = this.m.newtransactions[this.s.index]
-		nt.amount = 0
-		this.s.activetransactions.push(structuredClone(nt));
-		this.render(true);
+		if (nextindex === -1) {
+			// Unhandled Case: if the focused transaction is removed by the filter, we should pick the nearest visible transaction instead.
+			await this.set_next_focus('standard')
+		} else {
+			this.s.index = nextindex
+			this.s.activetransactions = [this.copynewtr(this.m.newtransactions[this.s.index])]
+			this.s.infocusindex = 0
+			this.s.infocus = this.s.activetransactions[0]
+			this.s.infocus.merchant = simplify_merchant_name(this.s.infocus.merchant)
+		}
 
-		( this.shadow.querySelector("#input-cat") as HTMLInputElement ).focus()
+		this.s.inputmode = InputModeE.cat
+		ItemHandleFilteredCatsTagsReset(this.m, this.s)
+		this.render(true)
+
+		const catel = this.shadow.querySelector("#input-cat") as HTMLInputElement | null
+		if (!catel) return;
+
+		try { catel.focus({ preventScroll: true } as any); } catch { catel.focus(); }
 	}
 
 
@@ -533,7 +656,7 @@ class VAddTr extends HTMLElement {
 		Set_Cat_From_Click(this.m, this.s, e); 
 		this.s.infocus!.catref = this.s.highlightcat;
 		this.render(true); 
-		const inputel = this.shadow.querySelector("#input-note") as HTMLInputElement
+		const inputel = this.shadow.querySelector("#input-note") as HTMLTextAreaElement
 		inputel.focus()
 	}
 	settag_from_click = (e:MouseEvent) => { 
@@ -587,5 +710,3 @@ function simplify_merchant_name(name:string) : string {
  
  
  export {  }
-
-

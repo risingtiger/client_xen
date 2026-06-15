@@ -18,7 +18,7 @@
 					${_s.hasSearched && _s.stale ? html`<span class="stale-indicator" role="status">Results out of date</span>` : ''}
 				</div>
 
-				<p class="criteria-description">Filter by amount, merchant, or notes to locate transactions.</p>
+				<p class="criteria-description">Filter by amount, merchant, source, or notes to locate transactions.</p>
 
 				${_s.error ? html`<p class="form-error" role="alert">${_s.error}</p>` : ''}
 
@@ -35,10 +35,10 @@
 
 				<div class="criteria-field">
 					<label for="search_source">Source</label>
-					<select id="search_source" name="source" .value="${_s.criteria.sourceId ?? ''}" @change="${(event)=>this.onCriteriaInput('source', event)}" ?disabled="${_s.loading}">
-						<option value="">All sources</option>
-						${_m.sources.map((source) => html`<option value="${source.id}">${source.name}</option>`)}
+					<select id="search_source" name="source" multiple size="6" @change="${(event)=>this.onCriteriaInput('source', event)}" ?disabled="${_s.loading}">
+						${_m.sources.map((source) => html`<option value="${source.id}" ?selected="${_s.criteria.sourceIds.includes(source.id)}">${source.name}</option>`)}
 					</select>
+					<span class="field-hint">Select one or more sources. No selection leaves source unfiltered.</span>
 				</div>
 
 				<div class="criteria-field">
@@ -65,6 +65,7 @@
 						<thead>
 							<tr>
 								<th class="date">Date</th>
+								<th class="source">Source</th>
 								<th class="category">Category</th>
 								<th class="merchant">Merchant</th>
 								<th class="amount">Amount</th>
@@ -75,6 +76,7 @@
 							${_m.transactions.map((tx) => html`
 								<tr data-id="${tx.id}">
 									<td class="date">${this.formatDate(tx.date)}</td>
+									<td class="source" title="${tx.sourceref.longname}">${tx.sourceref.name}</td>
 									<td class="category" title="${this.formatCategory(tx.catref)}">${this.formatCategory(tx.catref)}</td>
 									<td class="merchant" title="${tx.merchant}">${tx.merchant}</td>
 									<td class="amount">${this.formatAmount(tx.amount)}</td>

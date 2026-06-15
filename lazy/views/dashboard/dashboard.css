@@ -1,0 +1,354 @@
+:host {
+	display: block;
+	min-width: 0;
+	background: #ffffff;
+	color: #14213d;
+	font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+.dashboard-shell {
+	min-height: 100svh;
+	width: 100%;
+	display: grid;
+	grid-template-rows: auto 1fr auto;
+	gap: 22px;
+	padding: clamp(16px, 3vw, 34px);
+	background: #ffffff;
+}
+
+.dashboard-header,
+.dashboard-footer {
+	width: 100%;
+	border: 1px solid #e6ecf5;
+	border-radius: 28px;
+	background: rgba(255, 255, 255, 0.92);
+	box-shadow: 0 18px 55px rgba(20, 33, 61, 0.08);
+}
+
+.dashboard-header {
+	padding: clamp(20px, 3vw, 34px);
+}
+
+.dashboard-header h1 {
+	margin: 0;
+	font-size: clamp(34px, 6vw, 76px);
+	line-height: 0.95;
+	letter-spacing: -0.07em;
+	font-weight: 800;
+}
+
+.dashboard-layout {
+	width: 100%;
+	min-height: 0;
+	display: grid;
+	grid-template-columns: minmax(180px, 1fr) minmax(0, 2fr) minmax(180px, 1fr);
+	grid-template-areas: "left center right";
+	gap: clamp(14px, 2vw, 24px);
+	align-items: stretch;
+}
+
+.dashboard-panel,
+.chart-card {
+	min-width: 0;
+	border: 1px solid #e6ecf5;
+	border-radius: 30px;
+	background: rgba(255, 255, 255, 0.94);
+	box-shadow: 0 18px 55px rgba(20, 33, 61, 0.08);
+}
+
+.dashboard-nav {
+	grid-area: left;
+}
+
+.dashboard-center {
+	grid-area: center;
+	min-width: 0;
+}
+
+.dashboard-metrics {
+	grid-area: right;
+}
+
+.dashboard-panel {
+	display: grid;
+	align-content: start;
+	gap: 14px;
+	padding: clamp(14px, 2vw, 22px);
+}
+
+.panel-heading p,
+.chart-heading p,
+.dashboard-footer p {
+	margin: 0;
+	font-size: 12px;
+	line-height: 1;
+	letter-spacing: 0.18em;
+	text-transform: uppercase;
+	font-weight: 800;
+	color: #75839a;
+}
+
+.mini-card {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: 14px;
+	align-items: center;
+	min-height: 112px;
+	padding: 16px;
+	border: 1px solid #dce8f7;
+	border-radius: 24px;
+	background: linear-gradient(135deg, #f7fbff 0%, #edf6ff 100%);
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.mini-card-active {
+	border-color: #5b8def;
+	background: linear-gradient(135deg, #e9f1ff 0%, #dfeaff 100%);
+	box-shadow:
+		0 14px 32px rgba(91, 141, 239, 0.18),
+		inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+.mini-card-icon {
+	width: clamp(54px, 5vw, 70px);
+	height: clamp(54px, 5vw, 70px);
+	display: grid;
+	place-items: center;
+	border-radius: 22px;
+	background: #ffffff;
+	color: #2854c5;
+	font-size: clamp(30px, 4vw, 42px);
+	font-weight: 800;
+	box-shadow: 0 12px 28px rgba(40, 84, 197, 0.13);
+}
+
+.mini-card h2 {
+	margin: 0 0 8px;
+	font-size: clamp(18px, 1.6vw, 24px);
+	line-height: 1.05;
+	letter-spacing: -0.03em;
+	font-weight: 800;
+}
+
+.mini-card p {
+	margin: 0;
+	font-size: clamp(13px, 1.1vw, 15px);
+	line-height: 1.35;
+	color: #65738a;
+}
+
+.metric-card p {
+	font-size: clamp(22px, 2.2vw, 34px);
+	line-height: 1;
+	letter-spacing: -0.05em;
+	font-weight: 800;
+	color: #1f9d6a;
+}
+
+.chart-card {
+	height: 100%;
+	min-height: 520px;
+	display: grid;
+	grid-template-rows: auto 1fr;
+	gap: 24px;
+	padding: clamp(18px, 2.7vw, 34px);
+	overflow: hidden;
+}
+
+.chart-heading {
+	display: flex;
+	justify-content: space-between;
+	gap: 16px;
+	align-items: start;
+}
+
+.chart-heading h2 {
+	margin: 10px 0 0;
+	font-size: clamp(28px, 4vw, 54px);
+	line-height: 0.98;
+	letter-spacing: -0.06em;
+	font-weight: 800;
+}
+
+.chart-heading span {
+	flex: 0 0 auto;
+	padding: 10px 14px;
+	border-radius: 999px;
+	background: #f0f5ff;
+	color: #2854c5;
+	font-size: 13px;
+	font-weight: 800;
+}
+
+.chart-wrap {
+	min-height: 0;
+	display: grid;
+	grid-template-columns: 56px 1fr;
+	gap: 14px;
+	align-items: stretch;
+}
+
+.chart-y-axis {
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	padding: 0 0 34px;
+	text-align: right;
+	color: #75839a;
+	font-size: 12px;
+	font-weight: 800;
+}
+
+.chart-plot {
+	position: relative;
+	min-width: 0;
+	min-height: 330px;
+	padding: 18px 16px 0;
+	border: 1px solid #e7edf6;
+	border-radius: 24px;
+	background:
+		linear-gradient(to bottom, rgba(117, 131, 154, 0.18) 1px, transparent 1px) 0 0 / 100% 25%,
+		linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.chart-bars {
+	height: 100%;
+	display: grid;
+	grid-template-columns: repeat(12, minmax(0, 1fr));
+	gap: clamp(6px, 1vw, 16px);
+	align-items: end;
+}
+
+.chart-month {
+	height: 100%;
+	min-width: 0;
+	display: grid;
+	grid-template-rows: 1fr auto;
+	gap: 10px;
+	align-items: end;
+	justify-items: center;
+}
+
+.chart-month span {
+	width: 100%;
+	max-width: 42px;
+	height: var(--bar-height);
+	min-height: 18px;
+	border-radius: 999px 999px 10px 10px;
+	background: linear-gradient(180deg, #5b8def 0%, #6fe7b7 100%);
+	box-shadow: 0 14px 28px rgba(91, 141, 239, 0.22);
+}
+
+.chart-month strong {
+	padding-bottom: 10px;
+	font-size: clamp(10px, 0.9vw, 13px);
+	line-height: 1;
+	color: #65738a;
+}
+
+.dashboard-footer {
+	padding: 18px clamp(20px, 3vw, 34px);
+}
+
+@media (max-width: 980px) {
+	.dashboard-layout {
+		grid-template-columns: 1fr 1fr;
+		grid-template-areas:
+			"center center"
+			"left right";
+	}
+
+	.chart-card {
+		min-height: 460px;
+	}
+}
+
+@media (max-width: 640px) {
+	.dashboard-shell {
+		gap: 14px;
+		padding: 12px;
+	}
+
+	.dashboard-header,
+	.dashboard-footer,
+	.dashboard-panel,
+	.chart-card {
+		border-radius: 22px;
+	}
+
+	.dashboard-layout {
+		grid-template-columns: 1fr;
+		grid-template-areas:
+			"left"
+			"center"
+			"right";
+	}
+
+	.dashboard-panel {
+		gap: 10px;
+		padding: 12px;
+	}
+
+	.mini-card {
+		min-height: 92px;
+		padding: 12px;
+		border-radius: 18px;
+	}
+
+	.chart-card {
+		min-height: 430px;
+		gap: 18px;
+		padding: 16px;
+	}
+
+	.chart-heading {
+		align-items: center;
+	}
+
+	.chart-heading span {
+		font-size: 11px;
+		padding: 8px 10px;
+	}
+
+	.chart-wrap {
+		grid-template-columns: 46px 1fr;
+		gap: 10px;
+	}
+
+	.chart-y-axis {
+		font-size: 11px;
+	}
+
+	.chart-plot {
+		min-height: 270px;
+		padding: 16px 12px 0;
+	}
+}
+
+@media (max-width: 480px) {
+	.chart-heading span {
+		font-size: 0;
+	}
+
+	.chart-heading span::before {
+		content: "Jan-Mar";
+		font-size: 11px;
+	}
+
+	.chart-bars {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 18px;
+	}
+
+	.phone-hidden-month {
+		display: none;
+	}
+
+	.chart-month span {
+		max-width: 58px;
+	}
+}

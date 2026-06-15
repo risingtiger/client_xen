@@ -95,7 +95,8 @@
 }
 
 .criteria-field input,
-.criteria-field textarea {
+.criteria-field textarea,
+.criteria-field select {
 	width: 100%;
 	border: 1px solid #cdd6e0;
 	border-radius: 10px;
@@ -106,16 +107,21 @@
 	transition: border-color 0.2s ease, box-shadow 0.2s ease;
 	box-sizing: border-box;
 }
+.criteria-field select {
+	height: 150px;
+}
 
 .criteria-field input:focus,
-.criteria-field textarea:focus {
+.criteria-field textarea:focus,
+.criteria-field select:focus {
 	outline: none;
 	border-color: #7ec6f1;
 	box-shadow: 0 0 0 3px rgb(126 198 241 / 30%);
 }
 
 .criteria-field input:disabled,
-.criteria-field textarea:disabled {
+.criteria-field textarea:disabled,
+.criteria-field select:disabled {
 	background: #f1f3f5;
 	color: #8a939d;
 }
@@ -190,7 +196,7 @@
 .tablewrap table {
 	width: 100%;
 	border-collapse: collapse;
-	min-width: 520px;
+	min-width: 620px;
 }
 
 .tablewrap thead th {
@@ -223,7 +229,8 @@
 	text-align: right;
 }
 
-.tablewrap td.date {
+.tablewrap td.date,
+.tablewrap td.source {
 	white-space: nowrap;
 	font-weight: 500;
 }

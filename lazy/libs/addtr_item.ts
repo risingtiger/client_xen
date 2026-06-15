@@ -2,6 +2,7 @@
 import { str } from "../../defs_server_symlink.js"
 import { CatT, TagT } from "../../defs_instance_server_symlink.js"
 import { InputModeE, ModelT, StateT, NewTransactionT } from "./addtr_defs.js"
+import { FilterCatsFuzzy, FilterTagsFuzzy } from "./addtr_fuzzy.js"
 
 
 
@@ -39,11 +40,12 @@ export const HandleUpdateTransactionFromCurrentInputModeInput = (
 	highlighttag: TagT|null
 ) => {
 
-	const inputel = (shadowdom.querySelector(`#input-${inputmode}`) as HTMLInputElement)!
+	const inputel = (shadowdom.querySelector(`#input-${inputmode}`) as HTMLInputElement | HTMLTextAreaElement)!
 
 	if (inputmode === InputModeE.cat) {
 		if (highlightcat && inputel.value.length > 0) {
 			infocus.catref = highlightcat;
+			inputel.value = highlightcat.name;
 		}
 	}
 	else if (inputmode === InputModeE.note) {
@@ -52,6 +54,7 @@ export const HandleUpdateTransactionFromCurrentInputModeInput = (
 	else if (inputmode === InputModeE.tag && inputel.value.length > 0) {
 		if (highlighttag) {
 			infocus!.tags = [highlighttag!];
+			inputel.value = highlighttag.name;
 		} else { 
 			infocus.tags = [];
 		}
@@ -73,6 +76,28 @@ export const HandleUpdateTransactionFromCurrentInputModeInput = (
 	}
 }
 
+
+
+
+export const HandleCommitCategoryAndTagInputs = (
+	shadowdom:any,
+	infocus:NewTransactionT,
+	highlightcat: CatT|null,
+	highlighttag: TagT|null
+) => {
+
+	const catinputel = shadowdom.querySelector("#input-cat") as HTMLInputElement | null
+	if (catinputel && catinputel.value.length > 0 && highlightcat) {
+		infocus.catref = highlightcat
+		catinputel.value = highlightcat.name
+	}
+
+	const taginputel = shadowdom.querySelector("#input-tag") as HTMLInputElement | null
+	if (taginputel && taginputel.value.length > 0 && highlighttag) {
+		infocus.tags = [highlighttag]
+		taginputel.value = highlighttag.name
+	}
+}
 
 
 
@@ -101,45 +126,14 @@ export const Set_Tag_From_Click = (m:ModelT, s:StateT, e:MouseEvent) => {
 
 
 const filter_cats = (m:ModelT, s:StateT, inputval:string) => {
-	
-	const filteredcats:CatT[] = []
 
-	for (const cat of m.cats) {
-
-		const parentCatCopy: CatT = {...cat, subsref: []};
-		let isparentcatincluded = false;
-
-		for (const subcat of cat.subsref!) {
-			if (subcat.name.toLowerCase().includes(inputval.toLowerCase())) {
-				isparentcatincluded = true;
-				parentCatCopy.subsref!.push(subcat);
-			}
-		}
-
-		if (isparentcatincluded) {
-			filteredcats.push(parentCatCopy);
-		}
-	}
-
-	s.filteredcats = filteredcats;
+	s.filteredcats = FilterCatsFuzzy(m.cats, inputval)
 }
 
 
 
 
 const filter_tags = (m:ModelT, s:StateT, inputval:string) => {
-	
-	const filteredtags:TagT[] = []
 
-	for (const tag of m.tags) {
-		if (tag.name.toLowerCase().includes(inputval.toLowerCase())) {
-			filteredtags.push(tag)
-		}
-	}
-
-	s.filteredtags = filteredtags;
+	s.filteredtags = FilterTagsFuzzy(m.tags, inputval)
 }
-
-
-
-

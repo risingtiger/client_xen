@@ -1,10 +1,3 @@
-<div class="icobtns" style="display: ${_s.mode === 'edit' ? 'block' : 'none'}">
-	<div class="icobtn" @click="${()=> this.prop_updated()}">
-		<i class="icon-save" ></i>
-	</div>
-</div>
-
-
 <div class="wrap">
 	<div id="paymentsview" style="display: ${_s.mode === 'view' ? 'block' : 'none'}">
 
@@ -42,24 +35,26 @@
 
 
 
-	<div id="paymentsedit" style="display: ${_s.mode === 'edit' ? 'block' : 'none'}">
+	<div id="paymentsedit" style="display: ${_s.mode !== 'view' ? 'block' : 'none'}">
 	  ${_s.editing_payment ? html`
 		<c-form name="paymentform">
-		  <c-in2 label="Payee" name="payee" type="text" val="${_s.editing_payment.payee || ''}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
-		  <c-in2 label="Amount" name="amount" type="number" val="${_s.editing_payment.amount || 0}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
-		  <c-in2 label="Day" name="day" type="number" val="${_s.editing_payment.day || 0}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
-		  <c-in2 label="Auto" name="is_auto" type="toggle" val="${_s.editing_payment.is_auto ? 'true' : 'false'}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
-		  <c-in2 label="Varies" name="varies" type="toggle" val="${_s.editing_payment.varies ? 'true' : 'false'}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
-		  <c-in2 label="Notes" name="notes" type="text" val="${_s.editing_payment.notes || ''}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
+		  <c-in2 label="Payee" name="payee" type="text" val="${_s.editing_payment.payee || ''}"></c-in2>
+		  <c-in2 label="Amount" name="amount" type="number" val="${_s.editing_payment.amount || 0}"></c-in2>
+		  <c-in2 label="Day" name="day" type="number" val="${_s.editing_payment.day || 0}"></c-in2>
+		  <c-in2 label="Auto" name="is_auto" type="toggle" val="${_s.editing_payment.is_auto ? 'true' : 'false'}"></c-in2>
+		  <c-in2 label="Varies" name="varies" type="toggle" val="${_s.editing_payment.varies ? 'true' : 'false'}"></c-in2>
+		  <c-in2 label="Notes" name="notes" type="text" val="${_s.editing_payment.notes || ''}"></c-in2>
+		  <c-in2 label="Merchant Str" name="merchantstr" type="text" val="${_s.editing_payment.merchantstr || ''}"></c-in2>
 
-		  <c-in2 label="Recurrence" name="recurence" type="dselect" val="${_s.editing_payment.recurence}" options="yearly:yearly,monthly:monthly,weekly:weekly,daily:daily,once:once" @update="${(e)=>this.prop_updated(e)}"></c-in2>
+		  <c-in2 label="Recurrence" name="recurence" type="select" val="${_s.editing_payment.recurence}" options="yearly:yearly,monthly:monthly,weekly:weekly,daily:daily,once:once"></c-in2>
 
-		  <c-in2 label="Type" name="type" type="dselect" val="${_s.editing_payment.type}" options="carloan:carloan,creditcard:creditcard,cyclecredit:cyclecredit,debtaccount:debtaccount,insurance:insurance,rent:rent,subscription:subscription,utilities:utilities" @update="${(e)=>this.prop_updated(e)}"></c-in2>
+		  <c-in2 label="Type" name="type" type="select" val="${_s.editing_payment.type}" options="carloan:carloan,creditcard:creditcard,cyclecredit:cyclecredit,debtaccount:debtaccount,insurance:insurance,rent:rent,subscription:subscription,utilities:utilities"></c-in2>
 
-		  <c-in2 label="Cat" name="cat" type="dselect" val="${_s.editing_payment.catref?.id || 'NONE'}" options="NONE:NONE,${_m.cats_options_str}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
-		  <c-in2 label="Payment Source" name="payment_source" type="dselect" val="${_s.editing_payment.payment_sourceref?.id || 'NONE'}" options="NONE:NONE,${_m.sources_options_str}" @update="${(e)=>this.prop_updated(e)}"></c-in2>
+		  <c-in2 label="Cat" name="cat" type="select" val="${_s.editing_payment.catref?.id || 'NONE'}" options="NONE:NONE,${_m.cats_options_str}"></c-in2>
+		  <c-in2 label="Payment Source" name="payment_source" type="select" val="${_s.editing_payment.sourceref?.id || 'NONE'}" options="NONE:NONE,${_m.sources_options_str}"></c-in2>
 
 		  <c-btn type="button" @click="${()=>this.doneEdit()}">Done</c-btn>
+		  ${_s.mode === 'edit' ? html`<c-btn type="button" @click="${()=>this.deletePayment()}">Delete</c-btn>` : ''}
 		</c-form>
 	  ` : ''}
 	</div>

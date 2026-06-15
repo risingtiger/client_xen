@@ -30,6 +30,14 @@
     },
     {
       "type": "view",
+      "urlmatch": "dashboard",
+      "name": "dashboard",
+      "is_instance": true,
+      "dependencies": [],
+      "auth": []
+    },
+    {
+      "type": "view",
       "urlmatch": "finance/:tempid",
 		"subs": [
 			{
@@ -74,17 +82,6 @@
 		],
 		"auth": ["admin"],
 		"localdb_preload": ["areas", "cats", "sources", "tags"]
-	},
-    {
-      "type":	  "view",
-      "urlmatch": "femquest",
-      "name":	  "femquest",
-      "is_instance": true,
-      "dependencies": [
-		{"type": "component", "name": "btn"},
-		{"type": "component", "name": "toast"}
-      ],
-      "auth": []
-    }
+	}
   ]
 }
